@@ -97,6 +97,8 @@ func lexSourceUnit(l *lexer) stateFn {
 		case isLetter(char):
 			l.state = lexSourceUnit
 			return lexIdentifier
+		default:
+			return l.errorf("Unrecognised character in source unit: '%c'", char)
 		}
 	}
 }
@@ -113,126 +115,80 @@ func lexIdentifier(l *lexer) stateFn {
 		default:
 			// We are sitting on something different than alphanumeric so just go back.
 			l.backup()
-			l.emit(token.LookupIdent(l.input[l.start:l.pos]))
-			// Go back to the previous state.
-			return l.state
+			typ := token.LookupIdent(l.input[l.start:l.pos])
+			// No matter what we found, we emit it.
+			l.emit(typ)
+
+			// But we can decide what to do next based on the type of the token.
+			switch typ {
+			// @TODO: Inheritance specifiers will go here as well.
+			case token.CONTRACT:
+				return lexContractDeclaration
+			default:
+				// Go back to the previous state.
+				return l.state
+			}
 		}
 	}
 }
 
-// func lexFile(l *lexer) stateFn {
-// 	for {
-// 		if strings.HasPrefix(l.input[l.pos:], contract) {
-// 			// If there was some text before the Contract declaration,
-// 			// we just skip it for now
-// 			if l.pos > l.start {
-// 				l.ignore()
-// 			}
-// 			return lexContract
-// 		}
-//
-// 		if l.readChar() == eof {
-// 			break
-// 		}
-// 	}
-//
-// 	// If there was some text before the EOF token,
-// 	// and we don't know how to handle it, we just skip it for now.
-// 	if l.pos > l.start {
-// 		l.ignore()
-// 	}
-// 	// Reached the end of the input file.
-// 	l.emit(token.EOF)
-// 	return nil
-// }
-//
-// func lexContract(l *lexer) stateFn {
-// 	l.pos += len(contract)
-// 	l.emit(token.CONTRACT)
-// 	return lexContractDeclaration
-// }
-//
-// func lexContractDeclaration(l *lexer) stateFn {
-// 	for {
-// 		if strings.HasPrefix(l.input[l.pos:], leftBrace) {
-// 			return lexLeftBrace
-// 		}
-//
-// 		switch char := l.readChar(); {
-// 		case isWhitespace(char):
-// 			l.ignore()
-// 		case char == eof:
-// 			return l.errorf("Contract declaration not finished")
-// 		case isLetter(char):
-// 			l.state = lexContractDeclaration
-// 			return lexIdentifier
-// 		}
-// 	}
-// }
-//
-// func lexIdentifier(l *lexer) stateFn {
-// 	for {
-// 		switch char := l.readChar(); {
-// 		case isLetter(char):
-// 			// Do nothing, just keep reading.
-// 		default:
-// 			// We are sitting on something different than alphanumeric so just go back.
-// 			l.backup()
-// 			l.emit(token.IDENTIFIER)
-// 			// Go back to the previous state.
-// 			return l.state
-// 		}
-// 	}
-// }
-//
-// func lexLeftBrace(l *lexer) stateFn {
-// 	l.pos += len(leftBrace)
-// 	l.emit(token.LBRACE)
-// 	return lexInsideBraces
-// }
-//
-// func lexInsideBraces(l *lexer) stateFn {
-// 	if strings.HasPrefix(l.input[l.pos:], rightBrace) {
-// 		return lexRightBrace
-// 	}
-//
-// 	for {
-// 		switch char := l.readChar(); {
-// 		case isLetter(char):
-// 			l.state = lexInsideBraces
-// 			return lexIdentifier
-// 		case isDigit(char):
-// 			l.state = lexInsideBraces
-// 			return lexNumber
-// 		case char == ';':
-// 			l.emit(token.SEMICOLON)
-// 		case isWhitespace(char):
-// 			l.ignore()
-// 		}
-// 	}
-// }
-//
-// func lexRightBrace(l *lexer) stateFn {
-// 	l.pos += len(rightBrace)
-// 	l.emit(token.RBRACE)
-// 	// @TODO: If next char is ), we could be inside function params
-// 	return lexFile
-// }
-//
-// func lexNumber(l *lexer) stateFn {
-// 	for {
-// 		switch char := l.readChar(); {
-// 		case isDigit(char):
-// 			// Do nothing, just keep reading.
-// 		default:
-// 			// We are sitting on something different than a digit so just go back.
-// 			l.backup()
-// 			l.emit(token.UINT)
-// 			// Go back to the previous state.
-// 			return l.state
-// 		}
-// 	}
-// }
+func lexContractDeclaration(l *lexer) stateFn {
+	for {
+		switch char := l.readChar(); {
+		case isWhitespace(char):
+			l.ignore()
+		case char == eof:
+			return l.errorf("Contract declaration not finished")
+		case isLetter(char):
+			l.state = lexContractDeclaration
+			return lexIdentifier
+		case char == '{':
+			l.emit(token.LBRACE)
+			return lexInsideContract
+		default:
+			return l.errorf("Unrecognised character in contract declaration: '%c'", char)
+		}
+	}
+}
+
+func lexInsideContract(l *lexer) stateFn {
+	for {
+		switch char := l.readChar(); {
+		case isWhitespace(char):
+			l.ignore()
+		case char == eof:
+			return l.errorf("Contract not closed properly with '}'")
+		case isLetter(char):
+			l.state = lexInsideContract
+			return lexIdentifier
+		case isDigit(char):
+			l.state = lexInsideContract
+			return lexNumber
+		case char == '}':
+			l.emit(token.RBRACE)
+			return lexSourceUnit
+		case char == ';':
+			l.emit(token.SEMICOLON)
+		case char == '=':
+			l.emit(token.ASSIGN)
+		default:
+			return l.errorf("Unrecognised character inside contract: '%c'", char)
+		}
+	}
+}
+
+func lexNumber(l *lexer) stateFn {
+	for {
+		switch char := l.readChar(); {
+		case isDigit(char):
+			// Do nothing, just keep reading.
+		default:
+			l.backup()
+			l.emit(token.INT)
+			return l.state
+		}
+	}
+}
 
 // readChar reads the next rune from the input, advances the position
 // and returns the rune.

@@ -69,6 +69,7 @@ const (
 	elementary_type_beg
 	INT
 	UINT
+	UINT256
 	BYTES
 	ADDRESS
 	STRING
@@ -78,14 +79,22 @@ const (
 	IDENTIFIER // x, y, foo, bar, etc. not a keyword, not a reserved word
 )
 
-// Tokens returns a human readable token name, given the int token type.
 var Tokens = [...]string{
 	ERROR:      "ERROR",
 	EOF:        "EOF",
 	COMMENT:    "COMMENT",
 	IDENTIFIER: "IDENTIFIER",
-	CONTRACT:   "Contract",
-	UINT:       "uint",
+
+	// Keywords
+	CONTRACT: "Contract",
+	UINT:     "uint",
+	UINT256:  "uint256",
+	INT:      "int",
+	FUNCTION: "function",
+
+	LBRACE:    "{",
+	RBRACE:    "}",
+	SEMICOLON: ";",
 }
 
 var keywords map[string]TokenType
