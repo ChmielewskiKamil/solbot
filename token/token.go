@@ -29,14 +29,12 @@ func (tkn Token) String() string {
 	return fmt.Sprintf("%q", tkn.Literal)
 }
 
+// Solidity tokens based on the [solc tokens](https://github.com/ethereum/solidity/blob/afda6984723fca99e82ebf34d0aec1804f1f3ce6/liblangutil/Token.h#L67),
+// with a couple of small tweaks e.g. ERROR, EOS->EOF.
 const (
-	// Special tokens
-	_ TokenType = iota
-	ERROR
+	ERROR TokenType = iota
 	EOF
 	COMMENT
-
-	IDENTIFIER // x, y, foo, bar, etc.
 
 	// Binary Operators
 	ASSIGN   // =
@@ -60,13 +58,57 @@ const (
 	RBRACE    // }
 
 	// Keywords
+	keyword_beg
 	CONTRACT
 	FUNCTION
+	IF
+	ELSE
+	keyword_end
 
-	// Elementary Types
-	UINT
+	// Elementary Type Keywords
+	elementary_type_beg
 	INT
+	UINT
+	BYTES
 	ADDRESS
 	STRING
 	BOOL
+	elementary_type_end
+
+	IDENTIFIER // x, y, foo, bar, etc. not a keyword, not a reserved word
 )
+
+// Tokens returns a human readable token name, given the int token type.
+var Tokens = [...]string{
+	ERROR:      "ERROR",
+	EOF:        "EOF",
+	COMMENT:    "COMMENT",
+	IDENTIFIER: "IDENTIFIER",
+	CONTRACT:   "Contract",
+	UINT:       "uint",
+}
+
+var keywords map[string]TokenType
+var elementaryTypes map[string]TokenType
+
+func init() {
+	keywords = make(map[string]TokenType, keyword_end-(keyword_beg+1))
+	for i := keyword_beg + 1; i < keyword_end; i++ {
+		keywords[Tokens[i]] = i
+	}
+
+	elementaryTypes = make(map[string]TokenType, elementary_type_end-(elementary_type_beg+1))
+	for i := elementary_type_beg + 1; i < elementary_type_end; i++ {
+		elementaryTypes[Tokens[i]] = i
+	}
+}
+
+func LookupIdent(ident string) TokenType {
+	if tok, ok := keywords[ident]; ok {
+		return tok
+	}
+	if tok, ok := elementaryTypes[ident]; ok {
+		return tok
+	}
+	return IDENTIFIER
+}
