@@ -16,7 +16,7 @@ func (tkn Token) String() string {
 	switch tkn.Type {
 	case EOF:
 		return "EOF"
-	case ERROR:
+	case ILLEGAL:
 		return "Error: " + tkn.Literal
 	}
 
@@ -29,69 +29,257 @@ func (tkn Token) String() string {
 	return fmt.Sprintf("%q", tkn.Literal)
 }
 
-// Solidity tokens based on the [solc tokens](https://github.com/ethereum/solidity/blob/afda6984723fca99e82ebf34d0aec1804f1f3ce6/liblangutil/Token.h#L67),
-// with a couple of small tweaks e.g. ERROR, EOS->EOF.
+// Solidity tokens based on the [solc tokens].
+// Token names are exactly the same. The only difference is that they are formatted with screaming snake case.
+// EOS (End of Source) is renamed to EOF (End of File).
+// @TODO: Decide what to do with elementary types like UINT_M, INT_M, BYTES_M etc.
+// Solc handles them in [a dynamic way]. We could do the same, but it would add a bit of complexity to the lexer.
+// On the other hand these could be hardcoded into the list as well.
+//
+// [solc tokens]: https://github.com/ethereum/solidity/blob/afda6984723fca99e82ebf34d0aec1804f1f3ce6/liblangutil/Token.cpp#L183-L226
+// [a dynamic way]: https://github.com/ethereum/solidity/blob/afda6984723fca99e82ebf34d0aec1804f1f3ce6/liblangutil/Token.cpp#L183-L226
 const (
-	ERROR TokenType = iota
+	ILLEGAL TokenType = iota
 	EOF
-	COMMENT
+
+	// Punctuators/Delimeters
+	LPAREN       // (
+	RPAREN       // )
+	LBRACKET     // [
+	RBRACKET     // ]
+	LBRACE       // {
+	RBRACE       // }
+	COLON        // :
+	SEMICOLON    // ;
+	PERIOD       // .
+	CONDITIONAL  // ?
+	DOUBLE_ARROW // => e.g. Solidity uses => for mapping
+	RIGHT_ARROW  // ->
+
+	// Assignment Operators
+	ASSIGN         // =
+	ASSIGN_BIT_OR  // |=
+	ASSIGN_BIT_XOR // ^=
+	ASSIGN_BIT_AND // &=
+	ASSIGN_SHL     // <<=
+	ASSIGN_SAR     // >>=
+	ASSIGN_SHR     // >>>=
+	ASSIGN_ADD     // +=
+	ASSIGN_SUB     // -=
+	ASSIGN_MUL     // *=
+	ASSIGN_DIV     // /=
+	ASSIGN_MOD     // %=
 
 	// Binary Operators
-	ASSIGN   // =
-	PLUS     // +
-	MINUS    // -
-	ASTERISK // *
-	FSLASH   // /
+	COMMA   // ,
+	OR      // ||
+	AND     // &&
+	BIT_OR  // |
+	BIT_XOR // ^
+	BIT_AND // &
+	SHL     // <<
+	SAR     // >>
+	SHR     // >>>
+	ADD     // +
+	SUB     // -
+	MUL     // *
+	DIV     // /
+	MOD     // %
+	EXP     // **
 
-	// Operators: Comparison
-	LT     // <
-	GT     // >
-	EQ     // ==
-	NOT_EQ // !=
+	// Comparison Operators
+	EQUAL                 // ==
+	NOT_EQUAL             // !=
+	LESS_THAN             // <
+	GREATER_THAN          // >
+	LESS_THAN_OR_EQUAL    // <=
+	GREATER_THAN_OR_EQUAL // >=
 
-	// Delimiters
-	COMMA     // ,
-	SEMICOLON // ;
-	LPAREN    // (
-	RPAREN    // )
-	LBRACE    // {
-	RBRACE    // }
+	// Unary Operators
+	NOT     // !
+	BIT_NOT // ~
+	INC     // ++
+	DEC     // --
+	DELETE  // delete
+
+	// Inline Assembly Operators
+	ASSEMBLY_ASSIGN // :=
 
 	// Keywords
 	keyword_beg
+	ABSTRACT
+	ANONYMOUS
+	AS
+	ASSEMBLY
+	BREAK
+	CATCH
+	CONSTANT
+	CONSTRUCTOR
+	CONTINUE
 	CONTRACT
-	FUNCTION
-	IF
+	DO
 	ELSE
+	ENUM
+	EMIT
+	EVENT
+	EXTERNAL
+	FALLBACK
+	FOR
+	FUNCTION
+	HEX
+	IF
+	INDEXED
+	INTERFACE
+	INTERNAL
+	IMMUTABLE
+	IMPORT
+	IS
+	LIBRARY
+	MAPPING
+	MEMORY
+	MODIFIER
+	NEW
+	OVERRIDE
+	PAYABLE
+	PUBLIC
+	PRAGMA
+	PRIVATE
+	PURE
+	RECEIVE
+	RETURN
+	RETURNS
+	STORAGE
+	CALLDATA
+	STRUCT
+	THROW
+	TRY
+	TYPE
+	UNCHECKED
+	USING
+	VIEW
+	VIRTUAL
+	WHILE
 	keyword_end
+
+	// Ether Subdenominations
+	SUB_WEI    // wei
+	SUB_GWEI   // gwei
+	SUB_ETHER  // ether
+	SUB_SECOND // seconds
+	SUB_MINUTE // minutes
+	SUB_HOUR   // hours
+	SUB_DAY    // days
+	SUB_WEEK   // weeks
+	SUB_YEAR   // years
 
 	// Elementary Type Keywords
 	elementary_type_beg
 	INT
 	UINT
-	UINT256
 	BYTES
-	ADDRESS
 	STRING
+	ADDRESS
 	BOOL
+	FIXED
+	UFIXED
+	INT_M   // 0 < M && M <= 256 && M % 8 == 0
+	UINT_M  // 0 < M && M <= 256 && M % 8 == 0
+	BYTES_M // 0 < M && M <= 32
+	FIXED_MxN
+	UFIXED_MxN
 	elementary_type_end
 
+	// Literals
+	TRUE_LITERAL  // true
+	FALSE_LITERAL // false
+	NUMBER
+	STRING_LITERAL
+	UNICODE_STRING_LITERAL
+	HEX_STRING_LITERAL
+	COMMENT_LITERAL
+
 	IDENTIFIER // x, y, foo, bar, etc. not a keyword, not a reserved word
+
+	// Keywords reserved for future use
+	AFTER
+	ALIAS
+	APPLY
+	AUTO
+	BYTE
+	CASE
+	COPY_OF
+	DEFAULT
+	DEFINE
+	FINAL
+	IMPLEMENTS
+	IN
+	INLINE
+	LET
+	MACRO
+	MATCH
+	MUTABLE
+	NULL_LITERAL
+	OF
+	PARTIAL
+	PROMISE
+	REFERENCE
+	RELOCATABLE
+	SEALED
+	SIZE_OF
+	STATIC
+	SUPPORTS
+	SWITCH
+	TYPE_DEF
+	TYPE_OF
+	VAR
+
+	// Yul-specific tokens, but not keywords
+	LEAVE // leave
+
+	// Experimental Solidity specific keywords
+	CLASS
+	INSTANTIATION
+	INTEGER
+	ITSELF
+	STATIC_ASSERT
+	BUILTIN
+	FOR_ALL
 )
 
 var Tokens = [...]string{
-	ERROR:      "ERROR",
-	EOF:        "EOF",
-	COMMENT:    "COMMENT",
-	IDENTIFIER: "IDENTIFIER",
+	// Special tokens
+	ILLEGAL: "ILLEGAL",
+	EOF:     "EOF",
+
+	// Literals
+	COMMENT_LITERAL: "COMMENT",
+
+	// Assignment Operators
+
+	// Binary Operators
+
+	// Unary Operators
+
+	// Inline Assembly Operators
+
+	// Ether Subdenominations
 
 	// Keywords
 	CONTRACT: "Contract",
 	UINT:     "uint",
-	UINT256:  "uint256",
-	INT:      "int",
-	FUNCTION: "function",
+	// UINT256:   "uint256",
+	INT:       "int",
+	ADDRESS:   "address",
+	FUNCTION:  "function",
+	CONSTANT:  "constant",
+	IMMUTABLE: "immutable",
 
+	// Elementary Type Keywords
+
+	// Identifiers, not keywords, not reserved words
+	IDENTIFIER: "IDENTIFIER",
+
+	// Punctuators
 	LBRACE:    "{",
 	RBRACE:    "}",
 	SEMICOLON: ";",
