@@ -3,6 +3,7 @@ package lexer
 import (
 	"fmt"
 	"solparsor/token"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -24,6 +25,7 @@ type stateFn func(*lexer) stateFn
 // The `run` function lexes the input by executing state functions
 // until the state is nil.
 func (l *lexer) run() {
+	// The initial state is lexSourceUnit. SourceUnit is basically a Solidity file.
 	for state := lexSourceUnit; state != nil; {
 		state = state(l)
 	}
@@ -46,7 +48,7 @@ type lexer struct {
 func Lex(input string) *lexer {
 	l := &lexer{
 		input:  input,
-		tokens: make(chan token.Token, 2), // Buffered channel
+		tokens: make(chan token.Token, 2), // Buffer 2 tokens. We don't need more.
 	}
 	println("Lexing input: ", input)
 	fmt.Printf("Input length: %d\n\n", len(input))
@@ -67,6 +69,7 @@ func (l *lexer) NextToken() token.Token {
 
 // The `emit` function passes an token.Token back to the client.
 func (l *lexer) emit(typ token.TokenType) {
+	println("Emitting: ", l.input[l.start:l.pos])
 	// The value is a slice of the input.
 	l.tokens <- token.Token{
 		Type:    typ,
@@ -79,7 +82,7 @@ func (l *lexer) emit(typ token.TokenType) {
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	l.tokens <- token.Token{
-		Type:    token.ERROR,
+		Type:    token.ILLEGAL,
 		Literal: fmt.Sprintf(format, args...),
 		Pos:     token.Position(l.start),
 	}
@@ -97,6 +100,14 @@ func lexSourceUnit(l *lexer) stateFn {
 		case isLetter(char):
 			l.state = lexSourceUnit
 			return lexIdentifier
+		case isDigit(char):
+			l.state = lexSourceUnit
+			l.backup()
+			return lexNumber
+		case char == '=':
+			l.emit(token.ASSIGN)
+		case char == ';':
+			l.emit(token.SEMICOLON)
 		default:
 			return l.errorf("Unrecognised character in source unit: '%c'", char)
 		}
@@ -163,6 +174,7 @@ func lexInsideContract(l *lexer) stateFn {
 			return lexIdentifier
 		case isDigit(char):
 			l.state = lexInsideContract
+			l.backup()
 			return lexNumber
 		case char == '}':
 			l.emit(token.RBRACE)
@@ -178,16 +190,35 @@ func lexInsideContract(l *lexer) stateFn {
 }
 
 func lexNumber(l *lexer) stateFn {
-	for {
-		switch char := l.readChar(); {
-		case isDigit(char):
-			// Do nothing, just keep reading.
-		default:
-			l.backup()
-			l.emit(token.INT)
-			return l.state
-		}
+	hex := false
+	l.accept("+-") // The sign is optional.
+	digits := "0123456789"
+
+	// Is the number hexadecimal? Starts with 0x?
+	if l.accept("0") && l.accept("x") {
+		// If so, we need to extend the valid set of digits.
+		digits = "0123456789abcdefABCDEF"
+		hex = true
 	}
+
+	l.acceptRun(digits)
+
+	// @TODO: Fixed point numbers could probably go here. Solidity have them,
+	// but you can't use them yet, soooo...
+
+	// Does it have an exponent at the end? For example: 100e10 or 1000000e-3.
+	// Solidity allows both `e` and `E` as the exponent.
+	if l.accept("eE") {
+		l.accept("+-")
+		l.acceptRun("0123456789") // Hex is not allowed in the exponent.
+	}
+
+	if hex {
+		l.emit(token.HEX_NUMBER)
+	} else {
+		l.emit(token.DECIMAL_NUMBER)
+	}
+	return l.state
 }
 
 // readChar reads the next rune from the input, advances the position
@@ -216,6 +247,24 @@ func (l *lexer) peek() rune {
 	r := l.readChar()
 	l.backup()
 	return r
+}
+
+// accept consumes the next rune if it's from the valid set. If not, it backs up.
+func (l *lexer) accept(valid string) bool {
+	if strings.ContainsRune(valid, l.readChar()) {
+		return true
+	}
+	l.backup()
+	return false
+}
+
+// acceptRun consumes runes as long as they are in the valid set. For example,
+// if the valid set is "1234567890", it will consume all digits in the number "123 "
+// and will stop at the whitespace.
+func (l *lexer) acceptRun(valid string) {
+	for strings.ContainsRune(valid, l.readChar()) {
+	}
+	l.backup()
 }
 
 func isDigit(ch rune) bool {

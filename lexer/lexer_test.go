@@ -10,7 +10,13 @@ func TestNextToken(t *testing.T) {
     Contract Vault {
         uint256 x;
         x = 5;
+        address owner = 0xDEADBEEF;
     }
+
+    uint256 y;
+    address attacker1337;
+
+    address constant UniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     `
 	tests := []struct {
 		expectedType    token.TokenType
@@ -20,16 +26,36 @@ func TestNextToken(t *testing.T) {
 		{token.CONTRACT, "Contract"},
 		{token.IDENTIFIER, "Vault"},
 		{token.LBRACE, "{"},
-		{token.UINT256, "uint256"},
+		{token.UINT_256, "uint256"},
 		{token.IDENTIFIER, "x"},
 		{token.SEMICOLON, ";"},
 		{token.IDENTIFIER, "x"},
 		{token.ASSIGN, "="},
-		{token.INT, "5"},
+		{token.DECIMAL_NUMBER, "5"},
+		{token.SEMICOLON, ";"},
+		{token.ADDRESS, "address"},
+		{token.IDENTIFIER, "owner"},
+		{token.ASSIGN, "="},
+		{token.HEX_NUMBER, "0xDEADBEEF"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
-		{token.EOF, ""},
 		// Vault contract end
+
+		// Constant variables outside of contract
+		{token.UINT_256, "uint256"},
+		{token.IDENTIFIER, "y"},
+		{token.SEMICOLON, ";"},
+		{token.ADDRESS, "address"},
+		{token.IDENTIFIER, "attacker1337"},
+		{token.SEMICOLON, ";"},
+		{token.ADDRESS, "address"},
+		{token.CONSTANT, "constant"},
+		{token.IDENTIFIER, "UniswapV3Factory"},
+		{token.ASSIGN, "="},
+		{token.HEX_NUMBER, "0x1F98431c8aD98523631AE4a59f267346ea31F984"},
+		{token.SEMICOLON, ";"},
+
+		{token.EOF, ""},
 	}
 
 	lexer := Lex(input)
@@ -38,11 +64,13 @@ func TestNextToken(t *testing.T) {
 		tkn := lexer.NextToken()
 
 		if tkn.Type != tt.expectedType {
-			t.Errorf("tests[%d] - token type wrong. expected: %s, got: %s", i, token.Tokens[tt.expectedType], token.Tokens[tkn.Type])
+			t.Errorf("tests[%d] - token type wrong. expected: %s (%d), got: %s",
+				i, token.Tokens[tt.expectedType], tt.expectedType, token.Tokens[tkn.Type])
 		}
 
 		if tkn.Literal != tt.expectedLiteral {
-			t.Errorf("tests[%d] - literal wrong. expected: %s, got: %s", i, tt.expectedLiteral, tkn.Literal)
+			t.Errorf("tests[%d] - literal wrong. expected: %s, got: %s",
+				i, tt.expectedLiteral, tkn.Literal)
 		}
 	}
 }
