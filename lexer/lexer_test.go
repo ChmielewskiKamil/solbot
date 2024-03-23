@@ -11,6 +11,10 @@ func TestNextToken(t *testing.T) {
         uint256 x;
         x = 5;
         address owner = 0xDEADBEEF;
+
+        function deposit(uint256 amount) public {
+             
+        }
     }
 
     uint256 y;
@@ -38,6 +42,15 @@ func TestNextToken(t *testing.T) {
 		{token.ASSIGN, "="},
 		{token.HEX_NUMBER, "0xDEADBEEF"},
 		{token.SEMICOLON, ";"},
+		{token.FUNCTION, "function"},
+		{token.IDENTIFIER, "deposit"},
+		{token.LPAREN, "("},
+		{token.UINT_256, "uint256"},
+		{token.IDENTIFIER, "amount"},
+		{token.RPAREN, ")"},
+		{token.PUBLIC, "public"},
+		{token.LBRACE, "{"},
+		{token.RBRACE, "}"},
 		{token.RBRACE, "}"},
 		// Vault contract end
 
@@ -69,7 +82,7 @@ func TestNextToken(t *testing.T) {
 		}
 
 		if tkn.Literal != tt.expectedLiteral {
-			t.Errorf("tests[%d] - literal wrong. expected: %s, got: %s",
+			t.Fatalf("tests[%d] - literal wrong. expected: %s, got: %s",
 				i, tt.expectedLiteral, tkn.Literal)
 		}
 	}
