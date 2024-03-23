@@ -17,9 +17,9 @@ func main() {
 
 	for {
 		tkn := lexer.NextToken()
-		fmt.Printf("Token: %s, at position: %d, with type: %d\n", tkn.String(), tkn.Pos, tkn.Type)
+		fmt.Printf("Token: %s, at position: %d, with type: %s\n", tkn.String(), tkn.Pos, token.Tokens[tkn.Type])
 
-		if tkn.Type == token.EOF || tkn.Type == token.ERROR {
+		if tkn.Type == token.EOF || tkn.Type == token.ILLEGAL {
 			break
 		}
 	}
