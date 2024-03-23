@@ -164,6 +164,7 @@ const (
 	keyword_end
 
 	// Ether Subdenominations
+	ether_subdenominations_beg
 	SUB_WEI    // wei
 	SUB_GWEI   // gwei
 	SUB_ETHER  // ether
@@ -173,6 +174,7 @@ const (
 	SUB_DAY    // days
 	SUB_WEEK   // weeks
 	SUB_YEAR   // years
+	ether_subdenominations_end
 
 	// Elementary Type Keywords
 	elementary_type_beg
@@ -432,7 +434,7 @@ var Tokens = [...]string{
 	EXTERNAL:    "",
 	FALLBACK:    "",
 	FOR:         "",
-	FUNCTION:    "",
+	FUNCTION:    "function",
 	HEX:         "",
 	IF:          "",
 	INDEXED:     "",
@@ -665,11 +667,14 @@ func init() {
 }
 
 func LookupIdent(ident string) TokenType {
-	if tok, ok := keywords[ident]; ok {
-		return tok
-	}
-	if tok, ok := elementaryTypes[ident]; ok {
-		return tok
+	// Keywords are longer than 1 character
+	if len(ident) > 1 {
+		if tok, ok := keywords[ident]; ok {
+			return tok
+		}
+		if tok, ok := elementaryTypes[ident]; ok {
+			return tok
+		}
 	}
 	return IDENTIFIER
 }
