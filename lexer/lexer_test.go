@@ -24,6 +24,8 @@ func TestNextToken(t *testing.T) {
 
         a < b > c <= d >= e;
         a <<= b >>= c >>>= d >>> e << f >> g;
+        a -> b;
+        a -= b;
     }
 
     uint256 y;
@@ -117,6 +119,14 @@ func TestNextToken(t *testing.T) {
 		{token.IDENTIFIER, "f"},
 		{token.SAR, ">>"},
 		{token.IDENTIFIER, "g"},
+		{token.SEMICOLON, ";"},
+		{token.IDENTIFIER, "a"},
+		{token.RIGHT_ARROW, "->"},
+		{token.IDENTIFIER, "b"},
+		{token.SEMICOLON, ";"},
+		{token.IDENTIFIER, "a"},
+		{token.ASSIGN_SUB, "-="},
+		{token.IDENTIFIER, "b"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
 		// SafeMath library end

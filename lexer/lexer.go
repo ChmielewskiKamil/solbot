@@ -102,16 +102,6 @@ func lexSourceUnit(l *lexer) stateFn {
 		case isDigit(char):
 			l.backup()
 			return lexNumber
-		case char == '=':
-			// Possible combinations are '=', '==', '=>'.
-			tkn := token.ASSIGN
-			if l.accept("=") {
-				tkn = token.EQUAL
-			}
-			if l.accept(">") {
-				tkn = token.DOUBLE_ARROW
-			}
-			l.emit(tkn)
 		case char == ';':
 			l.emit(token.SEMICOLON)
 		case char == '{':
@@ -128,58 +118,30 @@ func lexSourceUnit(l *lexer) stateFn {
 			l.emit(token.RBRACKET)
 		case char == '.':
 			l.emit(token.PERIOD)
-		case char == '+':
-			tkn := token.ADD
-			if l.accept("=") {
-				tkn = token.ASSIGN_ADD
-			}
-			if l.accept("+") {
-				tkn = token.INC
-			}
-			l.emit(tkn)
 		case char == '!':
-			tkn := token.NOT
-			if l.accept("=") {
-				tkn = token.NOT_EQUAL
-			}
-			l.emit(tkn)
+			l.emit(l.switch2(token.NOT, token.NOT_EQUAL))
+		case char == '=':
+			l.emit(l.switch3(token.ASSIGN, token.EQUAL, ">", token.DOUBLE_ARROW))
+		case char == '+':
+			l.emit(l.switch3(token.ADD, token.ASSIGN_ADD, "+", token.INC))
 		case char == '-':
-			tkn := token.SUB
-			if l.accept("=") {
-				tkn = token.ASSIGN_SUB
+			if l.accept(">") {
+				l.emit(token.RIGHT_ARROW)
+				continue
 			}
-			if l.accept("-") {
-				tkn = token.DEC
-			}
-			l.emit(tkn)
+			l.emit(l.switch3(token.SUB, token.ASSIGN_SUB, "-", token.DEC))
 		case char == '<':
-			tkn := token.LESS_THAN
-			if l.accept("=") {
-				tkn = token.LESS_THAN_OR_EQUAL
-			}
-			if l.accept("<") {
-				tkn = token.SHL
-				if l.accept("=") {
-					tkn = token.ASSIGN_SHL
-				}
-			}
-			l.emit(tkn)
+			l.emit(l.switch4(
+				token.LESS_THAN, token.LESS_THAN_OR_EQUAL, "<",
+				token.SHL, token.ASSIGN_SHL))
 		case char == '>':
+			// There are 6 cases for the '>' character. We handle the '>=' and '>'
+			// separately. The remaining 4 cases are handled by the switch4 helper.
 			tkn := token.GREATER_THAN
 			if l.accept("=") {
 				tkn = token.GREATER_THAN_OR_EQUAL
-			}
-			if l.accept(">") {
-				tkn = token.SAR
-				if l.accept("=") {
-					tkn = token.ASSIGN_SAR
-				}
-				if l.accept(">") {
-					tkn = token.SHR
-					if l.accept("=") {
-						tkn = token.ASSIGN_SHR
-					}
-				}
+			} else if l.accept(">") {
+				tkn = l.switch4(token.SAR, token.ASSIGN_SAR, ">", token.SHR, token.ASSIGN_SHR)
 			}
 			l.emit(tkn)
 		default:
@@ -282,6 +244,64 @@ func (l *lexer) acceptRun(valid string) {
 	for strings.ContainsRune(valid, l.readChar()) {
 	}
 	l.backup()
+}
+
+// switch2 is a helper function to choose between 2 available tokens based on
+// the initial rune. You start with a first byte
+// e.g. '+' or '=' and then you check if the next byte is '='. This one is useful
+// for comparison and assignment operators.
+// The switch helpers are based on the switches implemented in the official GO lexer.
+func (l *lexer) switch2(tkn0, tkn1 token.TokenType) token.TokenType {
+	if l.accept("=") {
+		return tkn1
+	}
+	return tkn0
+}
+
+// switch3 is a helper function to choose between 3 available tokens based
+// on the initial rune.
+func (l *lexer) switch3(
+	tkn0, tkn1 token.TokenType,
+	char string, tkn2 token.TokenType) token.TokenType {
+	if l.accept("=") {
+		return tkn1
+	}
+
+	if l.accept(char) {
+		return tkn2
+	}
+	return tkn0
+}
+
+/* switch4 is a helper function to choose between 4 available tokens based
+* on the initial rune.
+* In the following example we start with '<' and then we check the next byte.
+* We can either stop at '<', go to '<=', or go to '<<'. If we go to '<<', we can
+* go proceed to '<<='.
+*              <
+*            /  |  \
+*           /   |   \
+*          LT   =    <
+*              /    /  \
+*             LTE  /    =
+*                 /      \
+*                SHL    ASSIGN_SHL
+* */
+func (l *lexer) switch4(
+	tkn0, tkn1 token.TokenType, char string,
+	tkn2, tkn3 token.TokenType) token.TokenType {
+	if l.accept("=") {
+		return tkn1
+	}
+
+	if l.accept(char) {
+		if l.accept("=") {
+			return tkn3
+		}
+		return tkn2
+	}
+
+	return tkn0
 }
 
 func isDigit(ch rune) bool {
