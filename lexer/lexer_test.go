@@ -41,7 +41,7 @@ func TestNextToken(t *testing.T) {
 		{token.RBRACE, "}"},
 		// Vault contract end
 
-		// Constant variables outside of contract
+		// Variables outside of contract
 		{token.UINT_256, "uint256"},
 		{token.IDENTIFIER, "y"},
 		{token.SEMICOLON, ";"},

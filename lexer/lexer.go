@@ -90,6 +90,7 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 }
 
 func lexSourceUnit(l *lexer) stateFn {
+	l.state = lexSourceUnit
 	for {
 		switch char := l.readChar(); {
 		case char == eof:
@@ -98,10 +99,8 @@ func lexSourceUnit(l *lexer) stateFn {
 		case isWhitespace(char):
 			l.ignore()
 		case isLetter(char):
-			l.state = lexSourceUnit
 			return lexIdentifier
 		case isDigit(char):
-			l.state = lexSourceUnit
 			l.backup()
 			return lexNumber
 		case char == '=':
@@ -144,6 +143,7 @@ func lexIdentifier(l *lexer) stateFn {
 }
 
 func lexContractDeclaration(l *lexer) stateFn {
+	l.state = lexContractDeclaration
 	for {
 		switch char := l.readChar(); {
 		case isWhitespace(char):
@@ -151,7 +151,6 @@ func lexContractDeclaration(l *lexer) stateFn {
 		case char == eof:
 			return l.errorf("Contract declaration not finished")
 		case isLetter(char):
-			l.state = lexContractDeclaration
 			return lexIdentifier
 		case char == '{':
 			l.emit(token.LBRACE)
@@ -163,6 +162,7 @@ func lexContractDeclaration(l *lexer) stateFn {
 }
 
 func lexInsideContract(l *lexer) stateFn {
+	l.state = lexInsideContract
 	for {
 		switch char := l.readChar(); {
 		case isWhitespace(char):
@@ -170,10 +170,8 @@ func lexInsideContract(l *lexer) stateFn {
 		case char == eof:
 			return l.errorf("Contract not closed properly with '}'")
 		case isLetter(char):
-			l.state = lexInsideContract
 			return lexIdentifier
 		case isDigit(char):
-			l.state = lexInsideContract
 			l.backup()
 			return lexNumber
 		case char == '}':
