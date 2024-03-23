@@ -31,7 +31,9 @@ func (tkn Token) String() string {
 
 // Solidity tokens based on the [solc tokens].
 // Token names are exactly the same. The only difference is that they are formatted with screaming snake case.
-// EOS (End of Source) is renamed to EOF (End of File).
+// A list of small differences:
+// - EOS (End of Source) is renamed to EOF (End of File).
+// - NUMBER is split into DECIMAL_NUMBER and HEX_NUMBER.
 // @TODO: Decide what to do with elementary types like UINT_M, INT_M, BYTES_M etc.
 // Solc handles them in [a dynamic way]. We could do the same, but it would add a bit of complexity to the lexer.
 // On the other hand these could be hardcoded into the list as well.
@@ -108,7 +110,7 @@ const (
 	// Keywords
 	keyword_beg
 	ABSTRACT
-	ANONYMOUS
+	ANONYMOUS // For events: does not store event signature as topic
 	AS
 	ASSEMBLY
 	BREAK
@@ -190,9 +192,10 @@ const (
 	elementary_type_end
 
 	// Literals
-	TRUE_LITERAL  // true
-	FALSE_LITERAL // false
-	NUMBER
+	TRUE_LITERAL   // true
+	FALSE_LITERAL  // false
+	DECIMAL_NUMBER // This is different from solc, which has just NUMBER, for both hex and decimal
+	HEX_NUMBER
 	STRING_LITERAL
 	UNICODE_STRING_LITERAL
 	HEX_STRING_LITERAL
