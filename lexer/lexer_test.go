@@ -13,8 +13,14 @@ func TestNextToken(t *testing.T) {
         address owner = 0xDEADBEEF;
         mapping(address => uint256) balances;
         function deposit(uint256 amount) public {
-             
+            balances[msg.sender] += amount;
         }
+    }
+
+    Library SafeMath {
+        i != 0;
+        i++;
+        i--;
     }
 
     uint256 y;
@@ -58,9 +64,35 @@ func TestNextToken(t *testing.T) {
 		{token.RPAREN, ")"},
 		{token.PUBLIC, "public"},
 		{token.LBRACE, "{"},
+		{token.IDENTIFIER, "balances"},
+		{token.LBRACKET, "["},
+		{token.IDENTIFIER, "msg"},
+		{token.PERIOD, "."},
+		{token.IDENTIFIER, "sender"},
+		{token.RBRACKET, "]"},
+		{token.ASSIGN_ADD, "+="},
+		{token.IDENTIFIER, "amount"},
+		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
 		{token.RBRACE, "}"},
 		// Vault contract end
+
+		// SafeMath library start
+		{token.LIBRARY, "Library"},
+		{token.IDENTIFIER, "SafeMath"},
+		{token.LBRACE, "{"},
+		{token.IDENTIFIER, "i"},
+		{token.NOT_EQUAL, "!="},
+		{token.DECIMAL_NUMBER, "0"},
+		{token.SEMICOLON, ";"},
+		{token.IDENTIFIER, "i"},
+		{token.INC, "++"},
+		{token.SEMICOLON, ";"},
+		{token.IDENTIFIER, "i"},
+		{token.DEC, "--"},
+		{token.SEMICOLON, ";"},
+		{token.RBRACE, "}"},
+		// SafeMath library end
 
 		// Variables outside of contract
 		{token.UINT_256, "uint256"},
@@ -85,7 +117,7 @@ func TestNextToken(t *testing.T) {
 		tkn := lexer.NextToken()
 
 		if tkn.Type != tt.expectedType {
-			t.Errorf("tests[%d] - token type wrong. expected: %s (%d), got: %s",
+			t.Fatalf("tests[%d] - token type wrong. expected: %s (%d), got: %s",
 				i, token.Tokens[tt.expectedType], tt.expectedType, token.Tokens[tkn.Type])
 		}
 

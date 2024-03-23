@@ -443,7 +443,7 @@ var Tokens = [...]string{
 	IMMUTABLE:   "",
 	IMPORT:      "",
 	IS:          "",
-	LIBRARY:     "",
+	LIBRARY:     "Library",
 	MAPPING:     "mapping",
 	MEMORY:      "",
 	MODIFIER:    "",

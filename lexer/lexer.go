@@ -122,6 +122,36 @@ func lexSourceUnit(l *lexer) stateFn {
 			l.emit(token.LPAREN)
 		case char == ')':
 			l.emit(token.RPAREN)
+		case char == '[':
+			l.emit(token.LBRACKET)
+		case char == ']':
+			l.emit(token.RBRACKET)
+		case char == '.':
+			l.emit(token.PERIOD)
+		case char == '+':
+			tkn := token.ADD
+			if l.accept("=") {
+				tkn = token.ASSIGN_ADD
+			}
+			if l.accept("+") {
+				tkn = token.INC
+			}
+			l.emit(tkn)
+		case char == '!':
+			tkn := token.NOT
+			if l.accept("=") {
+				tkn = token.NOT_EQUAL
+			}
+			l.emit(tkn)
+		case char == '-':
+			tkn := token.SUB
+			if l.accept("=") {
+				tkn = token.ASSIGN_SUB
+			}
+			if l.accept("-") {
+				tkn = token.DEC
+			}
+			l.emit(tkn)
 		default:
 			return l.errorf("Unrecognised character in source unit: '%c'", char)
 		}
