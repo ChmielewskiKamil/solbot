@@ -11,7 +11,7 @@ func TestNextToken(t *testing.T) {
         uint256 x;
         x = 5;
         address owner = 0xDEADBEEF;
-
+        mapping(address => uint256) balances;
         function deposit(uint256 amount) public {
              
         }
@@ -41,6 +41,14 @@ func TestNextToken(t *testing.T) {
 		{token.IDENTIFIER, "owner"},
 		{token.ASSIGN, "="},
 		{token.HEX_NUMBER, "0xDEADBEEF"},
+		{token.SEMICOLON, ";"},
+		{token.MAPPING, "mapping"},
+		{token.LPAREN, "("},
+		{token.ADDRESS, "address"},
+		{token.DOUBLE_ARROW, "=>"},
+		{token.UINT_256, "uint256"},
+		{token.RPAREN, ")"},
+		{token.IDENTIFIER, "balances"},
 		{token.SEMICOLON, ";"},
 		{token.FUNCTION, "function"},
 		{token.IDENTIFIER, "deposit"},

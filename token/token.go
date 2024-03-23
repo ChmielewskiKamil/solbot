@@ -444,7 +444,7 @@ var Tokens = [...]string{
 	IMPORT:      "",
 	IS:          "",
 	LIBRARY:     "",
-	MAPPING:     "",
+	MAPPING:     "mapping",
 	MEMORY:      "",
 	MODIFIER:    "",
 	NEW:         "",

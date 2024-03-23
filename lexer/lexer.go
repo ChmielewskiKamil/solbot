@@ -103,7 +103,15 @@ func lexSourceUnit(l *lexer) stateFn {
 			l.backup()
 			return lexNumber
 		case char == '=':
-			l.emit(token.ASSIGN)
+			// Possible combinations are '=', '==', '=>'.
+			tkn := token.ASSIGN
+			if l.accept("=") {
+				tkn = token.EQUAL
+			}
+			if l.accept(">") {
+				tkn = token.DOUBLE_ARROW
+			}
+			l.emit(tkn)
 		case char == ';':
 			l.emit(token.SEMICOLON)
 		case char == '{':
