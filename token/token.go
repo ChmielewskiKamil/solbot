@@ -71,19 +71,19 @@ const (
 
 	// Binary Operators
 	COMMA   // , ✅
-	OR      // ||
-	AND     // &&
-	BIT_OR  // |
-	BIT_XOR // ^
-	BIT_AND // &
+	OR      // || ✅
+	AND     // && ✅
+	BIT_OR  // | ✅
+	BIT_XOR // ^ ✅
+	BIT_AND // & ✅
 	SHL     // << ✅
 	SAR     // >> ✅
 	SHR     // >>> ✅
-	ADD     // +
+	ADD     // + ✅
 	SUB     // - ✅
 	MUL     // * ✅
-	DIV     // /
-	MOD     // %
+	DIV     // / ✅
+	MOD     // % ✅
 	EXP     // ** ✅
 
 	// Comparison Operators
@@ -95,8 +95,8 @@ const (
 	GREATER_THAN_OR_EQUAL // >= ✅
 
 	// Unary Operators
-	NOT     // !
-	BIT_NOT // ~
+	NOT     // ! ✅
+	BIT_NOT // ~ ✅
 	INC     // ++ ✅
 	DEC     // -- ✅
 	DELETE  // delete
@@ -597,7 +597,7 @@ var Tokens = [...]string{
 	STRING_LITERAL:         "",
 	UNICODE_STRING_LITERAL: "",
 	HEX_STRING_LITERAL:     "",
-	COMMENT_LITERAL:        "",
+	COMMENT_LITERAL:        "COMMENT",
 
 	// Identifiers, not keywords, not reserved words
 	IDENTIFIER: "IDENTIFIER",
@@ -656,6 +656,11 @@ func init() {
 	for i := keyword_beg + 1; i < keyword_end; i++ {
 		keywords[Tokens[i]] = i
 	}
+
+	// Explicitly add unary delete to keywords. We don't add it to keywords,
+	// because we don't want to mess up the IsKeyword function that is based on the ordering
+	// of the tokens.
+	keywords[Tokens[DELETE]] = DELETE
 
 	elementaryTypes = make(map[string]TokenType, elementary_type_end-(elementary_type_beg+1))
 	for i := elementary_type_beg + 1; i < elementary_type_end; i++ {

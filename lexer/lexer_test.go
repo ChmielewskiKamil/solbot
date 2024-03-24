@@ -15,6 +15,7 @@ func TestNextToken(t *testing.T) {
         mapping(address => uint256) balances;
         function deposit(uint256 amount) public {
             balances[msg.sender] += amount;
+            delete x;
         }
 
         assembly {
@@ -94,6 +95,9 @@ func TestNextToken(t *testing.T) {
 		{token.RBRACKET, "]"},
 		{token.ASSIGN_ADD, "+="},
 		{token.IDENTIFIER, "amount"},
+		{token.SEMICOLON, ";"},
+		{token.DELETE, "delete"},
+		{token.IDENTIFIER, "x"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
 		{token.ASSEMBLY, "assembly"},
