@@ -8,7 +8,7 @@ import (
 func TestNextToken(t *testing.T) {
 	// This does not have to be a 100% valid Solidity syntax.
 	input := `
-    Contract Vault {
+    contract Vault {
         uint256 x;
         x = 5;
         address owner = 0xDEADBEEF;
@@ -23,7 +23,7 @@ func TestNextToken(t *testing.T) {
     }
 
     // Just a comment
-    Library SafeMath {
+    library SafeMath {
         i != 0;
         i++;
         i--;
@@ -36,7 +36,7 @@ func TestNextToken(t *testing.T) {
         /* this 
         * is 
         * a multi-line
-        * omment
+        * comment
         */
         a == b ? -c : (a, b ** c);
     }
@@ -51,7 +51,7 @@ func TestNextToken(t *testing.T) {
 		expectedLiteral string
 	}{
 		// Vault contract start
-		{token.CONTRACT, "Contract"},
+		{token.CONTRACT, "contract"},
 		{token.IDENTIFIER, "Vault"},
 		{token.LBRACE, "{"},
 		{token.UINT_256, "uint256"},
@@ -110,7 +110,7 @@ func TestNextToken(t *testing.T) {
 
 		// SafeMath library start
 		{token.COMMENT_LITERAL, "// Just a comment"},
-		{token.LIBRARY, "Library"},
+		{token.LIBRARY, "library"},
 		{token.IDENTIFIER, "SafeMath"},
 		{token.LBRACE, "{"},
 		{token.IDENTIFIER, "i"},
