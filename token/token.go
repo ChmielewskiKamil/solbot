@@ -57,17 +57,17 @@ const (
 
 	// Assignment Operators
 	ASSIGN         // = ✅
-	ASSIGN_BIT_OR  // |=
-	ASSIGN_BIT_XOR // ^=
-	ASSIGN_BIT_AND // &=
+	ASSIGN_BIT_OR  // |= ✅
+	ASSIGN_BIT_XOR // ^= ✅
+	ASSIGN_BIT_AND // &= ✅
 	ASSIGN_SHL     // <<= ✅
 	ASSIGN_SAR     // >>= ✅
 	ASSIGN_SHR     // >>>= ✅
 	ASSIGN_ADD     // += ✅
 	ASSIGN_SUB     // -= ✅
 	ASSIGN_MUL     // *= ✅
-	ASSIGN_DIV     // /=
-	ASSIGN_MOD     // %=
+	ASSIGN_DIV     // /= ✅
+	ASSIGN_MOD     // %= ✅
 
 	// Binary Operators
 	COMMA   // , ✅

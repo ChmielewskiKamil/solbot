@@ -130,12 +130,20 @@ func lexSourceUnit(l *lexer) stateFn {
 			l.emit(l.switch2(token.NOT, token.NOT_EQUAL))
 		case char == ':':
 			l.emit(l.switch2(token.COLON, token.ASSEMBLY_ASSIGN))
+		case char == '^':
+			l.emit(l.switch2(token.BIT_XOR, token.ASSIGN_BIT_XOR))
+		case char == '%':
+			l.emit(l.switch2(token.MOD, token.ASSIGN_MOD))
 		case char == '=':
 			l.emit(l.switch3(token.ASSIGN, token.EQUAL, ">", token.DOUBLE_ARROW))
 		case char == '*':
 			l.emit(l.switch3(token.MUL, token.ASSIGN_MUL, "*", token.EXP))
 		case char == '+':
 			l.emit(l.switch3(token.ADD, token.ASSIGN_ADD, "+", token.INC))
+		case char == '|':
+			l.emit(l.switch3(token.BIT_OR, token.ASSIGN_BIT_OR, "|", token.OR))
+		case char == '&':
+			l.emit(l.switch3(token.BIT_AND, token.ASSIGN_BIT_AND, "&", token.AND))
 		case char == '-':
 			if l.accept(">") {
 				l.emit(token.RIGHT_ARROW)

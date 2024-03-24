@@ -27,6 +27,8 @@ func TestNextToken(t *testing.T) {
         i != 0;
         i++;
         i--;
+        
+        123_456e-1_8 |= 0x1_5 ^= &= /= 1_2e1 %= ; 
 
         // comment
         a < b > c <= d >= e;
@@ -42,7 +44,7 @@ func TestNextToken(t *testing.T) {
     }
 
     uint256 y;
-    address attacker1337;
+    address immutable attacker1337;
 
     address constant UniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     `
@@ -123,6 +125,15 @@ func TestNextToken(t *testing.T) {
 		{token.IDENTIFIER, "i"},
 		{token.DEC, "--"},
 		{token.SEMICOLON, ";"},
+		{token.DECIMAL_NUMBER, "123_456e-1_8"},
+		{token.ASSIGN_BIT_OR, "|="},
+		{token.HEX_NUMBER, "0x1_5"},
+		{token.ASSIGN_BIT_XOR, "^="},
+		{token.ASSIGN_BIT_AND, "&="},
+		{token.ASSIGN_DIV, "/="},
+		{token.DECIMAL_NUMBER, "1_2e1"},
+		{token.ASSIGN_MOD, "%="},
+		{token.SEMICOLON, ";"},
 		{token.COMMENT_LITERAL, "// comment"},
 		{token.IDENTIFIER, "a"},
 		{token.LESS_THAN, "<"},
@@ -180,6 +191,7 @@ func TestNextToken(t *testing.T) {
 		{token.IDENTIFIER, "y"},
 		{token.SEMICOLON, ";"},
 		{token.ADDRESS, "address"},
+		{token.IMMUTABLE, "immutable"},
 		{token.IDENTIFIER, "attacker1337"},
 		{token.SEMICOLON, ";"},
 		{token.ADDRESS, "address"},
