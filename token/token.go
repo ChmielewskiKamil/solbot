@@ -154,6 +154,7 @@ const (
 	TRY
 	TYPE
 	UNCHECKED
+	UNICODE
 	USING
 	VIEW
 	VIRTUAL
@@ -291,10 +292,10 @@ const (
 	FALSE_LITERAL  // false
 	DECIMAL_NUMBER // This is different from solc, which has just NUMBER, for both hex and decimal
 	HEX_NUMBER
-	STRING_LITERAL
-	UNICODE_STRING_LITERAL
-	HEX_STRING_LITERAL
-	COMMENT_LITERAL // ✅
+	STRING_LITERAL         // "Hello, World!" (Only ASCII)
+	UNICODE_STRING_LITERAL // unicode"Hello, 🥶!"
+	HEX_STRING_LITERAL     // hex"001122"
+	COMMENT_LITERAL        // ✅
 
 	IDENTIFIER // x, y, foo, bar, etc. not a keyword, not a reserved word
 
@@ -432,7 +433,7 @@ var Tokens = [...]string{
 	FALLBACK:    "fallback",
 	FOR:         "for",
 	FUNCTION:    "function",
-	HEX:         "",
+	HEX:         "hex",
 	IF:          "if",
 	INDEXED:     "indexed",
 	INTERFACE:   "interface",
@@ -461,6 +462,7 @@ var Tokens = [...]string{
 	TRY:         "try",
 	TYPE:        "type",
 	UNCHECKED:   "unchecked",
+	UNICODE:     "unicode",
 	USING:       "using",
 	VIEW:        "view",
 	VIRTUAL:     "virtual",
@@ -592,11 +594,11 @@ var Tokens = [...]string{
 	// Literals
 	TRUE_LITERAL:           "true",
 	FALSE_LITERAL:          "false",
-	DECIMAL_NUMBER:         "",
+	DECIMAL_NUMBER:         "DECIMAL_NUMBER",
 	HEX_NUMBER:             "HEX_NUMBER",
-	STRING_LITERAL:         "",
-	UNICODE_STRING_LITERAL: "",
-	HEX_STRING_LITERAL:     "",
+	STRING_LITERAL:         "STRING_LITERAL",
+	UNICODE_STRING_LITERAL: "UNICODE_STRING_LITERAL",
+	HEX_STRING_LITERAL:     "HEX_STRING_LITERAL",
 	COMMENT_LITERAL:        "COMMENT",
 
 	// Identifiers, not keywords, not reserved words

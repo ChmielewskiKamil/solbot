@@ -87,6 +87,7 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	return nil
 }
 
+// @TODO: Implement HEX and UNICODE strings
 func lexSourceUnit(l *lexer) stateFn {
 	for {
 		switch char := l.readChar(); {
@@ -106,6 +107,10 @@ func lexSourceUnit(l *lexer) stateFn {
 				return lexComment
 			}
 			l.emit(l.switch2(token.DIV, token.ASSIGN_DIV))
+		case char == '"':
+			return lexDoubleQuoteString
+		case char == '\'':
+			return lexSingleQuoteString
 		case char == ';':
 			l.emit(token.SEMICOLON)
 		case char == '{':
@@ -211,7 +216,8 @@ func lexNumber(l *lexer) stateFn {
 	// Solidity allows both `e` and `E` as the exponent.
 	if l.accept("eE") {
 		l.accept("+-")
-		l.acceptRun("_0123456789") // Hex is not allowed in the exponent, but underscore is.
+		// Hex is not allowed in the exponent, but underscore is.
+		l.acceptRun("_0123456789")
 	}
 
 	if hex {
@@ -256,6 +262,30 @@ func lexMultiLineComment(l *lexer) stateFn {
 				l.emit(token.COMMENT_LITERAL)
 				return lexSourceUnit
 			}
+		}
+	}
+}
+
+func lexDoubleQuoteString(l *lexer) stateFn {
+	for {
+		switch char := l.readChar(); {
+		case char == eof:
+			return l.errorf("Unexpected EOF in string literal")
+		case char == '"':
+			l.emit(token.STRING_LITERAL)
+			return lexSourceUnit
+		}
+	}
+}
+
+func lexSingleQuoteString(l *lexer) stateFn {
+	for {
+		switch char := l.readChar(); {
+		case char == eof:
+			return l.errorf("Unexpected EOF in string literal")
+		case char == '\'':
+			l.emit(token.STRING_LITERAL)
+			return lexSourceUnit
 		}
 	}
 }

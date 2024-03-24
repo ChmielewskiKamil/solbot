@@ -21,6 +21,9 @@ func TestNextToken(t *testing.T) {
         assembly {
             function f(x) -> y { /* implementation */ }
         }
+
+        "Hello"
+        'hello'
     }
 
     // Just a comment
@@ -113,6 +116,8 @@ func TestNextToken(t *testing.T) {
 		{token.COMMENT_LITERAL, "/* implementation */"},
 		{token.RBRACE, "}"},
 		{token.RBRACE, "}"},
+		{token.STRING_LITERAL, "\"Hello\""},
+		{token.STRING_LITERAL, "'hello'"},
 		{token.RBRACE, "}"},
 		// Vault contract end
 
