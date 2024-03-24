@@ -53,18 +53,18 @@ const (
 	PERIOD       // . ✅
 	CONDITIONAL  // ? ✅
 	DOUBLE_ARROW // => Solidity uses => for mapping ✅
-	RIGHT_ARROW  // -> Yul uses -> for return
+	RIGHT_ARROW  // -> Yul uses -> for return ✅
 
 	// Assignment Operators
-	ASSIGN         // =
+	ASSIGN         // = ✅
 	ASSIGN_BIT_OR  // |=
 	ASSIGN_BIT_XOR // ^=
 	ASSIGN_BIT_AND // &=
-	ASSIGN_SHL     // <<=
-	ASSIGN_SAR     // >>=
-	ASSIGN_SHR     // >>>=
-	ASSIGN_ADD     // +=
-	ASSIGN_SUB     // -=
+	ASSIGN_SHL     // <<= ✅
+	ASSIGN_SAR     // >>= ✅
+	ASSIGN_SHR     // >>>= ✅
+	ASSIGN_ADD     // += ✅
+	ASSIGN_SUB     // -= ✅
 	ASSIGN_MUL     // *= ✅
 	ASSIGN_DIV     // /=
 	ASSIGN_MOD     // %=
@@ -76,29 +76,29 @@ const (
 	BIT_OR  // |
 	BIT_XOR // ^
 	BIT_AND // &
-	SHL     // <<
-	SAR     // >>
-	SHR     // >>>
+	SHL     // << ✅
+	SAR     // >> ✅
+	SHR     // >>> ✅
 	ADD     // +
-	SUB     // -
+	SUB     // - ✅
 	MUL     // * ✅
 	DIV     // /
 	MOD     // %
 	EXP     // ** ✅
 
 	// Comparison Operators
-	EQUAL                 // ==
-	NOT_EQUAL             // !=
-	LESS_THAN             // <
-	GREATER_THAN          // >
-	LESS_THAN_OR_EQUAL    // <=
-	GREATER_THAN_OR_EQUAL // >=
+	EQUAL                 // == ✅
+	NOT_EQUAL             // != ✅
+	LESS_THAN             // < ✅
+	GREATER_THAN          // > ✅
+	LESS_THAN_OR_EQUAL    // <= ✅
+	GREATER_THAN_OR_EQUAL // >= ✅
 
 	// Unary Operators
 	NOT     // !
 	BIT_NOT // ~
-	INC     // ++
-	DEC     // --
+	INC     // ++ ✅
+	DEC     // -- ✅
 	DELETE  // delete
 
 	// Inline Assembly Operators
@@ -294,7 +294,7 @@ const (
 	STRING_LITERAL
 	UNICODE_STRING_LITERAL
 	HEX_STRING_LITERAL
-	COMMENT_LITERAL
+	COMMENT_LITERAL // ✅
 
 	IDENTIFIER // x, y, foo, bar, etc. not a keyword, not a reserved word
 
