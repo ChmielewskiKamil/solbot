@@ -196,20 +196,20 @@ func lexNumber(l *lexer) stateFn {
 	// Is the number hexadecimal?
 	if l.accept("0") && l.accept("x") {
 		// If so, we need to extend the valid set of digits.
-		digits = "_0123456789abcdefABCDEF"
+		digits += "abcdefABCDEF"
 		hex = true
 	}
 
 	l.acceptRun(digits)
 
-	// @TODO: Fixed point numbers could probably go here. Solidity have them,
+	// @TODO: Fixed point numbers could go here. Solidity have them,
 	// but you can't use them yet, soooo...
 
 	// Does it have an exponent at the end? For example: 100e10 or 1000000e-3.
 	// Solidity allows both `e` and `E` as the exponent.
 	if l.accept("eE") {
 		l.accept("+-")
-		l.acceptRun("_0123456789") // Hex is not allowed in the exponent.
+		l.acceptRun("_0123456789") // Hex is not allowed in the exponent, but underscore is.
 	}
 
 	if hex {
