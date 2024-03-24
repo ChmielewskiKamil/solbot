@@ -183,12 +183,12 @@ func lexIdentifier(l *lexer) stateFn {
 func lexNumber(l *lexer) stateFn {
 	hex := false
 	l.accept("+-") // The sign is optional.
-	digits := "0123456789"
+	digits := "_0123456789"
 
-	// Is the number hexadecimal? Starts with 0x?
+	// Is the number hexadecimal?
 	if l.accept("0") && l.accept("x") {
 		// If so, we need to extend the valid set of digits.
-		digits = "0123456789abcdefABCDEF"
+		digits = "_0123456789abcdefABCDEF"
 		hex = true
 	}
 
@@ -201,7 +201,7 @@ func lexNumber(l *lexer) stateFn {
 	// Solidity allows both `e` and `E` as the exponent.
 	if l.accept("eE") {
 		l.accept("+-")
-		l.acceptRun("0123456789") // Hex is not allowed in the exponent.
+		l.acceptRun("_0123456789") // Hex is not allowed in the exponent.
 	}
 
 	if hex {
