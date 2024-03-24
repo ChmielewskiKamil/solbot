@@ -68,7 +68,6 @@ func (l *lexer) NextToken() token.Token {
 
 // The `emit` function passes an token.Token back to the client.
 func (l *lexer) emit(typ token.TokenType) {
-	println("Emitting: ", l.input[l.start:l.pos])
 	// The value is a slice of the input.
 	l.tokens <- token.Token{
 		Type:    typ,
@@ -118,10 +117,18 @@ func lexSourceUnit(l *lexer) stateFn {
 			l.emit(token.RBRACKET)
 		case char == '.':
 			l.emit(token.PERIOD)
+		case char == '?':
+			l.emit(token.CONDITIONAL)
+		case char == ',':
+			l.emit(token.COMMA)
 		case char == '!':
 			l.emit(l.switch2(token.NOT, token.NOT_EQUAL))
+		case char == ':':
+			l.emit(l.switch2(token.COLON, token.ASSEMBLY_ASSIGN))
 		case char == '=':
 			l.emit(l.switch3(token.ASSIGN, token.EQUAL, ">", token.DOUBLE_ARROW))
+		case char == '*':
+			l.emit(l.switch3(token.MUL, token.ASSIGN_MUL, "*", token.EXP))
 		case char == '+':
 			l.emit(l.switch3(token.ADD, token.ASSIGN_ADD, "+", token.INC))
 		case char == '-':

@@ -6,6 +6,7 @@ import (
 )
 
 func TestNextToken(t *testing.T) {
+	// This does not have to be a 100% valid Solidity syntax.
 	input := `
     Contract Vault {
         uint256 x;
@@ -26,6 +27,7 @@ func TestNextToken(t *testing.T) {
         a <<= b >>= c >>>= d >>> e << f >> g;
         a -> b;
         a -= b;
+        a == b ? -c : (a, b ** c);
     }
 
     uint256 y;
@@ -127,6 +129,21 @@ func TestNextToken(t *testing.T) {
 		{token.IDENTIFIER, "a"},
 		{token.ASSIGN_SUB, "-="},
 		{token.IDENTIFIER, "b"},
+		{token.SEMICOLON, ";"},
+		{token.IDENTIFIER, "a"},
+		{token.EQUAL, "=="},
+		{token.IDENTIFIER, "b"},
+		{token.CONDITIONAL, "?"},
+		{token.SUB, "-"},
+		{token.IDENTIFIER, "c"},
+		{token.COLON, ":"},
+		{token.LPAREN, "("},
+		{token.IDENTIFIER, "a"},
+		{token.COMMA, ","},
+		{token.IDENTIFIER, "b"},
+		{token.EXP, "**"},
+		{token.IDENTIFIER, "c"},
+		{token.RPAREN, ")"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
 		// SafeMath library end
