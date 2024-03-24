@@ -101,6 +101,11 @@ func lexSourceUnit(l *lexer) stateFn {
 		case isDigit(char):
 			l.backup()
 			return lexNumber
+		case char == '/':
+			if l.peek() == '/' || l.peek() == '*' {
+				return lexComment
+			}
+			l.emit(l.switch2(token.DIV, token.ASSIGN_DIV))
 		case char == ';':
 			l.emit(token.SEMICOLON)
 		case char == '{':
@@ -205,6 +210,44 @@ func lexNumber(l *lexer) stateFn {
 		l.emit(token.DECIMAL_NUMBER)
 	}
 	return lexSourceUnit
+}
+
+func lexComment(l *lexer) stateFn {
+	// We know that we are on the first character of the comment.
+	// We need to check if it is a single line or a multi-line comment.
+	switch char := l.readChar(); {
+	case char == '/':
+		return lexSingleLineComment
+	case char == '*':
+		return lexMultiLineComment
+	default:
+		return l.errorf("Unrecognised character in comment: '%c'", char)
+	}
+}
+
+func lexSingleLineComment(l *lexer) stateFn {
+	for {
+		switch char := l.readChar(); {
+		case char == eof || char == '\n':
+			l.backup()
+			l.emit(token.COMMENT_LITERAL)
+			return lexSourceUnit
+		}
+	}
+}
+
+func lexMultiLineComment(l *lexer) stateFn {
+	for {
+		switch char := l.readChar(); {
+		case char == eof:
+			return l.errorf("Unexpected EOF in multi-line comment")
+		case char == '*':
+			if l.accept("/") {
+				l.emit(token.COMMENT_LITERAL)
+				return lexSourceUnit
+			}
+		}
+	}
 }
 
 // readChar reads the next rune from the input, advances the position

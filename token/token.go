@@ -416,7 +416,7 @@ var Tokens = [...]string{
 	ABSTRACT:    "",
 	ANONYMOUS:   "",
 	AS:          "",
-	ASSEMBLY:    "",
+	ASSEMBLY:    "assembly",
 	BREAK:       "",
 	CATCH:       "catch",
 	CONSTANT:    "constant",

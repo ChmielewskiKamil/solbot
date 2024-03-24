@@ -16,17 +16,28 @@ func TestNextToken(t *testing.T) {
         function deposit(uint256 amount) public {
             balances[msg.sender] += amount;
         }
+
+        assembly {
+            function f(x) -> y { /* implementation */ }
+        }
     }
 
+    // Just a comment
     Library SafeMath {
         i != 0;
         i++;
         i--;
 
+        // comment
         a < b > c <= d >= e;
         a <<= b >>= c >>>= d >>> e << f >> g;
         a -> b;
         a -= b;
+        /* this 
+        * is 
+        * a multi-line
+        * omment
+        */
         a == b ? -c : (a, b ** c);
     }
 
@@ -81,10 +92,24 @@ func TestNextToken(t *testing.T) {
 		{token.IDENTIFIER, "amount"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
+		{token.ASSEMBLY, "assembly"},
+		{token.LBRACE, "{"},
+		{token.FUNCTION, "function"},
+		{token.IDENTIFIER, "f"},
+		{token.LPAREN, "("},
+		{token.IDENTIFIER, "x"},
+		{token.RPAREN, ")"},
+		{token.RIGHT_ARROW, "->"},
+		{token.IDENTIFIER, "y"},
+		{token.LBRACE, "{"},
+		{token.COMMENT_LITERAL, "/* implementation */"},
+		{token.RBRACE, "}"},
+		{token.RBRACE, "}"},
 		{token.RBRACE, "}"},
 		// Vault contract end
 
 		// SafeMath library start
+		{token.COMMENT_LITERAL, "// Just a comment"},
 		{token.LIBRARY, "Library"},
 		{token.IDENTIFIER, "SafeMath"},
 		{token.LBRACE, "{"},
@@ -98,6 +123,7 @@ func TestNextToken(t *testing.T) {
 		{token.IDENTIFIER, "i"},
 		{token.DEC, "--"},
 		{token.SEMICOLON, ";"},
+		{token.COMMENT_LITERAL, "// comment"},
 		{token.IDENTIFIER, "a"},
 		{token.LESS_THAN, "<"},
 		{token.IDENTIFIER, "b"},
@@ -130,6 +156,7 @@ func TestNextToken(t *testing.T) {
 		{token.ASSIGN_SUB, "-="},
 		{token.IDENTIFIER, "b"},
 		{token.SEMICOLON, ";"},
+		{token.COMMENT_LITERAL, "/* this \n        * is \n        * a multi-line\n        * comment\n        */"},
 		{token.IDENTIFIER, "a"},
 		{token.EQUAL, "=="},
 		{token.IDENTIFIER, "b"},
