@@ -126,6 +126,8 @@ func lexSourceUnit(l *lexer) stateFn {
 			l.emit(token.CONDITIONAL)
 		case char == ',':
 			l.emit(token.COMMA)
+		case char == '~':
+			l.emit(token.BIT_NOT)
 		case char == '!':
 			l.emit(l.switch2(token.NOT, token.NOT_EQUAL))
 		case char == ':':

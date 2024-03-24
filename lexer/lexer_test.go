@@ -41,6 +41,8 @@ func TestNextToken(t *testing.T) {
         * comment
         */
         a == b ? -c : (a, b ** c);
+        a + b;
+        !a || b && c | d ^ ~e & f / g % h;
     }
 
     uint256 y;
@@ -182,6 +184,28 @@ func TestNextToken(t *testing.T) {
 		{token.EXP, "**"},
 		{token.IDENTIFIER, "c"},
 		{token.RPAREN, ")"},
+		{token.SEMICOLON, ";"},
+		{token.IDENTIFIER, "a"},
+		{token.ADD, "+"},
+		{token.IDENTIFIER, "b"},
+		{token.SEMICOLON, ";"},
+		{token.NOT, "!"},
+		{token.IDENTIFIER, "a"},
+		{token.OR, "||"},
+		{token.IDENTIFIER, "b"},
+		{token.AND, "&&"},
+		{token.IDENTIFIER, "c"},
+		{token.BIT_OR, "|"},
+		{token.IDENTIFIER, "d"},
+		{token.BIT_XOR, "^"},
+		{token.BIT_NOT, "~"},
+		{token.IDENTIFIER, "e"},
+		{token.BIT_AND, "&"},
+		{token.IDENTIFIER, "f"},
+		{token.DIV, "/"},
+		{token.IDENTIFIER, "g"},
+		{token.MOD, "%"},
+		{token.IDENTIFIER, "h"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
 		// SafeMath library end
