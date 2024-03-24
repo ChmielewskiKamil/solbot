@@ -34,29 +34,26 @@ func (tkn Token) String() string {
 // A list of small differences:
 // - EOS (End of Source) is renamed to EOF (End of File).
 // - NUMBER is split into DECIMAL_NUMBER and HEX_NUMBER.
-// @TODO: Decide what to do with elementary types like UINT_M, INT_M, BYTES_M etc.
-// Solc handles them in [a dynamic way]. We could do the same, but it would add a bit of complexity to the lexer.
-// On the other hand these could be hardcoded into the list as well.
-//
+// - uintM, intM, bytesM etc. have been hardcoded with explicit types e.g. uin8, uint16, uint32 etc.
+// Thanks to this, they don't have to be handled dynamically.
 // [solc tokens]: https://github.com/ethereum/solidity/blob/afda6984723fca99e82ebf34d0aec1804f1f3ce6/liblangutil/Token.cpp#L183-L226
-// [a dynamic way]: https://github.com/ethereum/solidity/blob/afda6984723fca99e82ebf34d0aec1804f1f3ce6/liblangutil/Token.cpp#L183-L226
 const (
 	ILLEGAL TokenType = iota
 	EOF
 
 	// Punctuators/Delimeters
-	LPAREN       // (
-	RPAREN       // )
-	LBRACKET     // [
-	RBRACKET     // ]
-	LBRACE       // {
-	RBRACE       // }
-	COLON        // :
-	SEMICOLON    // ;
-	PERIOD       // .
-	CONDITIONAL  // ?
-	DOUBLE_ARROW // => e.g. Solidity uses => for mapping
-	RIGHT_ARROW  // ->
+	LPAREN       // ( ✅
+	RPAREN       // ) ✅
+	LBRACKET     // [ ✅
+	RBRACKET     // ] ✅
+	LBRACE       // { ✅
+	RBRACE       // } ✅
+	COLON        // : ✅
+	SEMICOLON    // ; ✅
+	PERIOD       // . ✅
+	CONDITIONAL  // ? ✅
+	DOUBLE_ARROW // => Solidity uses => for mapping ✅
+	RIGHT_ARROW  // -> Yul uses -> for return
 
 	// Assignment Operators
 	ASSIGN         // =
@@ -68,12 +65,12 @@ const (
 	ASSIGN_SHR     // >>>=
 	ASSIGN_ADD     // +=
 	ASSIGN_SUB     // -=
-	ASSIGN_MUL     // *=
+	ASSIGN_MUL     // *= ✅
 	ASSIGN_DIV     // /=
 	ASSIGN_MOD     // %=
 
 	// Binary Operators
-	COMMA   // ,
+	COMMA   // , ✅
 	OR      // ||
 	AND     // &&
 	BIT_OR  // |
@@ -84,10 +81,10 @@ const (
 	SHR     // >>>
 	ADD     // +
 	SUB     // -
-	MUL     // *
+	MUL     // * ✅
 	DIV     // /
 	MOD     // %
-	EXP     // **
+	EXP     // ** ✅
 
 	// Comparison Operators
 	EQUAL                 // ==
@@ -105,7 +102,7 @@ const (
 	DELETE  // delete
 
 	// Inline Assembly Operators
-	ASSEMBLY_ASSIGN // :=
+	ASSEMBLY_ASSIGN // := ✅
 
 	// Keywords
 	keyword_beg
