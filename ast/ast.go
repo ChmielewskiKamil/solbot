@@ -49,17 +49,32 @@ func (f *File) End() token.Position {
 /*~*~*~*~*~*~*~*~*~*~*~*~ Expressions *~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 type Identifier struct {
-	Position token.Position
-	Name     string
+	NamePos token.Position
+	Name    string
 }
 
-// In Solidity grammar: "ElementaryTypeName"
+// In Solidity grammar called "ElementaryTypeName".
 // address, address payable, bool, string, uint, int, bytes, fixed, fixed-bytes and ufixed
 type ElementaryType struct {
 	ValuePos token.Position
 	Kind     token.Token
 	Value    string
 }
+
+// Start and End implementations for Expression type Nodes
+
+func (x *Identifier) Start() token.Position     { return x.NamePos }
+func (x *ElementaryType) Start() token.Position { return x.ValuePos }
+
+func (x *Identifier) End() token.Position     { return token.Position(int(x.NamePos) + len(x.Name)) }
+func (x *ElementaryType) End() token.Position { return token.Position(int(x.ValuePos) + len(x.Value)) }
+
+// expressionNode() implementations to ensure that only expressions and types
+// can be assigned to an Expression. This is useful if by mistake we try to use
+// a Statement in a place where an Expression should be used instead.
+
+func (*Identifier) expressionNode()     {}
+func (*ElementaryType) expressionNode() {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~* Statements *~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
