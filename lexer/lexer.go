@@ -20,11 +20,11 @@ const (
 // Combining the state and the action together results in a state function.
 // The stateFn represents the state of the lexer as a function that returns the next state.
 // It is a recursive definition.
-type stateFn func(*lexer) stateFn
+type stateFn func(*Lexer) stateFn
 
 // The `run` function lexes the input by executing state functions
 // until the state is nil.
-func (l *lexer) run() {
+func (l *Lexer) run() {
 	// The initial state is lexSourceUnit. SourceUnit is basically a Solidity file.
 	for state := lexSourceUnit; state != nil; {
 		state = state(l)
@@ -35,8 +35,8 @@ func (l *lexer) run() {
 	close(l.tokens)
 }
 
-// The lexer holds the state of the scanner.
-type lexer struct {
+// The Lexer holds the state of the scanner.
+type Lexer struct {
 	input  string           // The string being scanned.
 	start  int              // Start position of this token.Token; in a big string, this is the start of the current token.
 	pos    int              // Current position in the input.
@@ -44,8 +44,8 @@ type lexer struct {
 	tokens chan token.Token // Channel of scanned token.
 }
 
-func Lex(input string) *lexer {
-	l := &lexer{
+func Lex(input string) *Lexer {
+	l := &Lexer{
 		input:  input,
 		tokens: make(chan token.Token, 2), // Buffer 2 tokens. We don't need more.
 	}
@@ -57,7 +57,7 @@ func Lex(input string) *lexer {
 	return l
 }
 
-func (l *lexer) NextToken() token.Token {
+func (l *Lexer) NextToken() token.Token {
 	for {
 		select {
 		case tkn := <-l.tokens:
@@ -67,7 +67,7 @@ func (l *lexer) NextToken() token.Token {
 }
 
 // The `emit` function passes an token.Token back to the client.
-func (l *lexer) emit(typ token.TokenType) {
+func (l *Lexer) emit(typ token.TokenType) {
 	// The value is a slice of the input.
 	l.tokens <- token.Token{
 		Type:    typ,
@@ -78,7 +78,7 @@ func (l *lexer) emit(typ token.TokenType) {
 	l.start = l.pos
 }
 
-func (l *lexer) errorf(format string, args ...interface{}) stateFn {
+func (l *Lexer) errorf(format string, args ...interface{}) stateFn {
 	l.tokens <- token.Token{
 		Type:    token.ILLEGAL,
 		Literal: fmt.Sprintf(format, args...),
@@ -88,7 +88,7 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 }
 
 // @TODO: Implement HEX and UNICODE strings
-func lexSourceUnit(l *lexer) stateFn {
+func lexSourceUnit(l *Lexer) stateFn {
 	for {
 		switch char := l.readChar(); {
 		case char == eof:
@@ -177,7 +177,7 @@ func lexSourceUnit(l *lexer) stateFn {
 	}
 }
 
-func lexIdentifier(l *lexer) stateFn {
+func lexIdentifier(l *Lexer) stateFn {
 	for {
 		switch char := l.readChar(); {
 		case isLetter(char):
@@ -195,7 +195,7 @@ func lexIdentifier(l *lexer) stateFn {
 	}
 }
 
-func lexNumber(l *lexer) stateFn {
+func lexNumber(l *Lexer) stateFn {
 	hex := false
 	l.accept("+-") // The sign is optional.
 	digits := "_0123456789"
@@ -228,7 +228,7 @@ func lexNumber(l *lexer) stateFn {
 	return lexSourceUnit
 }
 
-func lexComment(l *lexer) stateFn {
+func lexComment(l *Lexer) stateFn {
 	// We know that we are on the first character of the comment.
 	// We need to check if it is a single line or a multi-line comment.
 	switch char := l.readChar(); {
@@ -241,7 +241,7 @@ func lexComment(l *lexer) stateFn {
 	}
 }
 
-func lexSingleLineComment(l *lexer) stateFn {
+func lexSingleLineComment(l *Lexer) stateFn {
 	for {
 		switch char := l.readChar(); {
 		case char == eof || char == '\n':
@@ -252,7 +252,7 @@ func lexSingleLineComment(l *lexer) stateFn {
 	}
 }
 
-func lexMultiLineComment(l *lexer) stateFn {
+func lexMultiLineComment(l *Lexer) stateFn {
 	for {
 		switch char := l.readChar(); {
 		case char == eof:
@@ -266,7 +266,7 @@ func lexMultiLineComment(l *lexer) stateFn {
 	}
 }
 
-func lexDoubleQuoteString(l *lexer) stateFn {
+func lexDoubleQuoteString(l *Lexer) stateFn {
 	for {
 		switch char := l.readChar(); {
 		case char == eof:
@@ -278,7 +278,7 @@ func lexDoubleQuoteString(l *lexer) stateFn {
 	}
 }
 
-func lexSingleQuoteString(l *lexer) stateFn {
+func lexSingleQuoteString(l *Lexer) stateFn {
 	for {
 		switch char := l.readChar(); {
 		case char == eof:
@@ -292,7 +292,7 @@ func lexSingleQuoteString(l *lexer) stateFn {
 
 // readChar reads the next rune from the input, advances the position
 // and returns the rune.
-func (l *lexer) readChar() rune {
+func (l *Lexer) readChar() rune {
 	if l.pos >= len(l.input) {
 		l.width = 0
 		return eof
@@ -304,22 +304,22 @@ func (l *lexer) readChar() rune {
 	return r
 }
 
-func (l *lexer) ignore() {
+func (l *Lexer) ignore() {
 	l.start = l.pos
 }
 
-func (l *lexer) backup() {
+func (l *Lexer) backup() {
 	l.pos -= l.width
 }
 
-func (l *lexer) peek() rune {
+func (l *Lexer) peek() rune {
 	r := l.readChar()
 	l.backup()
 	return r
 }
 
 // accept consumes the next rune if it's from the valid set. If not, it backs up.
-func (l *lexer) accept(valid string) bool {
+func (l *Lexer) accept(valid string) bool {
 	if strings.ContainsRune(valid, l.readChar()) {
 		return true
 	}
@@ -330,7 +330,7 @@ func (l *lexer) accept(valid string) bool {
 // acceptRun consumes runes as long as they are in the valid set. For example,
 // if the valid set is "1234567890", it will consume all digits in the number "123 "
 // and will stop at the whitespace.
-func (l *lexer) acceptRun(valid string) {
+func (l *Lexer) acceptRun(valid string) {
 	for strings.ContainsRune(valid, l.readChar()) {
 	}
 	l.backup()
@@ -341,7 +341,7 @@ func (l *lexer) acceptRun(valid string) {
 // e.g. '+' or '=' and then you check if the next byte is '='. This one is useful
 // for comparison and assignment operators.
 // The switch helpers are based on the switches implemented in the official GO lexer.
-func (l *lexer) switch2(tkn0, tkn1 token.TokenType) token.TokenType {
+func (l *Lexer) switch2(tkn0, tkn1 token.TokenType) token.TokenType {
 	if l.accept("=") {
 		return tkn1
 	}
@@ -350,7 +350,7 @@ func (l *lexer) switch2(tkn0, tkn1 token.TokenType) token.TokenType {
 
 // switch3 is a helper function to choose between 3 available tokens based
 // on the initial rune.
-func (l *lexer) switch3(
+func (l *Lexer) switch3(
 	tkn0, tkn1 token.TokenType,
 	char string, tkn2 token.TokenType) token.TokenType {
 	if l.accept("=") {
@@ -377,7 +377,7 @@ func (l *lexer) switch3(
 *                 /      \
 *                SHL    ASSIGN_SHL
 * */
-func (l *lexer) switch4(
+func (l *Lexer) switch4(
 	tkn0, tkn1 token.TokenType, char string,
 	tkn2, tkn3 token.TokenType) token.TokenType {
 	if l.accept("=") {
