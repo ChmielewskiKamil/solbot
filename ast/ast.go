@@ -27,6 +27,9 @@ type Comment struct {
 	Text  string
 }
 
+func (c *Comment) Start() token.Position { return c.Slash }
+func (c *Comment) End() token.Position   { return token.Position(int(c.Slash) + len(c.Text)) }
+
 // In Solidity grammar it's called "SourceUnit" and represents the entire source file.
 type File struct {
 	Declarations []Declaration
@@ -49,19 +52,20 @@ func (f *File) End() token.Position {
 /*~*~*~*~*~*~*~*~*~*~*~*~ Expressions *~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 type Identifier struct {
-	NamePos token.Position
-	Name    string
+	NamePos token.Position // identifier position
+	Name    string         // identifier name
 }
 
 // In Solidity grammar called "ElementaryTypeName".
-// address, address payable, bool, string, uint, int, bytes, fixed, fixed-bytes and ufixed
+// One of: address, address payable, bool, string, uint, int, bytes,
+// fixed, fixed-bytes or ufixed.
 type ElementaryType struct {
-	ValuePos token.Position
-	Kind     token.Token
-	Value    string
+	ValuePos token.Position // type literal position
+	Kind     token.Token    // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
+	Value    string         // type literal value e.g. "address", "uint256", "bool" as a string
 }
 
-// Start and End implementations for Expression type Nodes
+// Start() and End() implementations for Expression type Nodes
 
 func (x *Identifier) Start() token.Position     { return x.NamePos }
 func (x *ElementaryType) Start() token.Position { return x.ValuePos }
@@ -79,3 +83,14 @@ func (*ElementaryType) expressionNode() {}
 /*~*~*~*~*~*~*~*~*~*~*~*~* Statements *~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 /*~*~*~*~*~*~*~*~*~*~*~*~ Declarations ~*~*~*~*~*~*~*~*~*~*~*~*~*/
+
+type VariableDeclaration struct {
+	Name  *Identifier // variable name
+	Type  Expression  // e.g. ElementaryType
+	Value Expression  // initial value or nil
+}
+
+func (d *VariableDeclaration) Start() token.Position { return 0 }
+func (d *VariableDeclaration) End() token.Position   { return 0 }
+
+func (*VariableDeclaration) declarationNode() {}

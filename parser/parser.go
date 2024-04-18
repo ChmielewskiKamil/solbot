@@ -25,5 +25,61 @@ func (p *Parser) nextToken() {
 }
 
 func (p *Parser) ParseFile() *ast.File {
-	return nil
+	file := &ast.File{}
+	file.Declarations = []ast.Declaration{}
+
+	for p.currTkn.Type != token.EOF {
+		decl := p.parseDeclaration()
+		if decl != nil {
+			file.Declarations = append(file.Declarations, decl)
+		}
+
+		p.nextToken()
+	}
+
+	return file
+}
+
+func (p *Parser) parseDeclaration() ast.Declaration {
+	switch p.currTkn.Type {
+	case token.ADDRESS, token.UINT_256, token.BOOL:
+		return p.parseVariableDeclaration()
+	default:
+		return nil
+	}
+}
+
+func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
+	decl := &ast.VariableDeclaration{}
+
+	// We are sitting on the variable type e.g. address or uint256
+	decl.Type = &ast.ElementaryType{
+		ValuePos: p.currTkn.Pos,
+		Kind:     p.currTkn,
+		Value:    p.currTkn.Literal,
+	}
+
+	if !p.expectPeek(token.IDENTIFIER) {
+		return nil
+	}
+
+	decl.Name = &ast.Identifier{
+		NamePos: p.currTkn.Pos,
+		Name:    p.currTkn.Literal,
+	}
+
+	// @TODO: We skip the Value for now since it is an expression
+
+	return decl
+}
+
+// expectPeek checks if the next token is of the expected type.
+// If it is it advances the tokens.
+func (p *Parser) expectPeek(t token.TokenType) bool {
+	if p.peekTkn.Type == t {
+		p.nextToken()
+		return true
+	}
+
+	return false
 }
