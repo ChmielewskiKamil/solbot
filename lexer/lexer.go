@@ -8,10 +8,7 @@ import (
 )
 
 const (
-	eof        = 0
-	contract   = "Contract"
-	leftBrace  = "{"
-	rightBrace = "}"
+	eof = 0
 )
 
 // The state represents where we are in the input and what we expect to see next.
