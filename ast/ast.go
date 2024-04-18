@@ -42,6 +42,7 @@ func (f *File) Start() token.Position {
 	return 0
 }
 
+// @TODO: What if there is a trailing comment at the end?
 func (f *File) End() token.Position {
 	if len(f.Declarations) > 0 {
 		return f.Declarations[len(f.Declarations)-1].End()
@@ -89,6 +90,8 @@ type VariableDeclaration struct {
 	Type  Expression  // e.g. ElementaryType
 	Value Expression  // initial value or nil
 }
+
+// Start() and End() implementations for Declaration type Nodes
 
 func (d *VariableDeclaration) Start() token.Position { return 0 }
 func (d *VariableDeclaration) End() token.Position   { return 0 }
