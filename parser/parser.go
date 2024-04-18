@@ -68,7 +68,12 @@ func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
 		Name:    p.currTkn.Literal,
 	}
 
-	// @TODO: We skip the Value for now since it is an expression
+	// @TODO: We skip the Value for now since it is an expression.
+
+	// The variable declaration ends with a semicolon.
+	for !p.currTknIs(token.SEMICOLON) {
+		p.nextToken()
+	}
 
 	return decl
 }
@@ -82,4 +87,9 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	}
 
 	return false
+}
+
+// currTknIs checks if the current token is of the expected type.
+func (p *Parser) currTknIs(t token.TokenType) bool {
+	return p.currTkn.Type == t
 }
