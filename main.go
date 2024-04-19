@@ -2,19 +2,17 @@ package main
 
 import (
 	"fmt"
+	// "os"
 	"solparsor/lexer"
+	// "solparsor/repl"
 	"solparsor/token"
 )
 
 func main() {
-	input := `
-    Contract Vault {
-        uint256 x;
-        x = 5;
-    }
-    `
-	lexer := lexer.Lex(input)
+	// repl.Start(os.Stdin)
+	input := ``
 
+	lexer := lexer.Lex(input)
 	for {
 		tkn := lexer.NextToken()
 		fmt.Printf("Token: %s, at position: %d, with type: %s\n", tkn.String(), tkn.Pos, token.Tokens[tkn.Type])
