@@ -12,6 +12,8 @@ type Token struct {
 	Pos     Position
 }
 
+// String prints a literal for most of the tokens
+// e.g. it will print "bar" instead of IDENTIFIER for a token type token.IDENTIFIER
 func (tkn Token) String() string {
 	switch tkn.Type {
 	case EOF:
@@ -652,6 +654,17 @@ var Tokens = [...]string{
 
 var keywords map[string]TokenType
 var elementaryTypes map[string]TokenType
+
+func (tt TokenType) String() string {
+	s := ""
+	if 0 <= tt && int(tt) < len(Tokens) {
+		s = Tokens[tt]
+	}
+	if s == "" {
+		s = "TokenType(" + fmt.Sprint(int(tt)) + ")"
+	}
+	return s
+}
 
 func init() {
 	keywords = make(map[string]TokenType, keyword_end-(keyword_beg+1))

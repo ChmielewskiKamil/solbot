@@ -17,6 +17,7 @@ func Test_ParseElementaryTypes(t *testing.T) {
 	p.init(src)
 
 	file := p.ParseFile()
+	checkParserErrors(t, &p)
 
 	if file == nil {
 		t.Fatalf("ParseFile() returned nil")
@@ -41,6 +42,19 @@ func Test_ParseElementaryTypes(t *testing.T) {
 			return
 		}
 	}
+}
+
+func checkParserErrors(t *testing.T, p *Parser) {
+	errors := p.errors
+	if len(errors) == 0 {
+		return
+	}
+
+	t.Errorf("Parser has %d errors", len(errors))
+	for _, err := range errors {
+		t.Errorf("Parser error: %s", err.Msg)
+	}
+	t.FailNow()
 }
 
 func testParseElementaryType(t *testing.T, decl ast.Declaration,
