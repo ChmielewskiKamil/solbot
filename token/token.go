@@ -30,7 +30,7 @@ func (tkn Token) String() string {
 }
 
 // Solidity tokens based on the [solc tokens].
-// Token names are exactly the same. The only difference is that they are formatted with screaming snake case.
+// Token names are the same. The only difference is that they are formatted with screaming snake case.
 // A list of small differences:
 // - EOS (End of Source) is renamed to EOF (End of File).
 // - NUMBER is split into DECIMAL_NUMBER and HEX_NUMBER.
