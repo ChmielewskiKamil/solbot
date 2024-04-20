@@ -364,7 +364,7 @@ func (l *Lexer) switch3(
 * on the initial rune.
 * In the following example we start with '<' and then we check the next byte.
 * We can either stop at '<', go to '<=', or go to '<<'. If we go to '<<', we can
-* go proceed to '<<='.
+* proceed to '<<='.
 *              <
 *            /  |  \
 *           /   |   \
