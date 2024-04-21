@@ -73,6 +73,24 @@ func (*ElementaryType) expressionNode() {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~ Declarations ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
+// @TODO: Add Contract declaration
+// @TODO: Add Interface declaration
+// @TODO: Add Library declaration
+// @TODO: Add Function declaration
+// @TODO: Add Struct declaration
+// @TODO: Add Enum declaration
+// @TODO: Add Event declaration
+// @TODO: Add Error declaration
+// @TODO: Add Using For Directive declaration
+// @TODO: Add User Defined Value Type declaration
+
+// Pragma and import directives could go into the File struct, since
+// they are connected with a particular file.
+// @TODO?: Add Pragma Directive declaration
+// @TODO?: Add Import Directive declaration
+
+// @TODO: Is it enough to have one VariableDeclaration to handle
+// constant/immutable declarations and normal variables as well?
 type VariableDeclaration struct {
 	Name  *Identifier // variable name
 	Type  Expression  // e.g. ElementaryType
