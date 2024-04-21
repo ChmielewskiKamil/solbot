@@ -7,9 +7,9 @@ type Position int
 type TokenType int
 
 type Token struct {
-	Type    TokenType
-	Literal string
-	Pos     Position
+	Type    TokenType // type of the token e.g. token.ADDRESS
+	Literal string    // literal value of the token e.g. "0xDEADBEEF"
+	Pos     Position  // position of the first character of the token in the input string
 }
 
 // String prints a literal for most of the tokens
