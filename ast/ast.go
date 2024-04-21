@@ -47,7 +47,7 @@ type Identifier struct {
 
 // In Solidity grammar called "ElementaryTypeName".
 // One of: address, address payable, bool, string, uint, int, bytes,
-// fixed, fixed-bytes or ufixed.
+// fixed, fixed-bytes or ufixed. NOT a Contract, Function, mapping.
 type ElementaryType struct {
 	ValuePos token.Position // type literal position
 	Kind     token.Token    // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
@@ -70,6 +70,43 @@ func (*Identifier) expressionNode()     {}
 func (*ElementaryType) expressionNode() {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~* Statements *~*~*~*~*~*~*~*~*~*~*~*~*~*/
+
+// In Solidity statements appear in blocks, which are enclosed in curly braces.
+// Block: { <<statement>> (and/or) <<unchecked-block>> }
+// For example: Constructor, Function, Modifier etc. delcarations have a body, which
+// is a block. Similarly try-catch, if-else, for, while statements have a block as well.
+type BlockStatement struct {
+	LeftBrace  token.Position // position of the left curly brace
+	Statements []Statement    // statements in the block
+	RightBrace token.Position // position of the right curly brace
+}
+
+// Return statement is in a form of "return <<expression>>;", where
+// the expression is optional. In languages like Go, the return statement can
+// return an array of Expressions e.g., "return x, y, z". In Solidity, however,
+// if you want to return multiple values, you return a tuple-expression e.g.,
+// "return (x, y, z);".
+type ReturnStatement struct {
+	Return token.Position // position of the "return" keyword
+	Result Expression     // result expressions or nil
+}
+
+// Start() and End() implementations for Statement type Nodes
+
+func (s *BlockStatement) Start() token.Position { return s.LeftBrace }
+
+// @TODO: This does not handle the cases when block is not yet closed.
+func (s *BlockStatement) End() token.Position    { return s.RightBrace + 1 }
+func (s *ReturnStatement) Start() token.Position { return s.Return }
+func (s *ReturnStatement) End() token.Position {
+	if s.Result != nil {
+		return s.Result.End()
+	}
+	return s.Return + 6 // length of "return"
+}
+
+// statementNode() ensures that only statement nodes can be assigned to a Statement.
+func (*ReturnStatement) statementNode() {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~ Declarations ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
