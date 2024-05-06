@@ -44,17 +44,68 @@ func Test_ParseElementaryTypes(t *testing.T) {
 	}
 }
 
-func checkParserErrors(t *testing.T, p *Parser) {
-	errors := p.errors
-	if len(errors) == 0 {
-		return
+func Test_ParseFunctionDeclaration(t *testing.T) {
+	src := `
+    function getBalance(address owner) public view returns (uint256) {
+        uint256 balance = 10;
+        return balance;
+    }
+    `
+
+	p := Parser{}
+	p.init(src)
+
+	file := p.ParseFile()
+	checkParserErrors(t, &p)
+
+	if file == nil {
+		t.Fatalf("ParseFile() returned nil")
 	}
 
-	t.Errorf("Parser has %d errors", len(errors))
-	for _, err := range errors {
-		t.Errorf("Parser error: %s", err.Msg)
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
 	}
-	t.FailNow()
+
+	decl := file.Declarations[0]
+	fd, ok := decl.(*ast.FunctionDeclaration)
+	if !ok {
+		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
+	}
+
+	if fd.Name.Name != "getBalance" {
+		t.Errorf("Expected function name getBalance, got %s", fd.Name.Name)
+	}
+
+	if fd.Type == nil {
+		t.Fatalf("Expected FunctionType, got nil")
+	}
+
+	if fd.Type.Params == nil {
+		t.Fatalf("Expected ParamList, got nil")
+	}
+
+	if len(fd.Type.Params.List) != 1 {
+		t.Fatalf("Expected 1 parameter, got %d", len(fd.Type.Params.List))
+	}
+	//
+	param := fd.Type.Params.List[0]
+	if param.Name.Name != "owner" {
+		t.Errorf("Expected parameter name owner, got %s", param.Name.Name)
+	}
+
+	// @TODO: We skip the type for now since it is an expression.
+	// if param.Type == nil {
+	// 	t.Fatalf("Expected ElementaryType, got nil")
+	// }
+
+	// et, ok := param.Type.(*ast.ElementaryType)
+	// if !ok {
+	// 	t.Fatalf("Expected ElementaryType, got %T", param.Type)
+	// }
+	//
+	// if et.Kind.Type != token.ADDRESS {
+	// 	t.Errorf("Expected token type ADDRESS, got %T", et.Kind.Type)
+	// }
 }
 
 func testParseElementaryType(t *testing.T, decl ast.Declaration,
@@ -87,4 +138,17 @@ func testParseElementaryType(t *testing.T, decl ast.Declaration,
 	}
 
 	return true
+}
+
+func checkParserErrors(t *testing.T, p *Parser) {
+	errors := p.errors
+	if len(errors) == 0 {
+		return
+	}
+
+	t.Errorf("Parser has %d errors", len(errors))
+	for _, err := range errors {
+		t.Errorf("Parser error: %s", err.Msg)
+	}
+	t.FailNow()
 }

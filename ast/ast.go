@@ -38,7 +38,27 @@ func (c *Comment) End() token.Position {
 	return token.Position(int(c.Slash) + len(c.Text))
 }
 
-/*~*~*~*~*~*~*~*~*~*~*~*~ Expressions *~*~*~*~*~*~*~*~*~*~*~*~*~*/
+/*~*~*~*~*~*~*~*~*~*~ Expressions and Types *~*~*~*~*~*~*~*~*~*~*/
+
+// @TODO: Data location is missing
+type Param struct {
+	Name *Identifier // param name e.g. "x" or "recipient"
+	Type Expression  // e.g. ElementaryType
+}
+
+type ParamList struct {
+	Opening token.Position // position of the opening parenthesis if any
+	List    []*Param       // list of fields; or nil
+	Closing token.Position // position of the closing parenthesis if any
+}
+
+type FunctionType struct {
+	Func       token.Position // position of the "function" keyword
+	Params     *ParamList     // input parameters; or nil
+	Results    *ParamList     // output parameters; or nil
+	Mutability Mutability     // mutability specifier e.g. pure, view, payable
+	Visibility Visibility     // visibility specifier e.g. public, private, internal, external
+}
 
 type Identifier struct {
 	NamePos token.Position // identifier position
@@ -93,9 +113,7 @@ type ReturnStatement struct {
 
 // Start() and End() implementations for Statement type Nodes
 
-func (s *BlockStatement) Start() token.Position { return s.LeftBrace }
-
-// @TODO: This does not handle the cases when block is not yet closed.
+func (s *BlockStatement) Start() token.Position  { return s.LeftBrace }
 func (s *BlockStatement) End() token.Position    { return s.RightBrace + 1 }
 func (s *ReturnStatement) Start() token.Position { return s.Return }
 func (s *ReturnStatement) End() token.Position {
@@ -106,6 +124,7 @@ func (s *ReturnStatement) End() token.Position {
 }
 
 // statementNode() ensures that only statement nodes can be assigned to a Statement.
+func (*BlockStatement) statementNode()  {}
 func (*ReturnStatement) statementNode() {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~ Declarations ~*~*~*~*~*~*~*~*~*~*~*~*~*/
@@ -113,7 +132,6 @@ func (*ReturnStatement) statementNode() {}
 // @TODO: Add Contract declaration
 // @TODO: Add Interface declaration
 // @TODO: Add Library declaration
-// @TODO: Add Function declaration
 // @TODO: Add Struct declaration
 // @TODO: Add Enum declaration
 // @TODO: Add Event declaration
@@ -125,6 +143,14 @@ func (*ReturnStatement) statementNode() {}
 // they are connected with a particular file.
 // @TODO?: Add Pragma Directive declaration
 // @TODO?: Add Import Directive declaration
+
+// @TODO: Add modifier invocations *CallExpression
+// @TODO: Add documentation comments
+type FunctionDeclaration struct {
+	Name *Identifier     // function name
+	Type *FunctionType   // function signature with input/output parameters, mutability, visibility
+	Body *BlockStatement // function body inside curly braces
+}
 
 // @TODO: Is it enough to have one VariableDeclaration to handle
 // constant/immutable declarations and normal variables as well?
@@ -138,8 +164,14 @@ type VariableDeclaration struct {
 
 func (d *VariableDeclaration) Start() token.Position { return 0 }
 func (d *VariableDeclaration) End() token.Position   { return 0 }
+func (d *FunctionDeclaration) Start() token.Position { return 0 }
+func (d *FunctionDeclaration) End() token.Position   { return 0 }
+
+// declarationNode() implementations to ensure that only declaration nodes can
+// be assigned to a Declaration.
 
 func (*VariableDeclaration) declarationNode() {}
+func (*FunctionDeclaration) declarationNode() {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~*~* Files ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
@@ -162,3 +194,38 @@ func (f *File) End() token.Position {
 	}
 	return 0
 }
+
+/*~*~*~*~*~*~ Visibility, Mutability, Data Location *~*~*~*~*~*~*/
+
+// Visibility specifier for functions and function types. For convenience,
+// this is also used for state variables. However, state vars can't be external.
+type Visibility int
+
+const (
+	_ Visibility = iota
+	Internal
+	External
+	Private
+	Public
+)
+
+// State mutability specifier for functions. The default mutability of non-payable
+// is assumed, if no mutability is specified.
+type Mutability int
+
+const (
+	_ Mutability = iota
+	Pure
+	View
+	Payable
+)
+
+// Data location specifier for function parameter lists and variable declarations.
+type DataLocation int
+
+const (
+	_ DataLocation = iota
+	Storage
+	Memory
+	Calldata
+)

@@ -38,7 +38,6 @@ func (p *Parser) ParseFile() *ast.File {
 		if decl != nil {
 			file.Declarations = append(file.Declarations, decl)
 		}
-
 		p.nextToken()
 	}
 
@@ -49,9 +48,73 @@ func (p *Parser) parseDeclaration() ast.Declaration {
 	switch p.currTkn.Type {
 	case token.ADDRESS, token.UINT_256, token.BOOL:
 		return p.parseVariableDeclaration()
+	case token.FUNCTION:
+		return p.parseFunctionDeclaration()
 	default:
 		return nil
 	}
+}
+
+func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
+	decl := &ast.FunctionDeclaration{}
+
+	// 1. Function keyword
+	fnType := &ast.FunctionType{}
+	fnType.Func = p.currTkn.Pos
+
+	// 2. Function identifier
+	if !p.expectPeek(token.IDENTIFIER) {
+		return nil
+	}
+
+	decl.Name = &ast.Identifier{
+		NamePos: p.currTkn.Pos,
+		Name:    p.currTkn.Literal,
+	}
+
+	// 3. ( Param List )
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	params := &ast.ParamList{}
+	params.Opening = p.currTkn.Pos
+	fnType.Params = params
+
+	p.nextToken()
+
+	for !p.currTknIs(token.RPAREN) {
+		if !p.expectPeek(token.IDENTIFIER) {
+			return nil
+		}
+
+		// @TODO: We skip the type for now since it is an expression.
+		param := &ast.Param{
+			Name: &ast.Identifier{
+				NamePos: p.currTkn.Pos,
+				Name:    p.currTkn.Literal,
+			},
+		}
+
+		fnType.Params.List = append(fnType.Params.List, param)
+		p.nextToken()
+	}
+
+	fnType.Params.Closing = p.currTkn.Pos
+
+	// 4. Visibility, State Mutability, Modifier Invocation, Override, Virtual
+
+	// 5. Returns ( Param List )
+
+	// 6. Body block
+
+	// 7. Semicolon
+	for !p.currTknIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	decl.Type = fnType
+	return decl
 }
 
 func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
