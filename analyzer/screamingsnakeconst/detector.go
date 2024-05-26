@@ -6,7 +6,7 @@ package screamingsnakeconst
 import (
 	"regexp"
 	"solparsor/ast"
-	"solparsor/token"
+	"solparsor/reporter"
 )
 
 const (
@@ -16,8 +16,10 @@ const (
 	recommendation = "Recommendation goes here."
 )
 
-func Detect(node ast.Node) *Finding {
-	finding := Finding{}
+type Detector struct{}
+
+func (*Detector) Detect(node ast.Node) *reporter.Finding {
+	finding := reporter.Finding{}
 	matches := 0
 	switch n := node.(type) {
 	case *ast.File:
@@ -25,11 +27,12 @@ func Detect(node ast.Node) *Finding {
 			if v, ok := decl.(*ast.VariableDeclaration); ok {
 				if v.Constant {
 					if !isScreamingSnakeCase(v.Name.Name) {
-						finding.Locations = append(finding.Locations, Location{
-							File:    "filename",
-							Line:    decl.Start(),
-							Context: "context",
-						})
+						finding.Locations = append(
+							finding.Locations, reporter.Location{
+								File:    "filename",
+								Line:    decl.Start(),
+								Context: "context",
+							})
 						matches++
 					}
 				}
@@ -61,18 +64,4 @@ func isScreamingSnakeCase(s string) bool {
 	regex := regexp.MustCompile(`^[A-Z0-9_]+$`)
 	println(s)
 	return regex.MatchString(s)
-}
-
-type Finding struct {
-	Title          string
-	Severity       string
-	Description    string
-	Recommendation string
-	Locations      []Location
-}
-
-type Location struct {
-	File    string         // The filename where the issue was found.
-	Line    token.Position // The line number where the issue was found.
-	Context string         // The line with the issue itself or with its surroundings.
 }

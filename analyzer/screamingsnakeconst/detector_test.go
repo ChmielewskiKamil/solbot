@@ -23,8 +23,9 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 	p.Init(src)
 
 	file := p.ParseFile()
+	d := Detector{}
 
-	finding := Detect(file)
+	finding := d.Detect(file)
 	if finding == nil {
 		t.Fatalf("Expected a finding, got nil")
 	}
@@ -47,8 +48,9 @@ func Test_ShouldReturnNilIfNoVariables(t *testing.T) {
 	p.Init(src)
 
 	file := p.ParseFile()
+	d := Detector{}
 
-	finding := Detect(file)
+	finding := d.Detect(file)
 
 	if finding != nil {
 		t.Fatalf("Expected nil, got a finding")
