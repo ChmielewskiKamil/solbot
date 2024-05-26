@@ -15,7 +15,7 @@ type Parser struct {
 	peekTkn token.Token
 }
 
-func (p *Parser) init(src string) {
+func (p *Parser) Init(src string) {
 	p.l = *lexer.Lex(src)
 	p.errors = ErrorList{}
 
@@ -45,10 +45,11 @@ func (p *Parser) ParseFile() *ast.File {
 }
 
 func (p *Parser) parseDeclaration() ast.Declaration {
-	switch p.currTkn.Type {
-	case token.ADDRESS, token.UINT_256, token.BOOL:
+	switch tkType := p.currTkn.Type; {
+	case token.IsElementaryType(tkType):
+		// @TODO: Maybe here add peek to see if next is constant or immutable?
 		return p.parseVariableDeclaration()
-	case token.FUNCTION:
+	case tkType == token.FUNCTION:
 		return p.parseFunctionDeclaration()
 	default:
 		return nil
@@ -79,40 +80,28 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 
 	params := &ast.ParamList{}
 	params.Opening = p.currTkn.Pos
-	fnType.Params = params
-
-	p.nextToken()
 
 	for !p.currTknIs(token.RPAREN) {
-		if !p.expectPeek(token.IDENTIFIER) {
-			return nil
-		}
-
-		// @TODO: We skip the type for now since it is an expression.
-		param := &ast.Param{
-			Name: &ast.Identifier{
-				NamePos: p.currTkn.Pos,
-				Name:    p.currTkn.Literal,
-			},
-		}
-
-		fnType.Params.List = append(fnType.Params.List, param)
 		p.nextToken()
 	}
 
-	fnType.Params.Closing = p.currTkn.Pos
+	params.Closing = p.currTkn.Pos
 
 	// 4. Visibility, State Mutability, Modifier Invocation, Override, Virtual
 
 	// 5. Returns ( Param List )
 
 	// 6. Body block
-
-	// 7. Semicolon
-	for !p.currTknIs(token.SEMICOLON) {
+	for !p.currTknIs(token.LBRACE) {
 		p.nextToken()
 	}
 
+	fnBody := p.parseBlockStatement()
+
+	// 7. Semicolon
+
+	fnType.Params = params
+	decl.Body = fnBody
 	decl.Type = fnType
 	return decl
 }
@@ -120,11 +109,19 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
 	decl := &ast.VariableDeclaration{}
 
+	// Set default values so that we don't have nil pointer dereferences
+	decl.Constant = false
+
 	// We are sitting on the variable type e.g. address or uint256
 	decl.Type = &ast.ElementaryType{
 		ValuePos: p.currTkn.Pos,
 		Kind:     p.currTkn,
 		Value:    p.currTkn.Literal,
+	}
+
+	if p.peekTkn.Type == token.CONSTANT {
+		decl.Constant = true
+		p.nextToken()
 	}
 
 	if !p.expectPeek(token.IDENTIFIER) {
@@ -144,6 +141,19 @@ func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
 	}
 
 	return decl
+}
+
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	blockStmt := &ast.BlockStatement{}
+	blockStmt.LeftBrace = p.currTkn.Pos
+
+	for !p.currTknIs(token.RBRACE) {
+		p.nextToken()
+	}
+
+	blockStmt.RightBrace = p.currTkn.Pos
+
+	return blockStmt
 }
 
 // expectPeek checks if the next token is of the expected type.

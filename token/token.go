@@ -696,3 +696,7 @@ func LookupIdent(ident string) TokenType {
 	}
 	return IDENTIFIER
 }
+
+func IsElementaryType(tt TokenType) bool {
+	return elementary_type_beg < tt && tt < elementary_type_end
+}

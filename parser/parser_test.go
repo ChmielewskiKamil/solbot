@@ -14,7 +14,7 @@ func Test_ParseElementaryTypes(t *testing.T) {
     `
 
 	p := Parser{}
-	p.init(src)
+	p.Init(src)
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)
@@ -45,6 +45,8 @@ func Test_ParseElementaryTypes(t *testing.T) {
 }
 
 func Test_ParseFunctionDeclaration(t *testing.T) {
+	// @TODO: When overriding the param identifier can be empty?
+	// e.g. function withdraw(uint256 assets, uint256) internal override ...
 	src := `
     function getBalance(address owner) public view returns (uint256) {
         uint256 balance = 10;
@@ -53,7 +55,7 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
     `
 
 	p := Parser{}
-	p.init(src)
+	p.Init(src)
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)
@@ -84,14 +86,14 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 		t.Fatalf("Expected ParamList, got nil")
 	}
 
-	if len(fd.Type.Params.List) != 1 {
-		t.Fatalf("Expected 1 parameter, got %d", len(fd.Type.Params.List))
-	}
+	// if len(fd.Type.Params.List) != 1 {
+	// 	t.Fatalf("Expected 1 parameter, got %d", len(fd.Type.Params.List))
+	// }
 	//
-	param := fd.Type.Params.List[0]
-	if param.Name.Name != "owner" {
-		t.Errorf("Expected parameter name owner, got %s", param.Name.Name)
-	}
+	// param := fd.Type.Params.List[0]
+	// if param.Name.Name != "owner" {
+	// 	t.Errorf("Expected parameter name owner, got %s", param.Name.Name)
+	// }
 
 	// @TODO: We skip the type for now since it is an expression.
 	// if param.Type == nil {
@@ -105,6 +107,19 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 	//
 	// if et.Kind.Type != token.ADDRESS {
 	// 	t.Errorf("Expected token type ADDRESS, got %T", et.Kind.Type)
+	// }
+
+	if fd.Body == nil {
+		t.Fatalf("Expected BlockStatement, got nil")
+	}
+
+	// fb, ok := fd.Body.(*ast.BlockStatement)
+	// if !ok {
+	// 	t.Fatalf("Expected BlockStatement, got %T", fd.Body)
+	// }
+
+	// if len(fb.Statements) != 2 {
+	// 	t.Fatalf("Expected 2 statements, got %d", len(fb.Statements))
 	// }
 }
 

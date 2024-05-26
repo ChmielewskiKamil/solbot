@@ -155,15 +155,16 @@ type FunctionDeclaration struct {
 // @TODO: Is it enough to have one VariableDeclaration to handle
 // constant/immutable declarations and normal variables as well?
 type VariableDeclaration struct {
-	Name  *Identifier // variable name
-	Type  Expression  // e.g. ElementaryType
-	Value Expression  // initial value or nil
+	Name     *Identifier // variable name
+	Type     Expression  // e.g. ElementaryType
+	Value    Expression  // initial value or nil
+	Constant bool        // is it a constant variable?
 }
 
 // Start() and End() implementations for Declaration type Nodes
 
-func (d *VariableDeclaration) Start() token.Position { return 0 }
-func (d *VariableDeclaration) End() token.Position   { return 0 }
+func (d *VariableDeclaration) Start() token.Position { return d.Type.Start() }
+func (d *VariableDeclaration) End() token.Position   { return d.Value.End() }
 func (d *FunctionDeclaration) Start() token.Position { return 0 }
 func (d *FunctionDeclaration) End() token.Position   { return 0 }
 
@@ -175,7 +176,8 @@ func (*FunctionDeclaration) declarationNode() {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~*~* Files ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
-// In Solidity grammar it's called "SourceUnit" and represents the entire source file.
+// In Solidity grammar it's called "SourceUnit" and represents the entire source
+// file.
 type File struct {
 	Declarations []Declaration
 }
