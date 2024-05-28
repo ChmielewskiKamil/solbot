@@ -1,6 +1,6 @@
 package ast
 
-import "solparsor/token"
+import "solbot/token"
 
 // All nodes in the AST must implement the Node interface.
 type Node interface {

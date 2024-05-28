@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"fmt"
-	"solparsor/token"
+	"solbot/token"
 	"strings"
 	"unicode/utf8"
 )

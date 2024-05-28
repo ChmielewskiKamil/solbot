@@ -3,7 +3,7 @@ package reporter
 import (
 	"fmt"
 	"os"
-	"solparsor/token"
+	"solbot/token"
 	"text/template"
 )
 

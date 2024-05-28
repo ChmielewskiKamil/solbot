@@ -1,9 +1,9 @@
 package main
 
 import (
-	"solparsor/analyzer/screamingsnakeconst"
-	"solparsor/parser"
-	"solparsor/reporter"
+	"solbot/analyzer/screamingsnakeconst"
+	"solbot/parser"
+	"solbot/reporter"
 )
 
 func main() {

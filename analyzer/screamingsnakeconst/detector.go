@@ -5,8 +5,8 @@ package screamingsnakeconst
 
 import (
 	"regexp"
-	"solparsor/ast"
-	"solparsor/reporter"
+	"solbot/ast"
+	"solbot/reporter"
 )
 
 const (

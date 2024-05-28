@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"solparsor/token"
+	"solbot/token"
 	"testing"
 )
 

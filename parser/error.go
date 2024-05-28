@@ -1,6 +1,6 @@
 package parser
 
-import "solparsor/token"
+import "solbot/token"
 
 type Error struct {
 	Pos token.Position

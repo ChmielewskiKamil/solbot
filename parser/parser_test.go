@@ -1,8 +1,8 @@
 package parser
 
 import (
-	"solparsor/ast"
-	"solparsor/token"
+	"solbot/ast"
+	"solbot/token"
 	"testing"
 )
 

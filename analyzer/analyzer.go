@@ -1,9 +1,9 @@
 package analyzer
 
 import (
-	"solparsor/analyzer/screamingsnakeconst"
-	"solparsor/ast"
-	"solparsor/reporter"
+	"solbot/analyzer/screamingsnakeconst"
+	"solbot/ast"
+	"solbot/reporter"
 )
 
 type Detector interface {

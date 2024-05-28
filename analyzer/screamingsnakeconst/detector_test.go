@@ -1,7 +1,7 @@
 package screamingsnakeconst
 
 import (
-	"solparsor/parser"
+	"solbot/parser"
 	"testing"
 )
 

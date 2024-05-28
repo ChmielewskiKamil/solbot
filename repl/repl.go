@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"solparsor/lexer"
-	"solparsor/token"
+	"solbot/lexer"
+	"solbot/token"
 )
 
 const PROMPT = ">> "

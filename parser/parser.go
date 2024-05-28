@@ -2,9 +2,9 @@ package parser
 
 import (
 	"fmt"
-	"solparsor/ast"
-	"solparsor/lexer"
-	"solparsor/token"
+	"solbot/ast"
+	"solbot/lexer"
+	"solbot/token"
 )
 
 type Parser struct {
