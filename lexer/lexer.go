@@ -46,8 +46,7 @@ func Lex(input string) *Lexer {
 		input:  input,
 		tokens: make(chan token.Token, 2), // Buffer 2 tokens. We don't need more.
 	}
-	println("Lexing input: ", input)
-	fmt.Printf("Input length: %d\n\n", len(input))
+
 	// This starts the state machine.
 	go l.run()
 

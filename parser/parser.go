@@ -47,7 +47,6 @@ func (p *Parser) ParseFile() *ast.File {
 func (p *Parser) parseDeclaration() ast.Declaration {
 	switch tkType := p.currTkn.Type; {
 	case token.IsElementaryType(tkType):
-		// @TODO: Maybe here add peek to see if next is constant or immutable?
 		return p.parseVariableDeclaration()
 	case tkType == token.FUNCTION:
 		return p.parseFunctionDeclaration()

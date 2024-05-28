@@ -62,6 +62,5 @@ func isScreamingSnakeCase(s string) bool {
 	// [A-Z0-9_] matches any uppercase letter, number or underscore.
 	// The quantifier + means that this pattern needs to appear at least once.
 	regex := regexp.MustCompile(`^[A-Z0-9_]+$`)
-	println(s)
 	return regex.MatchString(s)
 }
