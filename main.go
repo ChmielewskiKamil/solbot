@@ -1,24 +1,40 @@
 package main
 
 import (
-	"fmt"
-	// "os"
-	"solparsor/lexer"
-	// "solparsor/repl"
-	"solparsor/token"
+	"solparsor/analyzer/screamingsnakeconst"
+	"solparsor/parser"
+	"solparsor/reporter"
 )
 
 func main() {
-	// repl.Start(os.Stdin)
-	input := ``
+	src := `
+    address owner = 0x12345;                  // no match
+    bool constant IS_OWNER = true;            // no match   
+    bool constant isOwner = false;            // match
+    bool constant is_owner = false;           // match
+    uint256 balance = 100;                    // no match
+    address constant router = 0x1337;         // match
+    bool isOwner = true;                      // no match
+    uint16 constant ONE_hundred_IS_100 = 100; // match
+    uint256 constant DENOMINATOR = 1_000_000; // no match
+    `
 
-	lexer := lexer.Lex(input)
-	for {
-		tkn := lexer.NextToken()
-		fmt.Printf("Token: %s, at position: %d, with type: %s\n", tkn.String(), tkn.Pos, token.Tokens[tkn.Type])
+	p := parser.Parser{}
 
-		if tkn.Type == token.EOF || tkn.Type == token.ILLEGAL {
-			break
-		}
+	p.Init(src)
+
+	file := p.ParseFile()
+	d := screamingsnakeconst.Detector{}
+
+	finding := d.Detect(file)
+
+	list := []reporter.Finding{}
+	if finding != nil {
+		list = append(list, *finding)
 	}
+	if len(list) == 0 {
+		panic("No finding")
+	}
+
+	reporter.GenerateReport(list, "./report.md")
 }
