@@ -36,5 +36,8 @@ func main() {
 		panic("No finding")
 	}
 
-	reporter.GenerateReport(list, "./report.md")
+	err := reporter.GenerateReport(list, "./report.md")
+	if err != nil {
+		panic(err)
+	}
 }
