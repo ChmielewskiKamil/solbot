@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	title          = "Variables declared as `constant` should be in SCREAMING_SNAKE_CASE"
+	title          = "Variables declared as `constant` should be in `SCREAMING_SNAKE_CASE`"
 	severity       = "Best Practices"
 	description    = "Description of the finding goes here."
 	recommendation = "Recommendation goes here."
