@@ -12,7 +12,7 @@ import (
 const (
 	title          = "Variables declared as `constant` should be in `SCREAMING_SNAKE_CASE`"
 	severity       = "Best Practices"
-	description    = "Description of the finding goes here."
+	description    = "Description of the finding goes here. The following vars: {{ range .Locations }}{{ .Context }}{{ end }}"
 	recommendation = "Recommendation goes here."
 )
 
@@ -29,9 +29,9 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 					if !isScreamingSnakeCase(v.Name.Name) {
 						finding.Locations = append(
 							finding.Locations, reporter.Location{
-								File:    "filename",
+								File:    "path/to/file.sol",
 								Line:    decl.Start(),
-								Context: "context",
+								Context: v.Name.Name, // Save name for report
 							})
 						matches++
 					}
