@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 	"solbot/lsp"
@@ -15,9 +16,11 @@ func main() {
 	logger.Println("Logger started.")
 
 	state := analysis.NewState()
-
 	scanner := bufio.NewScanner(os.Stdin)
+	writer := os.Stdout
+
 	scanner.Split(rpc.Split)
+
 	for scanner.Scan() {
 		msg := scanner.Bytes()
 		method, content, err := rpc.DecodeMessage(msg)
@@ -26,11 +29,11 @@ func main() {
 			continue
 		}
 
-		handleMessage(logger, state, method, content)
+		handleMessage(logger, writer, state, method, content)
 	}
 }
 
-func handleMessage(logger *log.Logger, state analysis.State, method string, content []byte) {
+func handleMessage(logger *log.Logger, writer io.Writer, state analysis.State, method string, content []byte) {
 	logger.Printf("Received message with method: %s\n", method)
 	logger.Printf("Message content: %s\n", content)
 
@@ -39,40 +42,54 @@ func handleMessage(logger *log.Logger, state analysis.State, method string, cont
 		var request lsp.InitializeRequest
 		if err := json.Unmarshal(content, &request); err != nil {
 			logger.Printf("initialize: %s\n", err)
+			return
 		}
 
 		logger.Printf("Connected to: %s %s\n", request.Params.ClientInfo.Name, request.Params.ClientInfo.Version)
 
 		msg := lsp.NewInitializeResponse(request.ID)
-		response := rpc.EncodeMessage(msg)
-		_, err := os.Stdout.Write([]byte(response))
-		if err != nil {
-			logger.Printf("Error writing response: %s\n", err)
-		}
-
-		logger.Println("Sent initialize response.")
+		writeResponse(writer, logger, msg)
 	case "textDocument/didOpen":
 		var request lsp.DidOpenTextDocumentNotification
 		if err := json.Unmarshal(content, &request); err != nil {
 			logger.Printf("textDocument/didOpen: %s\n", err)
+			return
 		}
 
 		logger.Printf("Opened: %s\n", request.Params.TextDocument.URI)
+
 		// @TODO: Here we can start the static analysis
+
 		state.OpenDocument(request.Params.TextDocument.URI, request.Params.TextDocument.Text)
 	case "textDocument/didChange":
 		var request lsp.DidChangeTextDocumentNotification
 		if err := json.Unmarshal(content, &request); err != nil {
 			logger.Printf("textDocument/didChange: %s\n", err)
+			return
 		}
 
 		logger.Printf("Changed: %s\n", request.Params.TextDocument.URI)
 
-		// @TODO: Here we can start the static analysis
-
 		for _, change := range request.Params.ContentChanges {
 			state.UpdateDocument(request.Params.TextDocument.URI, change.Text)
 		}
+	case "textDocument/hover":
+		var request lsp.HoverRequest
+		if err := json.Unmarshal(content, &request); err != nil {
+			logger.Printf("textDocument/hover: %s\n", err)
+			return
+		}
+
+		msg := lsp.NewHoverResponse(request.ID, "Hello, from LSP!")
+		writeResponse(writer, logger, msg)
+	}
+}
+
+func writeResponse(writer io.Writer, logger *log.Logger, msg any) {
+	response := rpc.EncodeMessage(msg)
+	_, err := writer.Write([]byte(response))
+	if err != nil {
+		logger.Printf("Error writing response: %s\n", err)
 	}
 }
 
