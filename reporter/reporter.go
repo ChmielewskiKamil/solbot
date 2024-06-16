@@ -49,7 +49,7 @@ func GenerateReport(findings []Finding, outputPath string) error {
 				"Could not write the finding in the report file: %s", err)
 		}
 
-		_, err = file.WriteString("\n")
+		_, err = file.WriteString("\n\n")
 		if err != nil {
 			return fmt.Errorf(
 				"Could not add a newline in the report file: %s", err)
