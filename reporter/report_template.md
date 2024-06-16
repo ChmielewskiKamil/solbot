@@ -1,6 +1,6 @@
 ### [{{ .Severity }}] {{ .Title }}
 
-**File(s)**: {{ .Locations }}
+**File(s)**: {{ range .Locations }}[{{ .File }}](link) {{ end }} 
 
 **Description**: {{ .Description }}
 
