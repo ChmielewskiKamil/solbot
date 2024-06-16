@@ -80,8 +80,8 @@ func handleMessage(logger *log.Logger, writer io.Writer, state analysis.State, m
 			return
 		}
 
-		msg := lsp.NewHoverResponse(request.ID, "Hello, from LSP!")
-		writeResponse(writer, logger, msg)
+		response := state.Hover(request.ID, request.Params.TextDocument.URI, request.Params.Position)
+		writeResponse(writer, logger, response)
 	}
 }
 
