@@ -16,12 +16,23 @@ type VersionedTextDocumentIdentifier struct {
 	Version int `json:"version"`
 }
 
+type TextDocumentPositionParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	Position     Position               `json:"position"`
+}
+
+// LSP Client counts lines starting from 1, Neovim displays starting from 0.
 type Position struct {
 	Line      uint `json:"line"`
 	Character uint `json:"character"`
 }
 
-type TextDocumentPositionParams struct {
-	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+type Location struct {
+	URI   string `json:"uri"`
+	Range Range  `json:"range"`
+}
+
+type Range struct {
+	Start Position `json:"start"`
+	End   Position `json:"end"`
 }
