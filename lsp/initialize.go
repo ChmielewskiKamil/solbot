@@ -26,7 +26,8 @@ type InitializeResult struct {
 }
 
 type ServerCapabilities struct {
-	TextDocumentSync int `json:"textDocumentSync"` // Sync kind: 1 = full content, 2 = incremental
+	TextDocumentSync int  `json:"textDocumentSync"` // Sync kind: 1 = full content, 2 = incremental
+	HoverProvider    bool `json:"hoverProvider"`
 }
 
 type ServerInfo struct {
@@ -43,6 +44,7 @@ func NewInitializeResponse(id int) InitializeResponse {
 		Result: InitializeResult{
 			Capabilities: ServerCapabilities{
 				TextDocumentSync: 1, // Sync by sending the full content.
+				HoverProvider:    true,
 			},
 			ServerInfo: ServerInfo{
 				Name:    "solbot_lsp",
