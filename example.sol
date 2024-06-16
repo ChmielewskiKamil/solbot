@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// Taken from: https://solidity-by-example.org/app/ether-wallet/
 pragma solidity ^0.8.24;
 
 contract EtherWallet {
