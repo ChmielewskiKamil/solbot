@@ -3,15 +3,39 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"io"
 	"log"
 	"os"
+	"solbot/analyzer"
 	"solbot/lsp"
 	"solbot/lsp/analysis"
 	"solbot/lsp/rpc"
+	"solbot/parser"
+	"solbot/reporter"
+	"solbot/token"
 )
 
 func main() {
+	mode := flag.String("mode", "analyzer", "Operation mode: lsp or analyzer")
+	filePath := flag.String("file", "", "File path to analyze")
+	flag.Parse()
+
+	switch *mode {
+	case "lsp":
+		startLanguageServer()
+	case "analyzer":
+		if *filePath == "" {
+			log.Fatalf("File path is required in analyzer mode.\nUse --file path/to/file.sol to analyze a file.")
+		}
+		startAnalyzer(*filePath)
+	default:
+		log.Fatalf("Unknown mode: `%s` Available modes: `lsp` or `analyzer`", *mode)
+		os.Exit(1)
+	}
+}
+
+func startLanguageServer() {
 	logger := getLogger("log.txt")
 	logger.Println("Logger started.")
 
@@ -31,6 +55,25 @@ func main() {
 
 		handleMessage(logger, writer, state, method, content)
 	}
+}
+
+func startAnalyzer(filePath string) {
+	println("Solbot starts")
+	src, err := os.ReadFile(filePath)
+	if err != nil {
+		log.Fatalf("Error reading file: %s\n", err)
+	}
+
+	p := parser.Parser{}
+	handle := token.NewFile(filePath, string(src))
+	p.Init(handle)
+
+	file := p.ParseFile()
+
+	println("Solbot is analyzing your file...")
+	findings := analyzer.AnalyzeFile(file)
+
+	reporter.GenerateReport(findings, "solbot.md")
 }
 
 func handleMessage(logger *log.Logger, writer io.Writer, state analysis.State, method string, content []byte) {
