@@ -13,7 +13,7 @@ type DefinitionResponse struct {
 	Response
 	// It works perfectly fine with a single location. For multiple locations
 	// it lets the user to choose.
-	Result *[]Location `json:"result"`
+	Result *[]Location `json:"result,omitempty"`
 }
 
 func NewDefinitionResponse(id int, locations *[]Location) DefinitionResponse {
