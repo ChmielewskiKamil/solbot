@@ -13,8 +13,8 @@ import (
 const (
 	title          = "Variables declared as `constant` should be in `SCREAMING_SNAKE_CASE`"
 	severity       = "Best Practices"
-	description    = "Description of the finding goes here. The following vars: {{ range .Locations }}{{ .Context }}{{ end }}"
-	recommendation = "Recommendation goes here."
+	descTempl      = "Constant variables should be declared with a `SCREAMING_SNAKE_CASE`. The following vars don't follow this practice: {{ range .Locations }}\n- `{{ .Context }}`{{ end }}"
+	recommendation = "Consider renaming the variables to make the code more readable and less error-prone."
 )
 
 type Detector struct{}
@@ -45,7 +45,7 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 			// Add the rest of the fields to the finding
 			finding.Title = title
 			finding.Severity = severity
-			finding.Description = description
+			finding.Description = reporter.GenerateCustomDescription(descTempl, finding.Locations)
 			finding.Recommendation = recommendation
 			return &finding
 		} else {
