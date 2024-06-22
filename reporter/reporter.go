@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"solbot/token"
@@ -21,13 +22,13 @@ type Location struct {
 	Context  string         // The line with the issue itself or with its surroundings.
 }
 
-func (f *Finding) CalculatePositions(src string, fileName string) {
+func (f *Finding) CalculatePositions(file *token.File) {
 	for i := range f.Locations {
 		// @TODO: This resets reader's state, but it is inefficient.
-		reader := strings.NewReader(src)
+		reader := strings.NewReader(file.Src())
 		token.OffsetToPosition(reader, &f.Locations[i].Position)
 		// @TODO: Add file name to the position.
-		f.Locations[i].Position.Filename = fileName
+		f.Locations[i].Position.Filename = file.Name()
 	}
 }
 
@@ -67,4 +68,20 @@ func GenerateReport(findings []Finding, outputPath string) error {
 	}
 
 	return nil
+}
+
+func GenerateCustomDescription(templPath string, locations []Location) string {
+	tmpl, err := template.New("description").Parse(templPath)
+	if err != nil {
+		panic(err)
+	}
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, map[string]interface{}{
+		"Locations": locations,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	return buf.String()
 }

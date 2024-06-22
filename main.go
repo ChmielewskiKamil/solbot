@@ -72,6 +72,9 @@ func startAnalyzer(filePath string) {
 
 	println("Solbot is analyzing your file...")
 	findings := analyzer.AnalyzeFile(file)
+	for _, finding := range findings {
+		finding.CalculatePositions(handle)
+	}
 
 	reporter.GenerateReport(findings, "solbot.md")
 }

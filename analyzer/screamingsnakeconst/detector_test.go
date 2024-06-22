@@ -39,7 +39,7 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 		t.Errorf("Expected %d findings, got %d", numResults, len(finding.Locations))
 	}
 
-	finding.CalculatePositions(src, "test.sol")
+	finding.CalculatePositions(handle)
 
 	expectedLocations := []reporter.Location{
 		{Position: token.Position{Line: 3, Column: 19}, Context: "isOwner"},
