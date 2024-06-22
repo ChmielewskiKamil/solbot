@@ -15,3 +15,18 @@ func GetAllDetectors() *[]Detector {
 		&screamingsnakeconst.Detector{},
 	}
 }
+
+func AnalyzeFile(file *ast.File) []reporter.Finding {
+	var findings []reporter.Finding
+
+	detectors := *GetAllDetectors()
+
+	for _, detector := range detectors {
+		finding := detector.Detect(file)
+		if finding != nil {
+			findings = append(findings, *finding)
+		}
+	}
+
+	return findings
+}

@@ -8,6 +8,7 @@ import (
 )
 
 type Parser struct {
+	file   *token.File
 	l      lexer.Lexer
 	errors ErrorList
 
@@ -15,9 +16,10 @@ type Parser struct {
 	peekTkn token.Token
 }
 
-func (p *Parser) Init(src string) {
-	p.l = *lexer.Lex(src)
+func (p *Parser) Init(file *token.File, src string) {
+	p.l = *lexer.Lex(file, src)
 	p.errors = ErrorList{}
+	p.file = file
 
 	// Read two tokens, so currTkn and peekTkn are both set
 	p.nextToken()

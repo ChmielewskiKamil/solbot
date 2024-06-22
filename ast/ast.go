@@ -179,6 +179,7 @@ func (*FunctionDeclaration) declarationNode() {}
 // In Solidity grammar it's called "SourceUnit" and represents the entire source
 // file.
 type File struct {
+	Name         string
 	Declarations []Declaration
 }
 

@@ -2,12 +2,13 @@ package screamingsnakeconst
 
 import (
 	"solbot/parser"
+	"solbot/reporter"
+	"solbot/token"
 	"testing"
 )
 
 func Test_DetectSnakeCaseConst(t *testing.T) {
-	src := `
-    address owner = 0x12345;                  // no match
+	src := `address owner = 0x12345;          // no match
     bool constant IS_OWNER = true;            // no match   
     bool constant isOwner = false;            // match
     bool constant is_owner = false;           // match
@@ -20,7 +21,9 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 
 	p := parser.Parser{}
 
-	p.Init(src)
+	fileHandle := token.NewFile("test.sol")
+
+	p.Init(fileHandle, src)
 
 	file := p.ParseFile()
 	d := Detector{}
@@ -35,17 +38,42 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 	if len(finding.Locations) != numResults {
 		t.Errorf("Expected %d findings, got %d", numResults, len(finding.Locations))
 	}
+
+	finding.CalculatePositions(src, "test.sol")
+
+	expectedLocations := []reporter.Location{
+		{Position: token.Position{Line: 3, Column: 19}, Context: "isOwner"},
+		{Position: token.Position{Line: 4, Column: 19}, Context: "is_owner"},
+		{Position: token.Position{Line: 6, Column: 22}, Context: "router"},
+		{Position: token.Position{Line: 8, Column: 21}, Context: "ONE_hundred_IS_100"},
+	}
+
+	for i, loc := range finding.Locations {
+		if loc.Position.Line != expectedLocations[i].Position.Line {
+			t.Errorf("Expected line %d, got %d", expectedLocations[i].Position.Line, loc.Position.Line)
+		}
+
+		if loc.Position.Column != expectedLocations[i].Position.Column {
+			t.Errorf("Expected column %d, got %d", expectedLocations[i].Position.Column, loc.Position.Column)
+		}
+
+		if loc.Context != expectedLocations[i].Context {
+			t.Errorf("Expected context %s, got %s", expectedLocations[i].Context, loc.Context)
+		}
+	}
+
 }
 
 func Test_ShouldReturnNilIfNoVariables(t *testing.T) {
 	src := `
-    function foo() public {
-    }
+    function foo() public {}
     `
 
 	p := parser.Parser{}
 
-	p.Init(src)
+	srcHandle := token.NewFile("test.sol")
+
+	p.Init(srcHandle, src)
 
 	file := p.ParseFile()
 	d := Detector{}

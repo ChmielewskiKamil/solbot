@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"solbot/token"
+	"strings"
 	"text/template"
 )
 
@@ -16,9 +17,18 @@ type Finding struct {
 }
 
 type Location struct {
-	File    string    // The filename where the issue was found.
-	Line    token.Pos // The line number where the issue was found.
-	Context string    // The line with the issue itself or with its surroundings.
+	Position token.Position // Position data of the finding e.g. file, line, column.
+	Context  string         // The line with the issue itself or with its surroundings.
+}
+
+func (f *Finding) CalculatePositions(src string, fileName string) {
+	for i := range f.Locations {
+		// @TODO: This resets reader's state, but it is inefficient.
+		reader := strings.NewReader(src)
+		token.OffsetToPosition(reader, &f.Locations[i].Position)
+		// @TODO: Add file name to the position.
+		f.Locations[i].Position.Filename = fileName
+	}
 }
 
 const (

@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"solbot/ast"
 	"solbot/reporter"
+	"solbot/token"
 )
 
 const (
@@ -29,8 +30,9 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 					if !isScreamingSnakeCase(v.Name.Name) {
 						finding.Locations = append(
 							finding.Locations, reporter.Location{
-								File:    "path/to/file.sol",
-								Line:    decl.Start(),
+								Position: token.Position{
+									Offset: v.Name.NamePos,
+								},
 								Context: v.Name.Name, // Save name for report
 							})
 						matches++

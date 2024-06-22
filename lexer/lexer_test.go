@@ -237,7 +237,7 @@ func TestNextToken(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	lexer := Lex(input)
+	lexer := Lex(nil, input)
 
 	for i, tt := range tests {
 		tkn := lexer.NextToken()

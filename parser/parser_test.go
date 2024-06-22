@@ -14,7 +14,8 @@ func Test_ParseElementaryTypes(t *testing.T) {
     `
 
 	p := Parser{}
-	p.Init(src)
+	fileHandle := token.NewFile("test.sol")
+	p.Init(fileHandle, src)
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)
@@ -55,7 +56,8 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
     `
 
 	p := Parser{}
-	p.Init(src)
+	fileHandle := token.NewFile("test.sol")
+	p.Init(fileHandle, src)
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)

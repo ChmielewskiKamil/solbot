@@ -2,8 +2,6 @@ package token
 
 import "fmt"
 
-// Pos is the offset to the beginning of a token, starting from 0
-type Pos int
 type TokenType int
 
 type Token struct {

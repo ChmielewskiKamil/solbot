@@ -23,7 +23,7 @@ func Start(in io.Reader) {
 
 		line := scanner.Text()
 
-		l := lexer.Lex(line)
+		l := lexer.Lex(nil, line)
 
 		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
 			// % is the indicator of the start of a format specifier
