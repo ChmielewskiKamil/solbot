@@ -67,6 +67,7 @@ func startAnalyzer(filePath string) {
 	p := parser.Parser{}
 	handle := token.NewFile(filePath, string(src))
 	p.Init(handle)
+	p.ToggleTracing()
 
 	file := p.ParseFile()
 

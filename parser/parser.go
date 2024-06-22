@@ -12,6 +12,9 @@ type Parser struct {
 	l      lexer.Lexer
 	errors ErrorList
 
+	// Tracing
+	trace bool
+
 	currTkn token.Token
 	peekTkn token.Token
 }
@@ -20,10 +23,15 @@ func (p *Parser) Init(file *token.File) {
 	p.l = *lexer.Lex(file)
 	p.errors = ErrorList{}
 	p.file = file
+	p.trace = false
 
 	// Read two tokens, so currTkn and peekTkn are both set
 	p.nextToken()
 	p.nextToken()
+}
+
+func (p *Parser) ToggleTracing() {
+	p.trace = !p.trace
 }
 
 func (p *Parser) nextToken() {
@@ -32,6 +40,10 @@ func (p *Parser) nextToken() {
 }
 
 func (p *Parser) ParseFile() *ast.File {
+	if p.trace {
+		defer untrace(trace("ParseFile"))
+	}
+
 	file := &ast.File{}
 	file.Declarations = []ast.Declaration{}
 
@@ -47,6 +59,9 @@ func (p *Parser) ParseFile() *ast.File {
 }
 
 func (p *Parser) parseDeclaration() ast.Declaration {
+	if p.trace {
+		defer untrace(trace("parseDeclaration"))
+	}
 	switch tkType := p.currTkn.Type; {
 	case token.IsElementaryType(tkType):
 		return p.parseVariableDeclaration()
@@ -58,6 +73,9 @@ func (p *Parser) parseDeclaration() ast.Declaration {
 }
 
 func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
+	if p.trace {
+		defer untrace(trace("parseFunctionDeclaration"))
+	}
 	decl := &ast.FunctionDeclaration{}
 
 	// 1. Function keyword
@@ -108,6 +126,9 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 }
 
 func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
+	if p.trace {
+		defer untrace(trace("parseVariableDeclaration"))
+	}
 	decl := &ast.VariableDeclaration{}
 
 	// Set default values so that we don't have nil pointer dereferences
@@ -145,6 +166,9 @@ func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
 }
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	if p.trace {
+		defer untrace(trace("parseBlockStatement"))
+	}
 	blockStmt := &ast.BlockStatement{}
 	blockStmt.LeftBrace = p.currTkn.Pos
 
