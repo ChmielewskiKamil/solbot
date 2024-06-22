@@ -16,8 +16,8 @@ type Parser struct {
 	peekTkn token.Token
 }
 
-func (p *Parser) Init(file *token.File, src string) {
-	p.l = *lexer.Lex(file, src)
+func (p *Parser) Init(file *token.File) {
+	p.l = *lexer.Lex(file)
 	p.errors = ErrorList{}
 	p.file = file
 

@@ -57,15 +57,22 @@ func OffsetToPosition(reader io.Reader, pos *Position) {
 }
 
 type File struct {
-	name string
-
-	lines []int // offsets of the first character of each line
+	name  string // file name e.g. "foo.sol"
+	src   string // file content; source code passed to the parser
+	lines []int  // offsets of the first character of each line
 }
 
 func (f *File) Name() string {
 	return f.name
 }
 
-func NewFile(name string) *File {
-	return &File{name: name}
+func (f *File) Src() string {
+	return f.src
+}
+
+func NewFile(name, src string) *File {
+	return &File{
+		name: name,
+		src:  src,
+	}
 }

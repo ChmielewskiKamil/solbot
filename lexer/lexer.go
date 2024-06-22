@@ -42,10 +42,10 @@ type Lexer struct {
 	tokens chan token.Token // Channel of scanned token.
 }
 
-func Lex(file *token.File, input string) *Lexer {
+func Lex(file *token.File) *Lexer {
 	l := &Lexer{
 		file:   file,
-		input:  input,
+		input:  file.Src(),
 		tokens: make(chan token.Token, 2), // Buffer 2 tokens. We don't need more.
 	}
 

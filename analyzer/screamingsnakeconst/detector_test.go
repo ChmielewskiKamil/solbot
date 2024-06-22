@@ -21,9 +21,9 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 
 	p := parser.Parser{}
 
-	fileHandle := token.NewFile("test.sol")
+	handle := token.NewFile("test.sol", src)
 
-	p.Init(fileHandle, src)
+	p.Init(handle)
 
 	file := p.ParseFile()
 	d := Detector{}
@@ -71,9 +71,9 @@ func Test_ShouldReturnNilIfNoVariables(t *testing.T) {
 
 	p := parser.Parser{}
 
-	srcHandle := token.NewFile("test.sol")
+	handle := token.NewFile("test.sol", src)
 
-	p.Init(srcHandle, src)
+	p.Init(handle)
 
 	file := p.ParseFile()
 	d := Detector{}

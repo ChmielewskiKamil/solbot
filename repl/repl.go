@@ -10,6 +10,7 @@ import (
 
 const PROMPT = ">> "
 
+// @TODO: After introducing the file handle, the REPL does not work.
 func Start(in io.Reader) {
 	scanner := bufio.NewScanner(in)
 
@@ -21,9 +22,9 @@ func Start(in io.Reader) {
 			return
 		}
 
-		line := scanner.Text()
+		// line := scanner.Text()
 
-		l := lexer.Lex(nil, line)
+		l := lexer.Lex(nil) // @TODO: Figure out how to use the file handle in REPL
 
 		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
 			// % is the indicator of the start of a format specifier
