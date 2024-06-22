@@ -2,14 +2,14 @@ package token
 
 import "fmt"
 
-// Position is the offset to the beginning of a token, starting from 0
-type Position int
+// Pos is the offset to the beginning of a token, starting from 0
+type Pos int
 type TokenType int
 
 type Token struct {
 	Type    TokenType // type of the token e.g. token.ADDRESS
 	Literal string    // literal value of the token e.g. "0xDEADBEEF"
-	Pos     Position  // position of the first character of the token in the input string
+	Pos     Pos       // position of the first character of the token in the input string
 }
 
 // String prints a literal for most of the tokens

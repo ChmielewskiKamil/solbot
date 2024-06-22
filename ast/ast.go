@@ -4,8 +4,8 @@ import "solbot/token"
 
 // All nodes in the AST must implement the Node interface.
 type Node interface {
-	Start() token.Position // First character of the node
-	End() token.Position   // First character immediately after the node
+	Start() token.Pos // First character of the node
+	End() token.Pos   // First character immediately after the node
 }
 
 // All expression nodes in the AST must implement the Expression interface.
@@ -29,13 +29,13 @@ type Declaration interface {
 /*~*~*~*~*~*~*~*~*~*~*~*~*~ Comments ~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 type Comment struct {
-	Slash token.Position // Position of the leading '/'
+	Slash token.Pos // Position of the leading '/'
 	Text  string
 }
 
-func (c *Comment) Start() token.Position { return c.Slash }
-func (c *Comment) End() token.Position {
-	return token.Position(int(c.Slash) + len(c.Text))
+func (c *Comment) Start() token.Pos { return c.Slash }
+func (c *Comment) End() token.Pos {
+	return token.Pos(int(c.Slash) + len(c.Text))
 }
 
 /*~*~*~*~*~*~*~*~*~*~ Expressions and Types *~*~*~*~*~*~*~*~*~*~*/
@@ -47,40 +47,40 @@ type Param struct {
 }
 
 type ParamList struct {
-	Opening token.Position // position of the opening parenthesis if any
-	List    []*Param       // list of fields; or nil
-	Closing token.Position // position of the closing parenthesis if any
+	Opening token.Pos // position of the opening parenthesis if any
+	List    []*Param  // list of fields; or nil
+	Closing token.Pos // position of the closing parenthesis if any
 }
 
 type FunctionType struct {
-	Func       token.Position // position of the "function" keyword
-	Params     *ParamList     // input parameters; or nil
-	Results    *ParamList     // output parameters; or nil
-	Mutability Mutability     // mutability specifier e.g. pure, view, payable
-	Visibility Visibility     // visibility specifier e.g. public, private, internal, external
+	Func       token.Pos  // position of the "function" keyword
+	Params     *ParamList // input parameters; or nil
+	Results    *ParamList // output parameters; or nil
+	Mutability Mutability // mutability specifier e.g. pure, view, payable
+	Visibility Visibility // visibility specifier e.g. public, private, internal, external
 }
 
 type Identifier struct {
-	NamePos token.Position // identifier position
-	Name    string         // identifier name
+	NamePos token.Pos // identifier position
+	Name    string    // identifier name
 }
 
 // In Solidity grammar called "ElementaryTypeName".
 // One of: address, address payable, bool, string, uint, int, bytes,
 // fixed, fixed-bytes or ufixed. NOT a Contract, Function, mapping.
 type ElementaryType struct {
-	ValuePos token.Position // type literal position
-	Kind     token.Token    // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
-	Value    string         // type literal value e.g. "address", "uint256", "bool" as a string
+	ValuePos token.Pos   // type literal position
+	Kind     token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
+	Value    string      // type literal value e.g. "address", "uint256", "bool" as a string
 }
 
 // Start() and End() implementations for Expression type Nodes
 
-func (x *Identifier) Start() token.Position     { return x.NamePos }
-func (x *ElementaryType) Start() token.Position { return x.ValuePos }
+func (x *Identifier) Start() token.Pos     { return x.NamePos }
+func (x *ElementaryType) Start() token.Pos { return x.ValuePos }
 
-func (x *Identifier) End() token.Position     { return token.Position(int(x.NamePos) + len(x.Name)) }
-func (x *ElementaryType) End() token.Position { return token.Position(int(x.ValuePos) + len(x.Value)) }
+func (x *Identifier) End() token.Pos     { return token.Pos(int(x.NamePos) + len(x.Name)) }
+func (x *ElementaryType) End() token.Pos { return token.Pos(int(x.ValuePos) + len(x.Value)) }
 
 // expressionNode() implementations to ensure that only expressions and types
 // can be assigned to an Expression. This is useful if by mistake we try to use
@@ -96,9 +96,9 @@ func (*ElementaryType) expressionNode() {}
 // For example: Constructor, Function, Modifier etc. delcarations have a body, which
 // is a block. Similarly try-catch, if-else, for, while statements have a block as well.
 type BlockStatement struct {
-	LeftBrace  token.Position // position of the left curly brace
-	Statements []Statement    // statements in the block
-	RightBrace token.Position // position of the right curly brace
+	LeftBrace  token.Pos   // position of the left curly brace
+	Statements []Statement // statements in the block
+	RightBrace token.Pos   // position of the right curly brace
 }
 
 // Return statement is in a form of "return <<expression>>;", where
@@ -107,16 +107,16 @@ type BlockStatement struct {
 // if you want to return multiple values, you return a tuple-expression e.g.,
 // "return (x, y, z);".
 type ReturnStatement struct {
-	Return token.Position // position of the "return" keyword
-	Result Expression     // result expressions or nil
+	Return token.Pos  // position of the "return" keyword
+	Result Expression // result expressions or nil
 }
 
 // Start() and End() implementations for Statement type Nodes
 
-func (s *BlockStatement) Start() token.Position  { return s.LeftBrace }
-func (s *BlockStatement) End() token.Position    { return s.RightBrace + 1 }
-func (s *ReturnStatement) Start() token.Position { return s.Return }
-func (s *ReturnStatement) End() token.Position {
+func (s *BlockStatement) Start() token.Pos  { return s.LeftBrace }
+func (s *BlockStatement) End() token.Pos    { return s.RightBrace + 1 }
+func (s *ReturnStatement) Start() token.Pos { return s.Return }
+func (s *ReturnStatement) End() token.Pos {
 	if s.Result != nil {
 		return s.Result.End()
 	}
@@ -163,10 +163,10 @@ type VariableDeclaration struct {
 
 // Start() and End() implementations for Declaration type Nodes
 
-func (d *VariableDeclaration) Start() token.Position { return d.Type.Start() }
-func (d *VariableDeclaration) End() token.Position   { return d.Value.End() }
-func (d *FunctionDeclaration) Start() token.Position { return 0 }
-func (d *FunctionDeclaration) End() token.Position   { return 0 }
+func (d *VariableDeclaration) Start() token.Pos { return d.Type.Start() }
+func (d *VariableDeclaration) End() token.Pos   { return d.Value.End() }
+func (d *FunctionDeclaration) Start() token.Pos { return 0 }
+func (d *FunctionDeclaration) End() token.Pos   { return 0 }
 
 // declarationNode() implementations to ensure that only declaration nodes can
 // be assigned to a Declaration.
@@ -182,7 +182,7 @@ type File struct {
 	Declarations []Declaration
 }
 
-func (f *File) Start() token.Position {
+func (f *File) Start() token.Pos {
 	if len(f.Declarations) > 0 {
 		return f.Declarations[0].Start()
 	}
@@ -190,7 +190,7 @@ func (f *File) Start() token.Position {
 }
 
 // @TODO: What if there is a trailing comment at the end?
-func (f *File) End() token.Position {
+func (f *File) End() token.Pos {
 	if len(f.Declarations) > 0 {
 		return f.Declarations[len(f.Declarations)-1].End()
 	}

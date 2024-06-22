@@ -68,7 +68,7 @@ func (l *Lexer) emit(typ token.TokenType) {
 	l.tokens <- token.Token{
 		Type:    typ,
 		Literal: l.input[l.start:l.pos],
-		Pos:     token.Position(l.start),
+		Pos:     token.Pos(l.start),
 	}
 	// Move ahead in the input after sending it to the caller.
 	l.start = l.pos
@@ -78,7 +78,7 @@ func (l *Lexer) errorf(format string, args ...interface{}) stateFn {
 	l.tokens <- token.Token{
 		Type:    token.ILLEGAL,
 		Literal: fmt.Sprintf(format, args...),
-		Pos:     token.Position(l.start),
+		Pos:     token.Pos(l.start),
 	}
 	return nil
 }

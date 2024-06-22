@@ -3,12 +3,12 @@ package parser
 import "solbot/token"
 
 type Error struct {
-	Pos token.Position
+	Pos token.Pos
 	Msg string
 }
 
 type ErrorList []Error
 
-func (el *ErrorList) Add(pos token.Position, msg string) {
+func (el *ErrorList) Add(pos token.Pos, msg string) {
 	*el = append(*el, Error{pos, msg})
 }

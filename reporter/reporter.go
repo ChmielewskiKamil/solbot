@@ -16,9 +16,9 @@ type Finding struct {
 }
 
 type Location struct {
-	File    string         // The filename where the issue was found.
-	Line    token.Position // The line number where the issue was found.
-	Context string         // The line with the issue itself or with its surroundings.
+	File    string    // The filename where the issue was found.
+	Line    token.Pos // The line number where the issue was found.
+	Context string    // The line with the issue itself or with its surroundings.
 }
 
 const (
