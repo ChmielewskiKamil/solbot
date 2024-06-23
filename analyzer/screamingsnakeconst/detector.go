@@ -13,7 +13,7 @@ import (
 const (
 	title          = "Variables declared as `constant` should be in `SCREAMING_SNAKE_CASE`"
 	severity       = "Best Practices"
-	descTempl      = "Constant variables should be declared with a `SCREAMING_SNAKE_CASE`. The following vars don't follow this practice: {{ range .Locations }}\n- `{{ .Context }}`{{ end }}"
+	descTempl      = "Constant variables should be declared with a `SCREAMING_SNAKE_CASE`. The following variables don't follow this practice: {{ range .Locations }}\n- `{{ .Context }}`{{ end }}"
 	recommendation = "Consider renaming the variables to make the code more readable and less error-prone."
 )
 
@@ -26,6 +26,7 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 	case *ast.File:
 		for _, decl := range n.Declarations {
 			if v, ok := decl.(*ast.VariableDeclaration); ok {
+				// @TODO: Add immutable variables as well
 				if v.Constant {
 					if !isScreamingSnakeCase(v.Name.Name) {
 						finding.Locations = append(
