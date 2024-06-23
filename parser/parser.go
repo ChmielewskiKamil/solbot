@@ -41,7 +41,7 @@ func (p *Parser) nextToken() {
 
 func (p *Parser) ParseFile() *ast.File {
 	if p.trace {
-		defer untrace(trace("ParseFile"))
+		defer un(trace("ParseFile"))
 	}
 
 	file := &ast.File{}
@@ -60,7 +60,7 @@ func (p *Parser) ParseFile() *ast.File {
 
 func (p *Parser) parseDeclaration() ast.Declaration {
 	if p.trace {
-		defer untrace(trace("parseDeclaration"))
+		defer un(trace("parseDeclaration"))
 	}
 	switch tkType := p.currTkn.Type; {
 	case token.IsElementaryType(tkType):
@@ -74,7 +74,7 @@ func (p *Parser) parseDeclaration() ast.Declaration {
 
 func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 	if p.trace {
-		defer untrace(trace("parseFunctionDeclaration"))
+		defer un(trace("parseFunctionDeclaration"))
 	}
 	decl := &ast.FunctionDeclaration{}
 
@@ -127,7 +127,7 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 
 func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
 	if p.trace {
-		defer untrace(trace("parseVariableDeclaration"))
+		defer un(trace("parseVariableDeclaration"))
 	}
 	decl := &ast.VariableDeclaration{}
 
@@ -139,6 +139,11 @@ func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
 		ValuePos: p.currTkn.Pos,
 		Kind:     p.currTkn,
 		Value:    p.currTkn.Literal,
+	}
+
+	// @TODO: We need to handle visibility
+	if isVisibility(p.peekTkn.Type) {
+
 	}
 
 	if p.peekTkn.Type == token.CONSTANT {
@@ -167,7 +172,7 @@ func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	if p.trace {
-		defer untrace(trace("parseBlockStatement"))
+		defer un(trace("parseBlockStatement"))
 	}
 	blockStmt := &ast.BlockStatement{}
 	blockStmt.LeftBrace = p.currTkn.Pos
