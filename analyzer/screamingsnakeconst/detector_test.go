@@ -1,6 +1,7 @@
 package screamingsnakeconst
 
 import (
+	// "os"
 	"solbot/parser"
 	"solbot/reporter"
 	"solbot/token"
@@ -9,15 +10,21 @@ import (
 
 func Test_DetectSnakeCaseConst(t *testing.T) {
 	src := `address owner = 0x12345;          // no match
-    bool constant IS_OWNER = true;            // no match   
-    bool constant isOwner = false;            // match
-    bool constant is_owner = false;           // match
-    uint256 balance = 100;                    // no match
-    address constant router = 0x1337;         // match
-    bool isOwner = true;                      // no match
-    uint16 constant ONE_hundred_IS_100 = 100; // match
-    uint256 constant DENOMINATOR = 1_000_000; // no match
-    `
+	   bool constant IS_OWNER = true;            // no match
+	   bool constant isOwner = false;            // match
+	   bool constant is_owner = false;           // match
+	   uint256 balance = 100;                    // no match
+	   address constant router = 0x1337;         // match
+	   bool isOwner = true;                      // no match
+	   uint16 constant ONE_hundred_IS_100 = 100; // match
+	   uint256 constant DENOMINATOR = 1_000_000; // no match
+	   `
+
+	// srcBytes, err := os.ReadFile("/Users/kamilchmielewski/Projects/solbot/example.sol")
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// src := string(srcBytes)
 
 	p := parser.Parser{}
 
@@ -26,6 +33,13 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 	p.Init(handle)
 
 	file := p.ParseFile()
+	if file == nil {
+		t.Fatalf("Parsed file is nil")
+	}
+	if len(file.Declarations) == 0 {
+		t.Fatalf("Parsed file has no declarations")
+	}
+
 	d := Detector{}
 
 	finding := d.Detect(file)
@@ -61,7 +75,6 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 			t.Errorf("Expected context %s, got %s", expectedLocations[i].Context, loc.Context)
 		}
 	}
-
 }
 
 func Test_ShouldReturnNilIfNoVariables(t *testing.T) {

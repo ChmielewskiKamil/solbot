@@ -700,3 +700,11 @@ func LookupIdent(ident string) TokenType {
 func IsElementaryType(tt TokenType) bool {
 	return elementary_type_beg < tt && tt < elementary_type_end
 }
+
+func IsVarVisibility(tt TokenType) bool {
+	return tt == PUBLIC || tt == PRIVATE || tt == INTERNAL
+}
+
+func IsVarMutability(tt TokenType) bool {
+	return tt == CONSTANT || tt == IMMUTABLE || tt == TRANSIENT
+}

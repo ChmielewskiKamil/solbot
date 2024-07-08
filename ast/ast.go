@@ -159,8 +159,7 @@ type StateVariableDeclaration struct {
 	Type       Expression  // e.g. ElementaryType
 	Value      Expression  // initial value or nil
 	Visibility Visibility  // visibility specifier: public, private, internal
-	Constant   bool        // is it a constant variable?
-	Immutable  bool        // is it an immutable variable?
+	Mutability Mutability  // mutability specifier: constant, immutable, transient
 }
 
 // Start() and End() implementations for Declaration type Nodes
@@ -215,7 +214,8 @@ const (
 )
 
 // State mutability specifier for functions. The default mutability of non-payable
-// is assumed, if no mutability is specified.
+// is assumed, if no mutability is specified. For convenience, constant,
+// immutable and transient mutability specifiers are added for variables.
 type Mutability int
 
 const (
@@ -223,6 +223,9 @@ const (
 	Pure
 	View
 	Payable
+	Constant
+	Immutable
+	Transient
 )
 
 // Data location specifier for function parameter lists and variable declarations.

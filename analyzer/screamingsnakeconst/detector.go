@@ -26,8 +26,11 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 	case *ast.File:
 		for _, decl := range n.Declarations {
 			if v, ok := decl.(*ast.StateVariableDeclaration); ok {
+				if v == nil {
+					continue
+				}
 				// @TODO: Add immutable variables as well
-				if v.Constant {
+				if v.Mutability == ast.Constant {
 					if !isScreamingSnakeCase(v.Name.Name) {
 						finding.Locations = append(
 							finding.Locations, reporter.Location{

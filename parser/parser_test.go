@@ -7,10 +7,18 @@ import (
 )
 
 func Test_ParseElementaryTypes(t *testing.T) {
-	src := `
-    address owner = 0x12345;
+	src := `address owner = 0x12345;
     uint256 balance = 100;
     bool isOwner = true;
+    bool constant IS_OWNER = true;           
+    bool constant isOwner = false;            
+    bool constant is_owner = false;           
+    uint256 balance = 100;                    
+    address constant router = 0x1337;         
+    bool isOwner = true;                      
+    uint16 constant ONE_hundred_IS_100 = 100; 
+    uint256 constant DENOMINATOR = 1_000_000; 
+    uint256 private constant Is_This_Snake_Case = 0;
     `
 
 	p := Parser{}
@@ -25,22 +33,39 @@ func Test_ParseElementaryTypes(t *testing.T) {
 		t.Fatalf("ParseFile() returned nil")
 	}
 
-	if len(file.Declarations) != 3 {
-		t.Fatalf("Expected 3 declarations, got %d", len(file.Declarations))
+	if len(file.Declarations) != 12 {
+		t.Fatalf("Expected 12 declarations, got %d", len(file.Declarations))
 	}
 
 	tests := []struct {
 		expectedType       token.TokenType
+		expectedMutability ast.Mutability
+		expectedVisibility ast.Visibility
 		expectedIdentifier string
 	}{
-		{token.ADDRESS, "owner"},
-		{token.UINT_256, "balance"},
-		{token.BOOL, "isOwner"},
+		{token.ADDRESS, 0, ast.Internal, "owner"},
+		{token.UINT_256, 0, ast.Internal, "balance"},
+		{token.BOOL, 0, ast.Internal, "isOwner"},
+		{token.BOOL, 4, ast.Internal, "IS_OWNER"},
+		{token.BOOL, 4, ast.Internal, "isOwner"},
+		{token.BOOL, 4, ast.Internal, "is_owner"},
+		{token.UINT_256, 0, ast.Internal, "balance"},
+		{token.ADDRESS, 4, ast.Internal, "router"},
+		{token.BOOL, 0, ast.Internal, "isOwner"},
+		{token.UINT_16, 4, ast.Internal, "ONE_hundred_IS_100"},
+		{token.UINT_256, 4, ast.Internal, "DENOMINATOR"},
+		{token.UINT_256, 4, ast.Private, "Is_This_Snake_Case"},
 	}
 
 	for i, tt := range tests {
 		decl := file.Declarations[i]
-		if !testParseElementaryType(t, decl, tt.expectedType, tt.expectedIdentifier) {
+		if !testParseElementaryType(
+			t,
+			decl,
+			tt.expectedType,
+			tt.expectedMutability,
+			tt.expectedVisibility,
+			tt.expectedIdentifier) {
 			return
 		}
 	}
@@ -127,7 +152,8 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 }
 
 func testParseElementaryType(t *testing.T, decl ast.Declaration,
-	expectedType token.TokenType, expectedIdentifier string) bool {
+	expectedType token.TokenType, expectedMutability ast.Mutability,
+	expectedVisibility ast.Visibility, expectedIdentifier string) bool {
 	if decl == nil {
 		t.Fatalf("Expected Declaration, got nil")
 	}
@@ -152,6 +178,17 @@ func testParseElementaryType(t *testing.T, decl ast.Declaration,
 
 	if et.Kind.Type != expectedType {
 		t.Errorf("Expected token type %T, got %T", expectedType, et.Kind.Type)
+		return false
+	}
+
+	if vd.Visibility != expectedVisibility {
+		t.Errorf("Expected ast visibility token type %v, got %v",
+			expectedVisibility, vd.Visibility)
+		return false
+	}
+
+	if vd.Mutability != expectedMutability {
+		t.Errorf("Expected ast mutability token type %v, got %v", expectedMutability, vd.Mutability)
 		return false
 	}
 

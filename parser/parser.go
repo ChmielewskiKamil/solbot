@@ -132,9 +132,10 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 	decl := &ast.StateVariableDeclaration{}
 
 	// Set default values so that we don't have nil pointer dereferences
-	decl.Constant = false
-	decl.Immutable = false
 	decl.Visibility = ast.Internal // Solidity default visibility
+
+	// decl.Mutability does not need to be set since all variables are mutable
+	// by default, and here we can only set Constant, Immutable, or Transient.
 
 	// We are sitting on the variable type e.g. address or uint256
 	decl.Type = &ast.ElementaryType{
@@ -143,25 +144,55 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 		Value:    p.currTkn.Literal,
 	}
 
+	p.nextToken()
+	// We might be sitting on the variable name OR the visibility specifier OR the mutability specifier
+
 	// Visibility and mutability specifiers are flexible. Both are valid:
 	// uint256 public constant x = 10;
 	// uint256 constant public x = 10;
 
-	switch tkType := p.peekTkn.Type; {
-	case token.IsVarVisibility(tkType):
+	for {
+		switch tkType := p.currTkn.Type; {
+		default:
+			goto skip_expression
+		case token.IsVarVisibility(tkType):
+			switch tkType {
+			case token.PUBLIC:
+				decl.Visibility = ast.Public
+			case token.PRIVATE:
+				decl.Visibility = ast.Private
+			case token.INTERNAL:
+				decl.Visibility = ast.Internal
+			}
+		case token.IsVarMutability(tkType):
+			switch tkType {
+			case token.CONSTANT:
+				decl.Mutability = ast.Constant
+			case token.IMMUTABLE:
+				decl.Mutability = ast.Immutable
+			case token.TRANSIENT:
+				decl.Mutability = ast.Transient
+			}
+		case tkType == token.OVERRIDE:
+			// @TODO: Handle override. It requires changes in the AST.
+			p.nextToken()
+			continue
+		case tkType == token.IDENTIFIER:
+			decl.Name = &ast.Identifier{
+				NamePos: p.currTkn.Pos,
+				Name:    p.currTkn.Literal,
+			}
+		case tkType == token.ASSIGN:
+			// @TODO: The next token is an expression, which we want to skip
+			// for now.
+			p.nextToken()
+			goto skip_expression
+		}
+		p.nextToken()
 	}
 
-	if !p.expectPeek(token.IDENTIFIER) {
-		return nil
-	}
-
-	decl.Name = &ast.Identifier{
-		NamePos: p.currTkn.Pos,
-		Name:    p.currTkn.Literal,
-	}
-
+skip_expression:
 	// @TODO: We skip the Value for now since it is an expression.
-
 	// The variable declaration ends with a semicolon.
 	for !p.currTknIs(token.SEMICOLON) {
 		p.nextToken()
