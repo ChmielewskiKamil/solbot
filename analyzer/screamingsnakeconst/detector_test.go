@@ -1,7 +1,6 @@
 package screamingsnakeconst
 
 import (
-	// "os"
 	"solbot/parser"
 	"solbot/reporter"
 	"solbot/token"
@@ -19,12 +18,6 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 	   uint16 constant ONE_hundred_IS_100 = 100; // match
 	   uint256 constant DENOMINATOR = 1_000_000; // no match
 	   `
-
-	// srcBytes, err := os.ReadFile("/Users/kamilchmielewski/Projects/solbot/example.sol")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// src := string(srcBytes)
 
 	p := parser.Parser{}
 
