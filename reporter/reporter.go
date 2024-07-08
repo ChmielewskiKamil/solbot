@@ -70,6 +70,8 @@ func GenerateReport(findings []Finding, outputPath string) error {
 	return nil
 }
 
+// GenerateCustomDescription allows you to create a custom description template for the finding.
+// Each detector can have its own go's text/template to suit its needs.
 func GenerateCustomDescription(templPath string, locations []Location) string {
 	tmpl, err := template.New("description").Parse(templPath)
 	if err != nil {

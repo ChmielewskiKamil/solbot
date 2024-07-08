@@ -27,6 +27,8 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 		for _, decl := range n.Declarations {
 			if v, ok := decl.(*ast.StateVariableDeclaration); ok {
 				if v == nil {
+					// This handles an edge case where the AST was not properly built
+					// e.g. the parser added the declarations but they are empty.
 					continue
 				}
 				// @TODO: Add immutable variables as well
@@ -37,7 +39,8 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 								Position: token.Position{
 									Offset: v.Name.NamePos,
 								},
-								Context: v.Name.Name, // Save name for report
+								// Save ident name for the report.
+								Context: v.Name.Name,
 							})
 						matches++
 					}
