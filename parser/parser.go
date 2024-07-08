@@ -64,7 +64,7 @@ func (p *Parser) parseDeclaration() ast.Declaration {
 	}
 	switch tkType := p.currTkn.Type; {
 	case token.IsElementaryType(tkType):
-		return p.parseVariableDeclaration()
+		return p.parseStateVariableDeclaration()
 	case tkType == token.FUNCTION:
 		return p.parseFunctionDeclaration()
 	default:
@@ -125,14 +125,16 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 	return decl
 }
 
-func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
+func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 	if p.trace {
-		defer un(trace("parseVariableDeclaration"))
+		defer un(trace("parseStateVariableDeclaration"))
 	}
-	decl := &ast.VariableDeclaration{}
+	decl := &ast.StateVariableDeclaration{}
 
 	// Set default values so that we don't have nil pointer dereferences
 	decl.Constant = false
+	decl.Immutable = false
+	decl.Visibility = ast.Internal // Solidity default visibility
 
 	// We are sitting on the variable type e.g. address or uint256
 	decl.Type = &ast.ElementaryType{
@@ -141,14 +143,12 @@ func (p *Parser) parseVariableDeclaration() *ast.VariableDeclaration {
 		Value:    p.currTkn.Literal,
 	}
 
-	// @TODO: We need to handle visibility
-	if isVisibility(p.peekTkn.Type) {
+	// Visibility and mutability specifiers are flexible. Both are valid:
+	// uint256 public constant x = 10;
+	// uint256 constant public x = 10;
 
-	}
-
-	if p.peekTkn.Type == token.CONSTANT {
-		decl.Constant = true
-		p.nextToken()
+	switch tkType := p.peekTkn.Type; {
+	case token.IsVarVisibility(tkType):
 	}
 
 	if !p.expectPeek(token.IDENTIFIER) {

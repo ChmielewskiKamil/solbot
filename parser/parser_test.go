@@ -132,7 +132,7 @@ func testParseElementaryType(t *testing.T, decl ast.Declaration,
 		t.Fatalf("Expected Declaration, got nil")
 	}
 
-	vd, ok := decl.(*ast.VariableDeclaration)
+	vd, ok := decl.(*ast.StateVariableDeclaration)
 	if !ok {
 		t.Errorf("Expected VariableDeclaration, got %T", decl)
 		return false

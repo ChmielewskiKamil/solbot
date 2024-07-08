@@ -25,7 +25,7 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 	switch n := node.(type) {
 	case *ast.File:
 		for _, decl := range n.Declarations {
-			if v, ok := decl.(*ast.VariableDeclaration); ok {
+			if v, ok := decl.(*ast.StateVariableDeclaration); ok {
 				// @TODO: Add immutable variables as well
 				if v.Constant {
 					if !isScreamingSnakeCase(v.Name.Name) {

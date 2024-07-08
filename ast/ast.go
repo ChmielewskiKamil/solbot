@@ -152,27 +152,29 @@ type FunctionDeclaration struct {
 	Body *BlockStatement // function body inside curly braces
 }
 
-// @TODO: Is it enough to have one VariableDeclaration to handle
-// constant/immutable declarations and normal variables as well?
-type VariableDeclaration struct {
-	Name     *Identifier // variable name
-	Type     Expression  // e.g. ElementaryType
-	Value    Expression  // initial value or nil
-	Constant bool        // is it a constant variable?
+// @TODO: There is the new `transient` keyword
+// StateVariableDeclaration represents a state variable declared inside a contract.
+type StateVariableDeclaration struct {
+	Name       *Identifier // variable name
+	Type       Expression  // e.g. ElementaryType
+	Value      Expression  // initial value or nil
+	Visibility Visibility  // visibility specifier: public, private, internal
+	Constant   bool        // is it a constant variable?
+	Immutable  bool        // is it an immutable variable?
 }
 
 // Start() and End() implementations for Declaration type Nodes
 
-func (d *VariableDeclaration) Start() token.Pos { return d.Type.Start() }
-func (d *VariableDeclaration) End() token.Pos   { return d.Value.End() }
-func (d *FunctionDeclaration) Start() token.Pos { return 0 }
-func (d *FunctionDeclaration) End() token.Pos   { return 0 }
+func (d *StateVariableDeclaration) Start() token.Pos { return d.Type.Start() }
+func (d *StateVariableDeclaration) End() token.Pos   { return d.Value.End() }
+func (d *FunctionDeclaration) Start() token.Pos      { return 0 }
+func (d *FunctionDeclaration) End() token.Pos        { return 0 }
 
 // declarationNode() implementations to ensure that only declaration nodes can
 // be assigned to a Declaration.
 
-func (*VariableDeclaration) declarationNode() {}
-func (*FunctionDeclaration) declarationNode() {}
+func (*StateVariableDeclaration) declarationNode() {}
+func (*FunctionDeclaration) declarationNode()      {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~*~* Files ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
