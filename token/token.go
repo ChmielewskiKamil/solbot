@@ -153,6 +153,7 @@ const (
 	STRUCT
 	THROW
 	TRY
+	TRANSIENT
 	TYPE
 	UNCHECKED
 	UNICODE
@@ -461,6 +462,7 @@ var Tokens = [...]string{
 	STRUCT:      "struct",
 	THROW:       "throw",
 	TRY:         "try",
+	TRANSIENT:   "transient",
 	TYPE:        "type",
 	UNCHECKED:   "unchecked",
 	UNICODE:     "unicode",
