@@ -10,3 +10,6 @@
 | `functionorder` | Order of functions should follow the Solidity style guide | Function signature parsing | |
 | `privatefuncunderscore` | Private and internal functions should be prefixed with an underscore | Function signature parsing | |
 | `privatevarunderscore` | Private and internal state variables should be prefixed with an underscore | Inheritance parsing; Dependency resolution; Expression parsing | |
+| `renounceownership` | If the `renounceOwnership(...)` is not overriden, ownership can be lost by accident | Inheritance parsing; Dependency resolution; Function signature parsing | | 
+| `unusedpayable` | Function is marked as `payable` but does not use the `msg.value` inside the function's body | Function signature parsing; Expression parsing | |
+| `memorytocalldata` | If function arguments are not modified in the function, they should be declared as `calldata` | Function signature parsing; Expression parsing | |
