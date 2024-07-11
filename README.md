@@ -13,3 +13,8 @@
 | `renounceownership` | If the `renounceOwnership(...)` is not overriden, ownership can be lost by accident | Inheritance parsing; Dependency resolution; Function signature parsing | | 
 | `unusedpayable` | Function is marked as `payable` but does not use the `msg.value` inside the function's body | Function signature parsing; Expression parsing | |
 | `memorytocalldata` | If function arguments are not modified in the function, they should be declared as `calldata` | Function signature parsing; Expression parsing | |
+| `rtloverride` | The `U+202E` character should not be present in the code | | |
+| `constantvars` | Variables that never change should be declared as `constant` | Inheritance parsing; Dependency resolution; Expression parsing | |
+| `immutablevars` | Variables that are assigned once during construction should be declared as `immutable` | Inheritance parsing; Dependency resolution; Expression parsing | |
+| `publicexternalfunc` | A `public` function that is not called internally should be declared as `external` | Function signature parsing; Expression parsing | |
+| `unusedreturn` | Unused return values should be removed | Expression parsing | |
