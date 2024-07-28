@@ -247,7 +247,6 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	retStmt.Return = p.currTkn.Pos
 
 	// @TODO: Parse expression
-
 	for !p.currTknIs(token.SEMICOLON) {
 		p.nextToken()
 	}
