@@ -76,8 +76,7 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 	decl := &ast.FunctionDeclaration{}
 
 	// 1. Function keyword
-	fnType := &ast.FunctionType{}
-	fnType.Pos = p.currTkn.Pos
+	decl.Pos = p.currTkn.Pos
 
 	// 2. Function identifier
 	if !p.expectPeek(token.IDENTIFIER) {
@@ -116,9 +115,8 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 
 	// 7. Semicolon
 
-	fnType.Params = params
+	decl.Params = params
 	decl.Body = fnBody
-	decl.Type = fnType
 	return decl
 }
 

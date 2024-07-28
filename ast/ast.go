@@ -204,11 +204,17 @@ func (*ExpressionStatement) statementNode() {}
 // @TODO?: Add Import Directive declaration
 
 // @TODO: Add modifier invocations *CallExpression
+// @TODO: Add override specifier
 // @TODO: Add documentation comments
 type FunctionDeclaration struct {
-	Name *Identifier     // function name
-	Type *FunctionType   // function signature with input/output parameters, mutability, visibility
-	Body *BlockStatement // function body inside curly braces
+	Pos        token.Pos       // position of the "function" keyword
+	Name       *Identifier     // function name
+	Params     *ParamList      // input parameters; or nil
+	Results    *ParamList      // output parameters; or nil
+	Mutability Mutability      // mutability specifier e.g. pure, view, payable
+	Visibility Visibility      // visibility specifier e.g. public, private, internal, external
+	Virtual    bool            // whether a function is marked as virtual
+	Body       *BlockStatement // function body inside curly braces
 }
 
 // @TODO: There is the new `transient` keyword

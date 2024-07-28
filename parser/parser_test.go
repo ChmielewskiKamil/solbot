@@ -106,11 +106,7 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 		t.Errorf("Expected function name getBalance, got %s", fd.Name.Name)
 	}
 
-	if fd.Type == nil {
-		t.Fatalf("Expected FunctionType, got nil")
-	}
-
-	if fd.Type.Params == nil {
+	if fd.Params == nil {
 		t.Fatalf("Expected ParamList, got nil")
 	}
 
