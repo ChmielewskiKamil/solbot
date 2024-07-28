@@ -59,9 +59,6 @@ func (p *Parser) ParseFile() *ast.File {
 }
 
 func (p *Parser) parseDeclaration() ast.Declaration {
-	if p.trace {
-		defer un(trace("parseDeclaration"))
-	}
 	switch tkType := p.currTkn.Type; {
 	case token.IsElementaryType(tkType):
 		return p.parseStateVariableDeclaration()
@@ -201,6 +198,17 @@ skip_expression:
 	return decl
 }
 
+func (p *Parser) parseStatement() ast.Statement {
+	switch tkType := p.currTkn.Type; {
+	default:
+		return nil
+	case tkType == token.LBRACE:
+		return p.parseBlockStatement()
+	case tkType == token.RETURN:
+		return p.parseReturnStatement()
+	}
+}
+
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	if p.trace {
 		defer un(trace("parseBlockStatement"))
@@ -208,13 +216,43 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	blockStmt := &ast.BlockStatement{}
 	blockStmt.LeftBrace = p.currTkn.Pos
 
-	for !p.currTknIs(token.RBRACE) {
+	p.nextToken()
+	// We can either have unchecked block OR a statement OR end of block.
+	for {
+		switch tkType := p.currTkn.Type; {
+		default:
+			stmt := p.parseStatement()
+			blockStmt.Statements = append(blockStmt.Statements, stmt)
+			// When we parse a statement e.g. if statement, at the end we will
+			// land at the RBRACE ending the if statement. To ensure that we
+			// handle the scope of the current block correctly, we advance
+			// by one token. This way the only encountered RBRACE in this for
+			// loop will be the end of the current block.
+			p.nextToken()
+		case tkType == token.UNCHECKED:
+		case tkType == token.RBRACE:
+			// We have reached the end of the block.
+			blockStmt.RightBrace = p.currTkn.Pos
+			return blockStmt
+		}
+	}
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	if p.trace {
+		defer un(trace("parseReturnStatement()"))
+	}
+
+	retStmt := &ast.ReturnStatement{}
+	retStmt.Return = p.currTkn.Pos
+
+	// @TODO: Parse expression
+
+	for !p.currTknIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 
-	blockStmt.RightBrace = p.currTkn.Pos
-
-	return blockStmt
+	return retStmt
 }
 
 // expectPeek checks if the next token is of the expected type.

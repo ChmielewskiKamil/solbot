@@ -151,6 +151,64 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 	// }
 }
 
+// Since the return statement is a "statement", and there are no free-floating
+// statements in Solidity, we have to wrap it in some kind of declaration e.g.
+// a function declaration. Since the ast.File got a list of declarations, we
+// can have 1 function decl and inside it test multiple test cases for return
+// statements.
+func Test_ParseReturnStatement(t *testing.T) {
+	src := `function test() public {
+    return 10;
+    return 0x12345;
+    return true;
+    return staked;
+    return address(0);
+    }
+    `
+
+	numReturns := 5
+
+	p := Parser{}
+	handle := token.NewFile("test.sol", src)
+	p.Init(handle)
+	p.ToggleTracing()
+
+	file := p.ParseFile()
+	checkParserErrors(t, &p)
+
+	if file == nil {
+		t.Fatalf("ParseFile() returned nil")
+	}
+
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	}
+
+	decl := file.Declarations[0]
+	fd, ok := decl.(*ast.FunctionDeclaration)
+	if !ok {
+		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
+	}
+
+	if fd.Body == nil {
+		t.Fatalf("FunctionDeclaration body is nil")
+	}
+
+	if len(fd.Body.Statements) != numReturns {
+		t.Fatalf("Expected %d statements, got %d", numReturns, len(fd.Body.Statements))
+	}
+
+	for _, stmt := range fd.Body.Statements {
+		retStmt, ok := stmt.(*ast.ReturnStatement)
+		if !ok {
+			t.Fatalf("Expected ReturnStatement, got %T", stmt)
+		}
+
+		// @TODO: Test the expression inside the return statement.
+		_ = retStmt
+	}
+}
+
 func testParseElementaryType(t *testing.T, decl ast.Declaration,
 	expectedType token.TokenType, expectedMutability ast.Mutability,
 	expectedVisibility ast.Visibility, expectedIdentifier string) bool {
