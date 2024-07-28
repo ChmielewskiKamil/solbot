@@ -228,6 +228,12 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 			// loop will be the end of the current block.
 			p.nextToken()
 		case tkType == token.UNCHECKED:
+			// Move to the LBRACE.
+			p.nextToken()
+			block := p.parseBlockStatement()
+			blockStmt.Unchecked = append(blockStmt.Unchecked, *block)
+			// Block parsing ends on RBRACE, so advance to the next token.
+			p.nextToken()
 		case tkType == token.RBRACE:
 			// We have reached the end of the block.
 			blockStmt.RightBrace = p.currTkn.Pos

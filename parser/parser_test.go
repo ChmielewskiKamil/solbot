@@ -207,6 +207,52 @@ func Test_ParseReturnStatement(t *testing.T) {
 	}
 }
 
+func Test_ParseBlocks(t *testing.T) {
+	src := `function test() public {
+    return 0x12345;
+    return address(0);
+    unchecked {
+            return 0x12345;
+        }
+    return staked;
+    }
+    `
+
+	p := Parser{}
+	handle := token.NewFile("test.sol", src)
+	p.Init(handle)
+	p.ToggleTracing()
+
+	file := p.ParseFile()
+	checkParserErrors(t, &p)
+
+	if file == nil {
+		t.Fatalf("ParseFile() returned nil")
+	}
+
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	}
+
+	decl := file.Declarations[0]
+	fd, ok := decl.(*ast.FunctionDeclaration)
+	if !ok {
+		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
+	}
+
+	if fd.Body == nil {
+		t.Fatalf("FunctionDeclaration body is nil")
+	}
+
+	if len(fd.Body.Unchecked) != 1 {
+		t.Fatalf("Expected 1 unchecked block, got %d", len(fd.Body.Unchecked))
+	}
+
+	if len(fd.Body.Statements) != 3 {
+		t.Fatalf("Expected 3 statements, got %d", len(fd.Body.Statements))
+	}
+}
+
 func testParseElementaryType(t *testing.T, decl ast.Declaration,
 	expectedType token.TokenType, expectedMutability ast.Mutability,
 	expectedVisibility ast.Visibility, expectedIdentifier string) bool {

@@ -142,9 +142,10 @@ func (*ElementaryType) typeNode() {}
 // For example: Constructor, Function, Modifier etc. delcarations have a body, which
 // is a block. Similarly try-catch, if-else, for, while statements have a block as well.
 type BlockStatement struct {
-	LeftBrace  token.Pos   // position of the left curly brace
-	Statements []Statement // statements in the block
-	RightBrace token.Pos   // position of the right curly brace
+	LeftBrace  token.Pos        // position of the left curly brace
+	Statements []Statement      // statements in the block
+	Unchecked  []BlockStatement // unchecked blocks within current block
+	RightBrace token.Pos        // position of the right curly brace
 }
 
 // Return statement is in a form of "return <<expression>>;", where
