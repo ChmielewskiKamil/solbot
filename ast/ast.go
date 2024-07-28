@@ -69,7 +69,7 @@ type Identifier struct {
 // One of: address, address payable, bool, string, uint, int, bytes,
 // fixed, fixed-bytes or ufixed. NOT a Contract, Function, mapping.
 type ElementaryType struct {
-	ValuePos token.Pos   // type literal position
+	ValuePos token.Pos   // position of the type keyword e.g. `a` in "address"
 	Kind     token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
 	Value    string      // type literal value e.g. "address", "uint256", "bool" as a string
 }
