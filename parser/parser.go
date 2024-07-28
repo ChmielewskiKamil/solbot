@@ -230,10 +230,42 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		case tkType == token.UNCHECKED:
 			// Move to the LBRACE.
 			p.nextToken()
-			block := p.parseBlockStatement()
-			blockStmt.Unchecked = append(blockStmt.Unchecked, *block)
+			stmt := p.parseUncheckedBlockStatement()
+			blockStmt.Statements = append(blockStmt.Statements, stmt)
 			// Block parsing ends on RBRACE, so advance to the next token.
 			p.nextToken()
+		case tkType == token.RBRACE:
+			// We have reached the end of the block.
+			blockStmt.RightBrace = p.currTkn.Pos
+			return blockStmt
+		}
+	}
+}
+
+// Almost the same as parseBlockStatement, but we don't allow nested unchecked
+func (p *Parser) parseUncheckedBlockStatement() *ast.UncheckedBlockStatement {
+	if p.trace {
+		defer un(trace("parseUncheckedBlockStatement"))
+	}
+	blockStmt := &ast.UncheckedBlockStatement{}
+	blockStmt.LeftBrace = p.currTkn.Pos
+
+	p.nextToken()
+	for {
+		switch tkType := p.currTkn.Type; {
+		default:
+			stmt := p.parseStatement()
+			blockStmt.Statements = append(blockStmt.Statements, stmt)
+			// When we parse a statement e.g. if statement, at the end we will
+			// land at the RBRACE ending the if statement. To ensure that we
+			// handle the scope of the current block correctly, we advance
+			// by one token. This way the only encountered RBRACE in this for
+			// loop will be the end of the current block.
+			p.nextToken()
+		case tkType == token.UNCHECKED:
+			p.errors.Add(p.currTkn.Pos, "Nested unchecked blocks are not allowed.")
+			p.nextToken() // Consume the offending token and continue parsing
+			return nil
 		case tkType == token.RBRACE:
 			// We have reached the end of the block.
 			blockStmt.RightBrace = p.currTkn.Pos

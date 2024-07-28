@@ -169,7 +169,6 @@ func Test_ParseReturnStatement(t *testing.T) {
 	p := Parser{}
 	handle := token.NewFile("test.sol", src)
 	p.Init(handle)
-	p.ToggleTracing()
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)
@@ -244,12 +243,14 @@ func Test_ParseBlocks(t *testing.T) {
 		t.Fatalf("FunctionDeclaration body is nil")
 	}
 
-	if len(fd.Body.Unchecked) != 1 {
-		t.Fatalf("Expected 1 unchecked block, got %d", len(fd.Body.Unchecked))
+	if len(fd.Body.Statements) != 4 {
+		t.Fatalf("Expected 4 statements, got %d", len(fd.Body.Statements))
 	}
 
-	if len(fd.Body.Statements) != 3 {
-		t.Fatalf("Expected 3 statements, got %d", len(fd.Body.Statements))
+	uncheckedBlock := fd.Body.Statements[2]
+	_, ok = uncheckedBlock.(*ast.UncheckedBlockStatement)
+	if !ok {
+		t.Fatalf("Expected UncheckedStatement, got %T", uncheckedBlock)
 	}
 }
 
