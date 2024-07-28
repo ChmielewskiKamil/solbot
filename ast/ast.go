@@ -1,11 +1,15 @@
 package ast
 
-import "solbot/token"
+import (
+	"bytes"
+	"solbot/token"
+)
 
 // All nodes in the AST must implement the Node interface.
 type Node interface {
 	Start() token.Pos // First character of the node
 	End() token.Pos   // First character immediately after the node
+	String() string   // String representation of the node; helps debugging
 }
 
 // All expression nodes in the AST must implement the Expression interface.
@@ -61,6 +65,10 @@ func (x *Identifier) End() token.Pos   { return token.Pos(int(x.NamePos) + len(x
 // a Statement in a place where an Expression should be used instead.
 
 func (*Identifier) expressionNode() {}
+
+// String() implementations for Expressions
+
+func (x *Identifier) String() string { return x.Name }
 
 /*~*~*~*~*~*~*~*~*~*~*~*~*~* Types ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 // Type nodes are constrains on expressions. They define the kinds of values
@@ -124,6 +132,9 @@ type ParamList struct {
 	Closing token.Pos // position of the closing parenthesis if any
 }
 
+// @TODO: Implement Start(), End() and String() for FunctionType,
+// Param and ParamList
+
 // Start() and End() implementations for Expression type Nodes
 
 func (x *ElementaryType) Start() token.Pos { return x.Pos }
@@ -135,6 +146,9 @@ func (x *ElementaryType) End() token.Pos   { return token.Pos(int(x.Pos) + len(x
 
 func (*ElementaryType) typeNode() {}
 
+// String() implementations for Types
+func (x *ElementaryType) String() string { return x.Value }
+
 /*~*~*~*~*~*~*~*~*~*~*~*~* Statements *~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 // In Solidity statements appear in blocks, which are enclosed in curly braces.
@@ -142,10 +156,15 @@ func (*ElementaryType) typeNode() {}
 // For example: Constructor, Function, Modifier etc. delcarations have a body, which
 // is a block. Similarly try-catch, if-else, for, while statements have a block as well.
 type BlockStatement struct {
-	LeftBrace  token.Pos        // position of the left curly brace
-	Statements []Statement      // statements in the block
-	Unchecked  []BlockStatement // unchecked blocks within current block
-	RightBrace token.Pos        // position of the right curly brace
+	LeftBrace  token.Pos   // position of the left curly brace
+	Statements []Statement // statements in the block
+	RightBrace token.Pos   // position of the right curly brace
+}
+
+type UncheckedBlockStatement struct {
+	LeftBrace  token.Pos   // position of the left curly brace
+	Statements []Statement // statements in the block
+	RightBrace token.Pos   // position of the right curly brace
 }
 
 // Return statement is in a form of "return <<expression>>;", where
@@ -170,9 +189,11 @@ type ExpressionStatement struct {
 
 // Start() and End() implementations for Statement type Nodes
 
-func (s *BlockStatement) Start() token.Pos  { return s.LeftBrace }
-func (s *BlockStatement) End() token.Pos    { return s.RightBrace + 1 }
-func (s *ReturnStatement) Start() token.Pos { return s.Pos }
+func (s *BlockStatement) Start() token.Pos          { return s.LeftBrace }
+func (s *BlockStatement) End() token.Pos            { return s.RightBrace + 1 }
+func (s *UncheckedBlockStatement) Start() token.Pos { return s.LeftBrace }
+func (s *UncheckedBlockStatement) End() token.Pos   { return s.RightBrace + 1 }
+func (s *ReturnStatement) Start() token.Pos         { return s.Pos }
 func (s *ReturnStatement) End() token.Pos {
 	if s.Result != nil {
 		return s.Result.End()
@@ -183,9 +204,52 @@ func (s *ExpressionStatement) Start() token.Pos { return s.Pos }
 func (s *ExpressionStatement) End() token.Pos   { return s.Expression.End() }
 
 // statementNode() ensures that only statement nodes can be assigned to a Statement.
-func (*BlockStatement) statementNode()      {}
-func (*ReturnStatement) statementNode()     {}
-func (*ExpressionStatement) statementNode() {}
+func (*BlockStatement) statementNode()          {}
+func (*UncheckedBlockStatement) statementNode() {}
+func (*ReturnStatement) statementNode()         {}
+func (*ExpressionStatement) statementNode()     {}
+
+// String() implementations for Statements
+
+func (s *BlockStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("{ ")
+	for _, stmt := range s.Statements {
+		out.WriteString(stmt.String())
+	}
+	out.WriteString(" }")
+
+	return out.String()
+}
+
+func (s *UncheckedBlockStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("{ ")
+	for _, stmt := range s.Statements {
+		out.WriteString(stmt.String())
+	}
+	out.WriteString(" }")
+
+	return out.String()
+}
+
+func (s *ReturnStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("return ")
+	if s.Result != nil {
+		out.WriteString(s.Result.String())
+	}
+	out.WriteString(";")
+
+	return out.String()
+}
+
+func (s *ExpressionStatement) String() string {
+	if s.Expression != nil {
+		return s.Expression.String()
+	}
+	return ""
+}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~ Declarations ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
@@ -241,6 +305,32 @@ func (d *FunctionDeclaration) End() token.Pos        { return d.Body.End() }
 func (*StateVariableDeclaration) declarationNode() {}
 func (*FunctionDeclaration) declarationNode()      {}
 
+// String() implementations for Declarations
+func (d *StateVariableDeclaration) String() string {
+	// @TODO: If visibility and mutability is not set, they will give empty
+	// spaces but who cares
+	var out bytes.Buffer
+	out.WriteString(d.Type.String())
+	out.WriteString(" ")
+	out.WriteString(d.Visibility.String())
+	out.WriteString(" ")
+	out.WriteString(d.Mutability.String())
+	out.WriteString(" ")
+	out.WriteString(d.Name.String())
+
+	if d.Value != nil {
+		out.WriteString(" = ")
+		out.WriteString(d.Value.String())
+	}
+
+	out.WriteString(";")
+
+	return out.String()
+}
+
+// @TODO: Is debug view for function declarations necessary?
+func (d *FunctionDeclaration) String() string { return "TO BE IMPLEMENTED" }
+
 /*~*~*~*~*~*~*~*~*~*~*~*~*~* Files ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 // In Solidity grammar it's called "SourceUnit" and represents the entire source
@@ -265,6 +355,14 @@ func (f *File) End() token.Pos {
 	return 0
 }
 
+func (f *File) String() string {
+	var out bytes.Buffer
+	for _, decl := range f.Declarations {
+		out.WriteString(decl.String())
+	}
+	return out.String()
+}
+
 /*~*~*~*~*~*~ Visibility, Mutability, Data Location *~*~*~*~*~*~*/
 
 // Visibility specifier for functions and function types. For convenience,
@@ -278,6 +376,21 @@ const (
 	Private
 	Public
 )
+
+func (v Visibility) String() string {
+	switch v {
+	case Internal:
+		return "internal"
+	case External:
+		return "external"
+	case Private:
+		return "private"
+	case Public:
+		return "public"
+	default:
+		return ""
+	}
+}
 
 // State mutability specifier for functions. The default mutability of non-payable
 // is assumed, if no mutability is specified. For convenience, constant,
@@ -294,6 +407,25 @@ const (
 	Transient
 )
 
+func (m Mutability) String() string {
+	switch m {
+	case Pure:
+		return "pure"
+	case View:
+		return "view"
+	case Payable:
+		return "payable"
+	case Constant:
+		return "constant"
+	case Immutable:
+		return "immutable"
+	case Transient:
+		return "transient"
+	default:
+		return ""
+	}
+}
+
 // Data location specifier for function parameter lists and variable declarations.
 type DataLocation int
 
@@ -303,3 +435,16 @@ const (
 	Memory
 	Calldata
 )
+
+func (d DataLocation) String() string {
+	switch d {
+	case Storage:
+		return "storage"
+	case Memory:
+		return "memory"
+	case Calldata:
+		return "calldata"
+	default:
+		return ""
+	}
+}
