@@ -26,6 +26,12 @@ type Declaration interface {
 	declarationNode()
 }
 
+// All type nodes in the AST must implement the Type interface.
+type Type interface {
+	Node
+	typeNode()
+}
+
 /*~*~*~*~*~*~*~*~*~*~*~*~*~ Comments ~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 type Comment struct {
@@ -38,56 +44,96 @@ func (c *Comment) End() token.Pos {
 	return token.Pos(int(c.Slash) + len(c.Text))
 }
 
-/*~*~*~*~*~*~*~*~*~*~ Expressions and Types *~*~*~*~*~*~*~*~*~*~*/
-
-// @TODO: Data location is missing
-type Param struct {
-	Name *Identifier // param name e.g. "x" or "recipient"
-	Type Expression  // e.g. ElementaryType
-}
-
-type ParamList struct {
-	Opening token.Pos // position of the opening parenthesis if any
-	List    []*Param  // list of fields; or nil
-	Closing token.Pos // position of the closing parenthesis if any
-}
-
-type FunctionType struct {
-	Func       token.Pos  // position of the "function" keyword
-	Params     *ParamList // input parameters; or nil
-	Results    *ParamList // output parameters; or nil
-	Mutability Mutability // mutability specifier e.g. pure, view, payable
-	Visibility Visibility // visibility specifier e.g. public, private, internal, external
-}
+/*~*~*~*~*~*~*~*~*~*~ Expressions *~*~*~*~*~*~*~*~*~*~*/
 
 type Identifier struct {
 	NamePos token.Pos // identifier position
 	Name    string    // identifier name
 }
 
+// Start() and End() implementations for Expression type Nodes
+
+func (x *Identifier) Start() token.Pos { return x.NamePos }
+func (x *Identifier) End() token.Pos   { return token.Pos(int(x.NamePos) + len(x.Name)) }
+
+// expressionNode() implementations to ensure that only expressions can be
+// assigned to an Expression. This is useful if by mistake we try to use
+// a Statement in a place where an Expression should be used instead.
+
+func (*Identifier) expressionNode() {}
+
+/*~*~*~*~*~*~*~*~*~*~*~*~*~* Types ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
+// Type nodes are constrains on expressions. They define the kinds of values
+// that expressions can have. For example, ElementaryType constrains expressions
+// to have values of a particular type e.g. "address", "uint256", "bool". In
+// Solidity we have Five main types: elementary, function, user-defined, mapping
+// and array types.
+
 // In Solidity grammar called "ElementaryTypeName".
 // One of: address, address payable, bool, string, uint, int, bytes,
-// fixed, fixed-bytes or ufixed. NOT a Contract, Function, mapping.
+// fixed, fixed-bytes or ufixed. NOT a Contract, Function, mapping (these are
+// the four other types)
 type ElementaryType struct {
-	ValuePos token.Pos   // position of the type keyword e.g. `a` in "address"
-	Kind     token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
-	Value    string      // type literal value e.g. "address", "uint256", "bool" as a string
+	Pos   token.Pos   // position of the type keyword e.g. `a` in "address"
+	Kind  token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
+	Value string      // type literal value e.g. "address", "uint256", "bool" as a string
+}
+
+// FunctionType represents a Solidity's function type. NOT TO BE CONFUSED WITH
+// FUNCTION DECLARATION. FunctionType is a weird thing that no one uses (lol) e.g.
+// ```solidity
+//
+//	struct Request {
+//	    bytes data;
+//	    function(uint) external callback; // <-- function type
+//	}
+//
+//	// OR like this:
+//	function query(bytes memory data, function(uint) external callback) public {
+//	     requests.push(Request(data, callback));
+//	     emit NewRequest(requests.length - 1);
+//	}
+//
+// ```
+type FunctionType struct {
+	Pos        token.Pos  // position of the "function" keyword
+	Params     *ParamList // input parameters; or nil
+	Results    *ParamList // output parameters; or nil
+	Mutability Mutability // mutability specifier e.g. pure, view, payable
+	Visibility Visibility // visibility specifier e.g. public, private, internal, external
+}
+
+// @TODO: Implement user-defined type
+// @TODO: Implement mapping type
+// @TODO: Implement array types
+
+// Param is not a type and not an expression, but we place it here since it is
+// closely related to types.
+// @TODO: Data location is missing
+type Param struct {
+	Name *Identifier // param name e.g. "x" or "recipient"
+	Type Type        // e.g. ElementaryType, FunctionType etc.
+}
+
+// ParamList is a list of parameters enclosed in parentheses. Similar to Param
+// it is not a type or an expression, but we place it here since it is closely
+// related to types.
+type ParamList struct {
+	Opening token.Pos // position of the opening parenthesis if any
+	List    []*Param  // list of fields; or nil
+	Closing token.Pos // position of the closing parenthesis if any
 }
 
 // Start() and End() implementations for Expression type Nodes
 
-func (x *Identifier) Start() token.Pos     { return x.NamePos }
-func (x *ElementaryType) Start() token.Pos { return x.ValuePos }
-
-func (x *Identifier) End() token.Pos     { return token.Pos(int(x.NamePos) + len(x.Name)) }
-func (x *ElementaryType) End() token.Pos { return token.Pos(int(x.ValuePos) + len(x.Value)) }
+func (x *ElementaryType) Start() token.Pos { return x.Pos }
+func (x *ElementaryType) End() token.Pos   { return token.Pos(int(x.Pos) + len(x.Value)) }
 
 // expressionNode() implementations to ensure that only expressions and types
 // can be assigned to an Expression. This is useful if by mistake we try to use
 // a Statement in a place where an Expression should be used instead.
 
-func (*Identifier) expressionNode()     {}
-func (*ElementaryType) expressionNode() {}
+func (*ElementaryType) typeNode() {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~* Statements *~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
@@ -107,7 +153,7 @@ type BlockStatement struct {
 // if you want to return multiple values, you return a tuple-expression e.g.,
 // "return (x, y, z);".
 type ReturnStatement struct {
-	Return token.Pos  // position of the "return" keyword
+	Pos    token.Pos  // position of the "return" keyword
 	Result Expression // result expressions or nil
 }
 
@@ -125,12 +171,12 @@ type ExpressionStatement struct {
 
 func (s *BlockStatement) Start() token.Pos  { return s.LeftBrace }
 func (s *BlockStatement) End() token.Pos    { return s.RightBrace + 1 }
-func (s *ReturnStatement) Start() token.Pos { return s.Return }
+func (s *ReturnStatement) Start() token.Pos { return s.Pos }
 func (s *ReturnStatement) End() token.Pos {
 	if s.Result != nil {
 		return s.Result.End()
 	}
-	return s.Return + 6 // length of "return"
+	return s.Pos + 6 // length of "return"
 }
 func (s *ExpressionStatement) Start() token.Pos { return s.Pos }
 func (s *ExpressionStatement) End() token.Pos   { return s.Expression.End() }
@@ -169,7 +215,7 @@ type FunctionDeclaration struct {
 // StateVariableDeclaration represents a state variable declared inside a contract.
 type StateVariableDeclaration struct {
 	Name       *Identifier // variable name
-	Type       Expression  // e.g. ElementaryType
+	Type       Type        // e.g. ElementaryType
 	Value      Expression  // initial value or nil
 	Visibility Visibility  // visibility specifier: public, private, internal
 	Mutability Mutability  // mutability specifier: constant, immutable, transient

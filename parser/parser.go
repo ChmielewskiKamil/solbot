@@ -77,7 +77,7 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 
 	// 1. Function keyword
 	fnType := &ast.FunctionType{}
-	fnType.Func = p.currTkn.Pos
+	fnType.Pos = p.currTkn.Pos
 
 	// 2. Function identifier
 	if !p.expectPeek(token.IDENTIFIER) {
@@ -136,9 +136,9 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 
 	// We are sitting on the variable type e.g. address or uint256
 	decl.Type = &ast.ElementaryType{
-		ValuePos: p.currTkn.Pos,
-		Kind:     p.currTkn,
-		Value:    p.currTkn.Literal,
+		Pos:   p.currTkn.Pos,
+		Kind:  p.currTkn,
+		Value: p.currTkn.Literal,
 	}
 
 	p.nextToken()
@@ -244,7 +244,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	}
 
 	retStmt := &ast.ReturnStatement{}
-	retStmt.Return = p.currTkn.Pos
+	retStmt.Pos = p.currTkn.Pos
 
 	// @TODO: Parse expression
 	for !p.currTknIs(token.SEMICOLON) {
