@@ -217,7 +217,7 @@ type FunctionDeclaration struct {
 	Body       *BlockStatement // function body inside curly braces
 }
 
-// @TODO: There is the new `transient` keyword
+// @TODO: State variables can have override specifier as well.
 // StateVariableDeclaration represents a state variable declared inside a contract.
 type StateVariableDeclaration struct {
 	Name       *Identifier // variable name

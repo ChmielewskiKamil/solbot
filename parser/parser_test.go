@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_ParseElementaryTypes(t *testing.T) {
+func Test_ParseStateVariableDeclaration(t *testing.T) {
 	src := `address owner = 0x12345;
     uint256 balance = 100;
     bool isOwner = true;
@@ -19,6 +19,7 @@ func Test_ParseElementaryTypes(t *testing.T) {
     uint16 constant ONE_hundred_IS_100 = 100; 
     uint256 constant DENOMINATOR = 1_000_000; 
     uint256 private constant Is_This_Snake_Case = 0;
+    uint256 transient blob = 0;
     `
 
 	p := Parser{}
@@ -33,8 +34,8 @@ func Test_ParseElementaryTypes(t *testing.T) {
 		t.Fatalf("ParseFile() returned nil")
 	}
 
-	if len(file.Declarations) != 12 {
-		t.Fatalf("Expected 12 declarations, got %d", len(file.Declarations))
+	if len(file.Declarations) != 13 {
+		t.Fatalf("Expected 13 declarations, got %d", len(file.Declarations))
 	}
 
 	tests := []struct {
@@ -55,6 +56,7 @@ func Test_ParseElementaryTypes(t *testing.T) {
 		{token.UINT_16, 4, ast.Internal, "ONE_hundred_IS_100"},
 		{token.UINT_256, 4, ast.Internal, "DENOMINATOR"},
 		{token.UINT_256, 4, ast.Private, "Is_This_Snake_Case"},
+		{token.UINT_256, 6, ast.Internal, "blob"},
 	}
 
 	for i, tt := range tests {
