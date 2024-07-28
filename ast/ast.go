@@ -111,6 +111,16 @@ type ReturnStatement struct {
 	Result Expression // result expressions or nil
 }
 
+// ExpressionStatement is a statement that consists of a single expression.
+// It is of a form: <<expression>>;
+// In Solidity it is legal to write code like this: `x + 10;` or `x = 10;` or
+// `foo();`. In Go, unused expressions are not allowed e.g. `x + 10` will give
+// you an error.
+type ExpressionStatement struct {
+	Pos        token.Pos  // position of the first character of the expression
+	Expression Expression // expression to be evaluated
+}
+
 // Start() and End() implementations for Statement type Nodes
 
 func (s *BlockStatement) Start() token.Pos  { return s.LeftBrace }
@@ -122,10 +132,13 @@ func (s *ReturnStatement) End() token.Pos {
 	}
 	return s.Return + 6 // length of "return"
 }
+func (s *ExpressionStatement) Start() token.Pos { return s.Pos }
+func (s *ExpressionStatement) End() token.Pos   { return s.Expression.End() }
 
 // statementNode() ensures that only statement nodes can be assigned to a Statement.
-func (*BlockStatement) statementNode()  {}
-func (*ReturnStatement) statementNode() {}
+func (*BlockStatement) statementNode()      {}
+func (*ReturnStatement) statementNode()     {}
+func (*ExpressionStatement) statementNode() {}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~ Declarations ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
@@ -166,8 +179,8 @@ type StateVariableDeclaration struct {
 
 func (d *StateVariableDeclaration) Start() token.Pos { return d.Type.Start() }
 func (d *StateVariableDeclaration) End() token.Pos   { return d.Value.End() }
-func (d *FunctionDeclaration) Start() token.Pos      { return 0 }
-func (d *FunctionDeclaration) End() token.Pos        { return 0 }
+func (d *FunctionDeclaration) Start() token.Pos      { return d.Name.Start() }
+func (d *FunctionDeclaration) End() token.Pos        { return d.Body.End() }
 
 // declarationNode() implementations to ensure that only declaration nodes can
 // be assigned to a Declaration.
