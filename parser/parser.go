@@ -17,6 +17,11 @@ type Parser struct {
 
 	currTkn token.Token
 	peekTkn token.Token
+
+	// Pratt Parsing maps are used to parse expressions. They define the logic
+	// on how to parse a specific token based on its position.
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 func (p *Parser) Init(file *token.File) {
@@ -351,4 +356,12 @@ func (p *Parser) peekError(t token.TokenType) {
 // currTknIs checks if the current token is of the expected type.
 func (p *Parser) currTknIs(t token.TokenType) bool {
 	return p.currTkn.Type == t
+}
+
+func (p *Parser) registerPrefix(t token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[t] = fn
+}
+
+func (p *Parser) registerInfix(t token.TokenType, fn infixParseFn) {
+	p.infixParseFns[t] = fn
 }
