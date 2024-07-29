@@ -140,6 +140,7 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 	}
 
 	p.nextToken()
+
 	// We might be sitting on the variable name OR the visibility specifier OR the mutability specifier
 
 	// Visibility and mutability specifiers are flexible. Both are valid:
@@ -149,7 +150,13 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 	for {
 		switch tkType := p.currTkn.Type; {
 		default:
-			goto skip_expression
+			p.nextToken()
+		case tkType == token.IDENTIFIER:
+			decl.Name = &ast.Identifier{
+				NamePos: p.currTkn.Pos,
+				Name:    p.currTkn.Literal,
+			}
+			p.nextToken()
 		case token.IsVarVisibility(tkType):
 			switch tkType {
 			case token.PUBLIC:
@@ -159,6 +166,7 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 			case token.INTERNAL:
 				decl.Visibility = ast.Internal
 			}
+			p.nextToken()
 		case token.IsVarMutability(tkType):
 			switch tkType {
 			case token.CONSTANT:
@@ -168,32 +176,20 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 			case token.TRANSIENT:
 				decl.Mutability = ast.Transient
 			}
+			p.nextToken()
 		case tkType == token.OVERRIDE:
 			// @TODO: Handle override. It requires changes in the AST.
 			p.nextToken()
-			continue
-		case tkType == token.IDENTIFIER:
-			decl.Name = &ast.Identifier{
-				NamePos: p.currTkn.Pos,
-				Name:    p.currTkn.Literal,
-			}
 		case tkType == token.ASSIGN:
 			// @TODO: The next token is an expression, which we want to skip
 			// for now.
-			p.nextToken()
-			goto skip_expression
+			for !p.currTknIs(token.SEMICOLON) {
+				p.nextToken()
+			}
+		case tkType == token.SEMICOLON:
+			return decl
 		}
-		p.nextToken()
 	}
-
-skip_expression:
-	// @TODO: We skip the Value for now since it is an expression.
-	// The variable declaration ends with a semicolon.
-	for !p.currTknIs(token.SEMICOLON) {
-		p.nextToken()
-	}
-
-	return decl
 }
 
 func (p *Parser) parseStatement() ast.Statement {
