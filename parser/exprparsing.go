@@ -82,6 +82,6 @@ func (p *Parser) parseIdentifier() ast.Expression {
 		defer un(trace("parseIdentifier"))
 	}
 
-	ident := &ast.Identifier{NamePos: p.currTkn.Pos, Name: p.currTkn.Literal}
+	ident := &ast.Identifier{Pos: p.currTkn.Pos, Name: p.currTkn.Literal}
 	return ident
 }

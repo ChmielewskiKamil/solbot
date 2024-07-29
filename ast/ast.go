@@ -50,15 +50,17 @@ func (c *Comment) End() token.Pos {
 
 /*~*~*~*~*~*~*~*~*~*~ Expressions *~*~*~*~*~*~*~*~*~*~*/
 
-type Identifier struct {
-	NamePos token.Pos // identifier position
-	Name    string    // identifier name
-}
+type (
+	Identifier struct {
+		Pos  token.Pos // identifier position
+		Name string    // identifier name
+	}
+)
 
 // Start() and End() implementations for Expression type Nodes
 
-func (x *Identifier) Start() token.Pos { return x.NamePos }
-func (x *Identifier) End() token.Pos   { return token.Pos(int(x.NamePos) + len(x.Name)) }
+func (x *Identifier) Start() token.Pos { return x.Pos }
+func (x *Identifier) End() token.Pos   { return token.Pos(int(x.Pos) + len(x.Name)) }
 
 // expressionNode() implementations to ensure that only expressions can be
 // assigned to an Expression. This is useful if by mistake we try to use

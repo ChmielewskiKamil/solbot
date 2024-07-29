@@ -92,8 +92,8 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 	}
 
 	decl.Name = &ast.Identifier{
-		NamePos: p.currTkn.Pos,
-		Name:    p.currTkn.Literal,
+		Pos:  p.currTkn.Pos,
+		Name: p.currTkn.Literal,
 	}
 
 	// 3. ( Param List )
@@ -161,8 +161,8 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 			p.nextToken()
 		case tkType == token.IDENTIFIER:
 			decl.Name = &ast.Identifier{
-				NamePos: p.currTkn.Pos,
-				Name:    p.currTkn.Literal,
+				Pos:  p.currTkn.Pos,
+				Name: p.currTkn.Literal,
 			}
 			p.nextToken()
 		case token.IsVarVisibility(tkType):
@@ -306,8 +306,8 @@ func (p *Parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 			p.nextToken()
 		case tkType == token.IDENTIFIER:
 			vdStmt.Name = &ast.Identifier{
-				NamePos: p.currTkn.Pos,
-				Name:    p.currTkn.Literal,
+				Pos:  p.currTkn.Pos,
+				Name: p.currTkn.Literal,
 			}
 			p.nextToken()
 		case token.IsDataLocation(tkType):

@@ -40,7 +40,7 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 						finding.Locations = append(
 							finding.Locations, reporter.Location{
 								Position: token.Position{
-									Offset: v.Name.NamePos,
+									Offset: v.Name.Pos,
 								},
 								// Save ident name for the report.
 								Context: v.Name.Name,
