@@ -161,11 +161,24 @@ type BlockStatement struct {
 	RightBrace token.Pos   // position of the right curly brace
 }
 
+// UncheckedBlockStatement is a block that is declared as "unchecked".
 type UncheckedBlockStatement struct {
 	LeftBrace  token.Pos   // position of the left curly brace
 	Statements []Statement // statements in the block
 	RightBrace token.Pos   // position of the right curly brace
 }
+
+// VariableDeclarationStatement represents a declaration of a variable inside
+// a function. It is of a form: "type <<variable-name>> = <<expression>>;",
+// where the expression is optional.
+type VariableDeclarationStatement struct {
+	Type         Type         // e.g. elementary, function, user-defined type etc.
+	Name         *Identifier  // variable name
+	DataLocation DataLocation // data location e.g. storage, memory, calldata or nil
+	Value        Expression   // initial value or nil; optional (NOT FOR TUPLES)
+}
+
+// @TODO Implement VariableDeclarationTupleStatement
 
 // Return statement is in a form of "return <<expression>>;", where
 // the expression is optional. In languages like Go, the return statement can
@@ -189,11 +202,13 @@ type ExpressionStatement struct {
 
 // Start() and End() implementations for Statement type Nodes
 
-func (s *BlockStatement) Start() token.Pos          { return s.LeftBrace }
-func (s *BlockStatement) End() token.Pos            { return s.RightBrace + 1 }
-func (s *UncheckedBlockStatement) Start() token.Pos { return s.LeftBrace }
-func (s *UncheckedBlockStatement) End() token.Pos   { return s.RightBrace + 1 }
-func (s *ReturnStatement) Start() token.Pos         { return s.Pos }
+func (s *BlockStatement) Start() token.Pos               { return s.LeftBrace }
+func (s *BlockStatement) End() token.Pos                 { return s.RightBrace + 1 }
+func (s *UncheckedBlockStatement) Start() token.Pos      { return s.LeftBrace }
+func (s *UncheckedBlockStatement) End() token.Pos        { return s.RightBrace + 1 }
+func (s *VariableDeclarationStatement) Start() token.Pos { return s.Type.Start() }
+func (s *VariableDeclarationStatement) End() token.Pos   { return s.Value.End() }
+func (s *ReturnStatement) Start() token.Pos              { return s.Pos }
 func (s *ReturnStatement) End() token.Pos {
 	if s.Result != nil {
 		return s.Result.End()
@@ -204,10 +219,11 @@ func (s *ExpressionStatement) Start() token.Pos { return s.Pos }
 func (s *ExpressionStatement) End() token.Pos   { return s.Expression.End() }
 
 // statementNode() ensures that only statement nodes can be assigned to a Statement.
-func (*BlockStatement) statementNode()          {}
-func (*UncheckedBlockStatement) statementNode() {}
-func (*ReturnStatement) statementNode()         {}
-func (*ExpressionStatement) statementNode()     {}
+func (*BlockStatement) statementNode()               {}
+func (*UncheckedBlockStatement) statementNode()      {}
+func (*VariableDeclarationStatement) statementNode() {}
+func (*ReturnStatement) statementNode()              {}
+func (*ExpressionStatement) statementNode()          {}
 
 // String() implementations for Statements
 
@@ -229,6 +245,20 @@ func (s *UncheckedBlockStatement) String() string {
 		out.WriteString(stmt.String())
 	}
 	out.WriteString(" }")
+
+	return out.String()
+}
+
+func (s *VariableDeclarationStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(s.Type.String())
+	out.WriteString(" ")
+	out.WriteString(s.Name.String())
+	if s.Value != nil {
+		out.WriteString(" = ")
+		out.WriteString(s.Value.String())
+	}
+	out.WriteString(";")
 
 	return out.String()
 }

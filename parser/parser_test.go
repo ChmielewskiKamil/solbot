@@ -86,6 +86,7 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 	p := Parser{}
 	handle := token.NewFile("test.sol", src)
 	p.Init(handle)
+	// p.ToggleTracing()
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)
@@ -139,14 +140,42 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 		t.Fatalf("Expected BlockStatement, got nil")
 	}
 
-	// fb, ok := fd.Body.(*ast.BlockStatement)
-	// if !ok {
-	// 	t.Fatalf("Expected BlockStatement, got %T", fd.Body)
-	// }
+	if len(fd.Body.Statements) != 2 {
+		t.Fatalf("Expected 2 statements, got %d", len(fd.Body.Statements))
+	}
 
-	// if len(fb.Statements) != 2 {
-	// 	t.Fatalf("Expected 2 statements, got %d", len(fb.Statements))
-	// }
+	stmt := fd.Body.Statements[0]
+	vdStmt, ok := stmt.(*ast.VariableDeclarationStatement)
+	if !ok {
+		t.Fatalf("Expected VariableDeclarationStatement, got %T", stmt)
+	}
+
+	typ, ok := vdStmt.Type.(*ast.ElementaryType)
+	if !ok {
+		t.Fatalf("Expected ElementaryType, got %T", vdStmt.Type)
+	}
+
+	if typ.Kind.Type != token.UINT_256 {
+		t.Errorf("Expected token type UINT_256, got %s", typ.Kind.Type.String())
+	}
+
+	if vdStmt.Name == nil {
+		t.Fatalf("Expected Identifier, got nil")
+	}
+
+	if vdStmt.Name.Name != "balance" {
+		t.Errorf("Expected balance, got %s", vdStmt.Name.Name)
+	}
+
+	if vdStmt.DataLocation != ast.NO_DATA_LOCATION {
+		t.Fatalf("Expected NO_DATA_LOCATION, got %T", vdStmt.DataLocation)
+	}
+
+	stmt = fd.Body.Statements[1]
+	_, ok = stmt.(*ast.ReturnStatement)
+	if !ok {
+		t.Fatalf("Expected ReturnStatement, got %T", stmt)
+	}
 }
 
 // Since the return statement is a "statement", and there are no free-floating
@@ -220,7 +249,7 @@ func Test_ParseBlocks(t *testing.T) {
 	p := Parser{}
 	handle := token.NewFile("test.sol", src)
 	p.Init(handle)
-	p.ToggleTracing()
+	// p.ToggleTracing()
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)

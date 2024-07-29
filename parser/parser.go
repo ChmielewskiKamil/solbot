@@ -195,7 +195,10 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 func (p *Parser) parseStatement() ast.Statement {
 	switch tkType := p.currTkn.Type; {
 	default:
-		return nil
+		return p.parseExpressionStatement()
+	case token.IsElementaryType(tkType):
+		// @TODO: Implement other types that variables can have.
+		return p.parseVariableDeclarationStatement()
 	case tkType == token.LBRACE:
 		return p.parseBlockStatement()
 	case tkType == token.RETURN:
@@ -266,6 +269,47 @@ func (p *Parser) parseUncheckedBlockStatement() *ast.UncheckedBlockStatement {
 			// We have reached the end of the block.
 			blockStmt.RightBrace = p.currTkn.Pos
 			return blockStmt
+		}
+	}
+}
+
+func (p *Parser) parseVariableDeclarationStatement() *ast.VariableDeclarationStatement {
+	if p.trace {
+		defer un(trace("parseVariableDeclarationStatement"))
+	}
+	vdStmt := &ast.VariableDeclarationStatement{}
+	vdStmt.DataLocation = ast.NO_DATA_LOCATION // assign default value
+
+	vdStmt.Type = &ast.ElementaryType{
+		Pos:   p.currTkn.Pos,
+		Kind:  p.currTkn,
+		Value: p.currTkn.Literal,
+	}
+
+	p.nextToken()
+
+	for {
+		switch tkType := p.currTkn.Type; {
+		default:
+			p.nextToken()
+		case tkType == token.IDENTIFIER:
+			vdStmt.Name = &ast.Identifier{
+				NamePos: p.currTkn.Pos,
+				Name:    p.currTkn.Literal,
+			}
+			p.nextToken()
+		case token.IsDataLocation(tkType):
+			switch tkType {
+			case token.STORAGE:
+				vdStmt.DataLocation = ast.Storage
+			case token.MEMORY:
+				vdStmt.DataLocation = ast.Memory
+			case token.CALLDATA:
+				vdStmt.DataLocation = ast.Calldata
+			}
+			p.nextToken()
+		case tkType == token.SEMICOLON:
+			return vdStmt
 		}
 	}
 }
