@@ -62,3 +62,26 @@ type (
 	infixParseFn func(ast.Expression) ast.Expression
 )
 
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	if p.trace {
+		defer un(trace("parseExpression"))
+	}
+
+	prefix := p.prefixParseFns[p.currTkn.Type]
+	if prefix == nil {
+		return nil
+	}
+
+	leftExp := prefix()
+
+	return leftExp
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	if p.trace {
+		defer un(trace("parseIdentifier"))
+	}
+
+	ident := &ast.Identifier{NamePos: p.currTkn.Pos, Name: p.currTkn.Literal}
+	return ident
+}

@@ -33,6 +33,9 @@ func (p *Parser) Init(file *token.File) {
 	// Read two tokens, so currTkn and peekTkn are both set
 	p.nextToken()
 	p.nextToken()
+
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	p.registerPrefix(token.IDENTIFIER, p.parseIdentifier)
 }
 
 func (p *Parser) ToggleTracing() {
@@ -219,12 +222,14 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	blockStmt.LeftBrace = p.currTkn.Pos
 
 	p.nextToken()
-	// We can either have unchecked block OR a statement OR end of block.
+
 	for {
 		switch tkType := p.currTkn.Type; {
 		default:
 			stmt := p.parseStatement()
-			blockStmt.Statements = append(blockStmt.Statements, stmt)
+			if stmt != nil {
+				blockStmt.Statements = append(blockStmt.Statements, stmt)
+			}
 			// When we parse a statement e.g. if statement, at the end we will
 			// land at the RBRACE ending the if statement. To ensure that we
 			// handle the scope of the current block correctly, we advance
@@ -235,7 +240,9 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 			// Move to the LBRACE.
 			p.nextToken()
 			stmt := p.parseUncheckedBlockStatement()
-			blockStmt.Statements = append(blockStmt.Statements, stmt)
+			if stmt != nil {
+				blockStmt.Statements = append(blockStmt.Statements, stmt)
+			}
 			// Block parsing ends on RBRACE, so advance to the next token.
 			p.nextToken()
 		case tkType == token.RBRACE:
@@ -333,6 +340,24 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	}
 
 	return retStmt
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	if p.trace {
+		defer un(trace("parseExpressionStatement"))
+	}
+	exprStmt := &ast.ExpressionStatement{}
+	exprStmt.Pos = p.currTkn.Pos
+
+	exprStmt.Expression = p.parseExpression(LOWEST)
+
+	// Semicolon is optional on purpose to make it easier to type stuff into
+	// the REPL like: 1 + 2 without the need for the semicolon.
+	if p.peekTkn.Type == token.SEMICOLON {
+		p.nextToken()
+	}
+
+	return exprStmt
 }
 
 // expectPeek checks if the next token is of the expected type.
