@@ -708,3 +708,7 @@ func IsVarVisibility(tt TokenType) bool {
 func IsVarMutability(tt TokenType) bool {
 	return tt == CONSTANT || tt == IMMUTABLE || tt == TRANSIENT
 }
+
+func IsDataLocation(tt TokenType) bool {
+	return tt == MEMORY || tt == STORAGE || tt == CALLDATA
+}

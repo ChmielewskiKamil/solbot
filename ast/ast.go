@@ -460,7 +460,7 @@ func (m Mutability) String() string {
 type DataLocation int
 
 const (
-	_ DataLocation = iota
+	NO_DATA_LOCATION DataLocation = iota
 	Storage
 	Memory
 	Calldata
