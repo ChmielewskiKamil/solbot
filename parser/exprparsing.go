@@ -1,6 +1,10 @@
 package parser
 
-import "solbot/ast"
+import (
+	"math/big"
+	"solbot/ast"
+	"solbot/token"
+)
 
 // The exprparsing.go file contains the logic required to parse expressions.
 // The technique used is called Pratt Parsing or top-down operator precedence
@@ -84,4 +88,26 @@ func (p *Parser) parseIdentifier() ast.Expression {
 
 	ident := &ast.Identifier{Pos: p.currTkn.Pos, Name: p.currTkn.Literal}
 	return ident
+}
+
+func (p *Parser) parseNumberLiteral() ast.Expression {
+	if p.trace {
+		defer un(trace("parseNumberLiteral"))
+	}
+
+	numLit := &ast.NumberLiteral{
+		Pos: p.currTkn.Pos,
+		Kind: token.Token{
+			Type: p.currTkn.Type, Literal: p.currTkn.Literal, Pos: p.currTkn.Pos,
+		}}
+
+	bigInt, ok := new(big.Int).SetString(p.currTkn.Literal, 0)
+	if !ok {
+		p.errors.Add(p.currTkn.Pos, "could not parse number literal")
+		return nil
+	}
+
+	numLit.Value = *bigInt
+
+	return numLit
 }

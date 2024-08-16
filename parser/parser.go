@@ -36,6 +36,8 @@ func (p *Parser) Init(file *token.File) {
 
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENTIFIER, p.parseIdentifier)
+	p.registerPrefix(token.DECIMAL_NUMBER, p.parseNumberLiteral)
+	p.registerPrefix(token.HEX_NUMBER, p.parseNumberLiteral)
 }
 
 func (p *Parser) ToggleTracing() {
