@@ -62,6 +62,12 @@ type (
 		Kind  token.Token // contains the token kind and literal string
 		Value big.Int     // value of the literal; decimal or hex
 	}
+
+	PrefixExpression struct {
+		Pos      token.Pos   // position of the operator
+		Operator token.Token // operator token
+		Right    Expression  // right operand
+	}
 )
 
 // Start() and End() implementations for Expression type Nodes
@@ -74,18 +80,31 @@ func (x *NumberLiteral) Start() token.Pos { return x.Pos }
 func (x *NumberLiteral) End() token.Pos {
 	return token.Pos(int(x.Pos) + len(x.Kind.Literal))
 }
+func (x *PrefixExpression) Start() token.Pos { return x.Pos }
+func (x *PrefixExpression) End() token.Pos {
+	return x.Right.End()
+}
 
 // expressionNode() implementations to ensure that only expressions can be
 // assigned to an Expression. This is useful if by mistake we try to use
 // a Statement in a place where an Expression should be used instead.
 
-func (*Identifier) expressionNode()    {}
-func (*NumberLiteral) expressionNode() {}
+func (*Identifier) expressionNode()       {}
+func (*NumberLiteral) expressionNode()    {}
+func (*PrefixExpression) expressionNode() {}
 
 // String() implementations for Expressions
 
 func (x *Identifier) String() string    { return x.Name }
 func (x *NumberLiteral) String() string { return x.Kind.Literal }
+func (x *PrefixExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("( ")
+	out.WriteString(x.Operator.Literal)
+	out.WriteString(x.Right.String())
+	out.WriteString(" )")
+	return out.String()
+}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~*~* Types ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 // Type nodes are constrains on expressions. They define the kinds of values

@@ -73,12 +73,18 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 	prefix := p.prefixParseFns[p.currTkn.Type]
 	if prefix == nil {
+		p.noPrefixParseFnError(p.currTkn.Type)
 		return nil
 	}
 
 	leftExp := prefix()
 
 	return leftExp
+}
+
+func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+	msg := "no prefix parse function for '" + t.String() + "' found"
+	p.errors.Add(p.currTkn.Pos, msg)
 }
 
 func (p *Parser) parseIdentifier() ast.Expression {
@@ -110,4 +116,24 @@ func (p *Parser) parseNumberLiteral() ast.Expression {
 	numLit.Value = *bigInt
 
 	return numLit
+}
+
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	if p.trace {
+		defer un(trace("parsePrefixExpression"))
+	}
+
+	pe := &ast.PrefixExpression{
+		Pos: p.currTkn.Pos,
+		Operator: token.Token{
+			Type:    p.currTkn.Type,
+			Literal: p.currTkn.Literal,
+			Pos:     p.currTkn.Pos},
+	}
+
+	p.nextToken()
+
+	pe.Right = p.parseExpression(PREFIX)
+
+	return pe
 }

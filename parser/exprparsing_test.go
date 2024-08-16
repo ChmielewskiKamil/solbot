@@ -144,3 +144,79 @@ func testNumberLiteral(
 		t.Fatalf("Expected %s, got %s", expectedType, intLit.Kind.Type)
 	}
 }
+
+func Test_ParsePrefixExpression(t *testing.T) {
+	src := `function test() public {
+        -1337;
+        ++5;
+        --123;
+        ~0x12345;
+        !true;
+        delete foo;
+    }`
+
+	p := Parser{}
+	handle := token.NewFile("test.sol", src)
+	p.Init(handle)
+	p.ToggleTracing()
+
+	file := p.ParseFile()
+	checkParserErrors(t, &p)
+
+	if file == nil {
+		t.Fatalf("ParseFile() returned nil")
+	}
+
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	}
+
+	decl := file.Declarations[0]
+	fd, ok := decl.(*ast.FunctionDeclaration)
+	if !ok {
+		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
+	}
+
+	if fd.Body == nil {
+		t.Fatalf("FunctionDeclaration body is nil")
+	}
+
+	if len(fd.Body.Statements) != 6 {
+		t.Fatalf("Expected 6 statements, got %d", len(fd.Body.Statements))
+	}
+
+	tests := []struct {
+		operator        string
+		expectedVal     *big.Int
+		expectedType    token.TokenType
+		expectedLiteral string
+	}{
+		{"-", big.NewInt(1337), token.DECIMAL_NUMBER, "1337"},
+		{"++", big.NewInt(5), token.DECIMAL_NUMBER, "5"},
+		{"--", big.NewInt(123), token.DECIMAL_NUMBER, "123"},
+		{"~", big.NewInt(0x12345), token.HEX_NUMBER, "0x12345"},
+		{"!", nil, token.TRUE_LITERAL, "true"},
+		{"delete", nil, token.IDENTIFIER, "foo"},
+	}
+
+	for i, tt := range tests {
+		expr := fd.Body.Statements[i]
+		exprStmt, ok := expr.(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("Expected ExpressionStatement, got %T", expr)
+		}
+
+		pExpr, ok := exprStmt.Expression.(*ast.PrefixExpression)
+		if !ok {
+			t.Fatalf("Expected PrefixExpression, got %T", exprStmt.Expression)
+		}
+
+		if pExpr.Operator.Literal != tt.operator {
+			t.Fatalf("Expected operator %s, got %s", tt.operator, pExpr.Operator)
+		}
+
+		if i < 4 {
+			testNumberLiteral(t, pExpr.Right, tt.expectedVal, tt.expectedType, tt.expectedLiteral)
+		}
+	}
+}

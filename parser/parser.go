@@ -38,6 +38,14 @@ func (p *Parser) Init(file *token.File) {
 	p.registerPrefix(token.IDENTIFIER, p.parseIdentifier)
 	p.registerPrefix(token.DECIMAL_NUMBER, p.parseNumberLiteral)
 	p.registerPrefix(token.HEX_NUMBER, p.parseNumberLiteral)
+
+	// Prefix Expressions
+	p.registerPrefix(token.NOT, p.parsePrefixExpression)
+	p.registerPrefix(token.BIT_NOT, p.parsePrefixExpression)
+	p.registerPrefix(token.INC, p.parsePrefixExpression)
+	p.registerPrefix(token.DEC, p.parsePrefixExpression)
+	p.registerPrefix(token.DELETE, p.parsePrefixExpression)
+	p.registerPrefix(token.SUB, p.parsePrefixExpression)
 }
 
 func (p *Parser) ToggleTracing() {
