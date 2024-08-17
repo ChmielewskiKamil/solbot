@@ -56,6 +56,80 @@ const (
 	HIGHEST
 )
 
+// Solidity's precedence table LOW (15) -> HIGH (1)
+var precedences = map[token.TokenType]int{
+	// 15.
+	token.COMMA: LOWEST,
+	// 14.
+	token.CONDITIONAL:    TERNARY,
+	token.ASSIGN:         TERNARY,
+	token.ASSIGN_BIT_OR:  TERNARY,
+	token.ASSIGN_BIT_XOR: TERNARY,
+	token.ASSIGN_BIT_AND: TERNARY,
+	token.ASSIGN_SHL:     TERNARY,
+	token.ASSIGN_SAR:     TERNARY,
+	token.ASSIGN_SHR:     TERNARY, // @TODO: It is in language grammar, but not in the precedence cheatsheet, why?
+	token.ASSIGN_ADD:     TERNARY,
+	token.ASSIGN_SUB:     TERNARY,
+	token.ASSIGN_MUL:     TERNARY,
+	token.ASSIGN_DIV:     TERNARY,
+	token.ASSIGN_MOD:     TERNARY,
+	// 13.
+	token.OR: LOGICAL_OR,
+	// 12.
+	token.AND: LOGICAL_AND,
+	// 11.
+	token.EQUAL:     EQUALITY,
+	token.NOT_EQUAL: EQUALITY,
+	// 10.
+	token.LESS_THAN:             INEQUALITY,
+	token.GREATER_THAN:          INEQUALITY,
+	token.LESS_THAN_OR_EQUAL:    INEQUALITY,
+	token.GREATER_THAN_OR_EQUAL: INEQUALITY,
+	// 9.
+	token.BIT_OR: BITWISE_OR,
+	// 8.
+	token.BIT_XOR: BITWISE_XOR,
+	// 7.
+	token.BIT_AND: BITWISE_AND,
+	// 6.
+	token.SAR: BITWISE_SHIFT,
+	token.SHL: BITWISE_SHIFT,
+	// 5.
+	token.ADD: SUM,
+	token.SUB: SUM,
+	// 4.
+	token.MUL: PRODUCT,
+	token.DIV: PRODUCT,
+	token.MOD: PRODUCT,
+	// 3.
+	token.EXP: EXPONENT,
+	// 2.
+	token.INC: PREFIX,
+	token.DEC: PREFIX,
+	// token.SUB: PREFIX, // @TODO: UNARY MINUS is problematic
+	token.DELETE:  PREFIX,
+	token.NOT:     PREFIX,
+	token.BIT_NOT: PREFIX,
+	// 1.
+	// @TODO: The function calls, array subscripting, member access etc.
+	// is harder to implement.
+}
+
+func (p *Parser) peekPrecedence() int {
+	if p, ok := precedences[p.peekTkn.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+func (p *Parser) currPrecedence() int {
+	if p, ok := precedences[p.currTkn.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
 // Inside the Parser struct we have two maps, prefixParseFns and infixParseFns.
 // For each token type we can have two functions, one for parsing the prefix
 // operators and one for parsing the infix operators.
@@ -78,6 +152,17 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 
 	leftExp := prefix()
+
+	for p.peekTkn.Type != token.SEMICOLON && precedence < p.peekPrecedence() {
+		infix := p.infixParseFns[p.peekTkn.Type]
+		if infix == nil {
+			return leftExp
+		}
+
+		p.nextToken()
+
+		leftExp = infix(leftExp)
+	}
 
 	return leftExp
 }
@@ -136,4 +221,26 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	pe.Right = p.parseExpression(PREFIX)
 
 	return pe
+}
+
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	if p.trace {
+		defer un(trace("parseInfixExpression"))
+	}
+
+	exp := &ast.InfixExpression{
+		Pos:  left.Start(),
+		Left: left,
+		Operator: token.Token{
+			Type:    p.currTkn.Type,
+			Literal: p.currTkn.Literal,
+			Pos:     p.currTkn.Pos,
+		},
+	}
+
+	precedence := p.currPrecedence()
+	p.nextToken()
+	exp.Right = p.parseExpression(precedence)
+
+	return exp
 }

@@ -68,6 +68,13 @@ type (
 		Operator token.Token // operator token
 		Right    Expression  // right operand
 	}
+
+	InfixExpression struct {
+		Pos      token.Pos   // position of the left operand
+		Left     Expression  // left operand
+		Operator token.Token // operator token
+		Right    Expression  // right operand
+	}
 )
 
 // Start() and End() implementations for Expression type Nodes
@@ -84,6 +91,10 @@ func (x *PrefixExpression) Start() token.Pos { return x.Pos }
 func (x *PrefixExpression) End() token.Pos {
 	return x.Right.End()
 }
+func (x *InfixExpression) Start() token.Pos { return x.Pos }
+func (x *InfixExpression) End() token.Pos {
+	return x.Right.End()
+}
 
 // expressionNode() implementations to ensure that only expressions can be
 // assigned to an Expression. This is useful if by mistake we try to use
@@ -92,6 +103,7 @@ func (x *PrefixExpression) End() token.Pos {
 func (*Identifier) expressionNode()       {}
 func (*NumberLiteral) expressionNode()    {}
 func (*PrefixExpression) expressionNode() {}
+func (*InfixExpression) expressionNode()  {}
 
 // String() implementations for Expressions
 
@@ -99,10 +111,21 @@ func (x *Identifier) String() string    { return x.Name }
 func (x *NumberLiteral) String() string { return x.Kind.Literal }
 func (x *PrefixExpression) String() string {
 	var out bytes.Buffer
-	out.WriteString("( ")
+	out.WriteString("(")
 	out.WriteString(x.Operator.Literal)
 	out.WriteString(x.Right.String())
-	out.WriteString(" )")
+	out.WriteString(")")
+	return out.String()
+}
+func (x *InfixExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(x.Left.String())
+	out.WriteString(" ")
+	out.WriteString(x.Operator.Literal)
+	out.WriteString(" ")
+	out.WriteString(x.Right.String())
+	out.WriteString(")")
 	return out.String()
 }
 

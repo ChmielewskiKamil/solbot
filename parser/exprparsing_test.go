@@ -218,5 +218,154 @@ func Test_ParsePrefixExpression(t *testing.T) {
 		if i < 4 {
 			testNumberLiteral(t, pExpr.Right, tt.expectedVal, tt.expectedType, tt.expectedLiteral)
 		}
+
+		// @TODO: Implement tests for non number literals.
+	}
+}
+
+func Test_ParseInfixExpressions(t *testing.T) {
+	src := `function test() public {
+        2 + 2;
+        2 - 2;
+        2 * 2;
+        2 / 2;
+    }`
+
+	p := Parser{}
+	handle := token.NewFile("test.sol", src)
+	p.Init(handle)
+	p.ToggleTracing()
+
+	file := p.ParseFile()
+	checkParserErrors(t, &p)
+
+	if file == nil {
+		t.Fatalf("ParseFile() returned nil")
+	}
+
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	}
+
+	decl := file.Declarations[0]
+	fd, ok := decl.(*ast.FunctionDeclaration)
+	if !ok {
+		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
+	}
+
+	if fd.Body == nil {
+		t.Fatalf("FunctionDeclaration body is nil")
+	}
+
+	if len(fd.Body.Statements) != 4 {
+		t.Fatalf("Expected 4 statements, got %d", len(fd.Body.Statements))
+	}
+
+	infixTests := []struct {
+		leftVal  *big.Int
+		operator string
+		rightVal *big.Int
+	}{
+		{big.NewInt(2), "+", big.NewInt(2)},
+		{big.NewInt(2), "-", big.NewInt(2)},
+		{big.NewInt(2), "*", big.NewInt(2)},
+		{big.NewInt(2), "/", big.NewInt(2)},
+	}
+
+	for i, tt := range infixTests {
+		expr := fd.Body.Statements[i]
+		exprStmt, ok := expr.(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("Expected ExpressionStatement, got %T", expr)
+		}
+
+		infixExpr, ok := exprStmt.Expression.(*ast.InfixExpression)
+		if !ok {
+			t.Fatalf("Expected InfixExpression, got %T", exprStmt.Expression)
+		}
+
+		testNumberLiteral(t, infixExpr.Left, tt.leftVal, token.DECIMAL_NUMBER, "2")
+
+		if infixExpr.Operator.Literal != tt.operator {
+			t.Fatalf("Expected operator %s, got %s", tt.operator, infixExpr.Operator)
+		}
+
+		testNumberLiteral(t, infixExpr.Right, tt.rightVal, token.DECIMAL_NUMBER, "2")
+	}
+}
+
+func Test_ParseOperatorPrecedence(t *testing.T) {
+	src := `function test() public {
+        a + b;
+        a - b;
+        a * b;
+        a / b;
+        -a * b;
+        a + b + c;
+        a + b * c;
+        -a - b;
+        -a - -b;
+        a + b * c + d / e - f;
+        -a + -b; -a * -b; -a ** -b;
+    }`
+
+	p := Parser{}
+	handle := token.NewFile("test.sol", src)
+	p.Init(handle)
+	p.ToggleTracing()
+
+	file := p.ParseFile()
+	checkParserErrors(t, &p)
+
+	if file == nil {
+		t.Fatalf("ParseFile() returned nil")
+	}
+
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	}
+
+	decl := file.Declarations[0]
+	fd, ok := decl.(*ast.FunctionDeclaration)
+	if !ok {
+		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
+	}
+
+	if fd.Body == nil {
+		t.Fatalf("FunctionDeclaration body is nil")
+	}
+
+	if len(fd.Body.Statements) != 13 {
+		t.Fatalf("Expected 13 statements, got %d", len(fd.Body.Statements))
+	}
+
+	tests := []struct {
+		expected string
+	}{
+		{"(a + b)"},
+		{"(a - b)"},
+		{"(a * b)"},
+		{"(a / b)"},
+		{"((-a) * b)"},
+		{"((a + b) + c)"},
+		{"(a + (b * c))"},
+		{"((-a) - b)"},
+		{"((-a) - (-b))"},
+		{"(((a + (b * c)) + (d / e)) - f)"},
+		{"((-a) + (-b))"},
+		{"((-a) * (-b))"},
+		{"((-a) ** (-b))"},
+	}
+
+	for i, tt := range tests {
+		expr := fd.Body.Statements[i]
+		exprStmt, ok := expr.(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("Expected ExpressionStatement, got %T", expr)
+		}
+
+		if exprStmt.String() != tt.expected {
+			t.Fatalf("Expected %s, got %s", tt.expected, exprStmt.String())
+		}
 	}
 }
