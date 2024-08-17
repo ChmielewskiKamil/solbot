@@ -69,7 +69,7 @@ func Test_ParseNumberLiteralExpression(t *testing.T) {
 	p := Parser{}
 	handle := token.NewFile("test.sol", src)
 	p.Init(handle)
-	p.ToggleTracing()
+	// p.ToggleTracing()
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)
@@ -158,7 +158,7 @@ func Test_ParsePrefixExpression(t *testing.T) {
 	p := Parser{}
 	handle := token.NewFile("test.sol", src)
 	p.Init(handle)
-	p.ToggleTracing()
+	// p.ToggleTracing()
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)
@@ -234,7 +234,7 @@ func Test_ParseInfixExpressions(t *testing.T) {
 	p := Parser{}
 	handle := token.NewFile("test.sol", src)
 	p.Init(handle)
-	p.ToggleTracing()
+	// p.ToggleTracing()
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)
@@ -312,7 +312,7 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 	p := Parser{}
 	handle := token.NewFile("test.sol", src)
 	p.Init(handle)
-	p.ToggleTracing()
+	// p.ToggleTracing()
 
 	file := p.ParseFile()
 	checkParserErrors(t, &p)
