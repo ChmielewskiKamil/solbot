@@ -307,6 +307,8 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
         -a - -b;
         a + b * c + d / e - f;
         -a + -b; -a * -b; -a ** -b;
+        ++a;
+        ++a + ++b;
     }`
 
 	p := Parser{}
@@ -335,8 +337,8 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 		t.Fatalf("FunctionDeclaration body is nil")
 	}
 
-	if len(fd.Body.Statements) != 13 {
-		t.Fatalf("Expected 13 statements, got %d", len(fd.Body.Statements))
+	if len(fd.Body.Statements) != 15 {
+		t.Fatalf("Expected 15 statements, got %d", len(fd.Body.Statements))
 	}
 
 	tests := []struct {
@@ -355,6 +357,8 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 		{"((-a) + (-b))"},
 		{"((-a) * (-b))"},
 		{"((-a) ** (-b))"},
+		{"(++a)"},
+		{"((++a) + (++b))"},
 	}
 
 	for i, tt := range tests {
