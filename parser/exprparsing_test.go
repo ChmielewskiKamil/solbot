@@ -48,14 +48,12 @@ func Test_ParseNumberLiteralExpression(t *testing.T) {
 	uint256max, _ := new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 0)
 
 	tests := []struct {
-		expectedVal     *big.Int
-		expectedType    token.TokenType
-		expectedLiteral string
+		expectedVal *big.Int
 	}{
-		{big.NewInt(1337), token.DECIMAL_NUMBER, "1337"},
-		{big.NewInt(0x12345), token.HEX_NUMBER, "0x12345"},
-		{big.NewInt(0x000000), token.HEX_NUMBER, "0x000000"},
-		{uint256max, token.DECIMAL_NUMBER, "115792089237316195423570985008687907853269984665640564039457584007913129639935"},
+		{big.NewInt(1337)},
+		{big.NewInt(0x12345)},
+		{big.NewInt(0x000000)},
+		{uint256max},
 	}
 
 	for i, tt := range tests {
@@ -66,8 +64,6 @@ func Test_ParseNumberLiteralExpression(t *testing.T) {
 		}
 
 		test_LiteralExpression(t, exprStmt.Expression, tt.expectedVal)
-
-		// @TODO: Token types and token literals are not tested.
 	}
 }
 
