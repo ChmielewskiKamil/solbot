@@ -22,17 +22,7 @@ func Test_ParseStateVariableDeclaration(t *testing.T) {
     uint256 transient blob = 0;
     `
 
-	p := Parser{}
-
-	handle := token.NewFile("test.sol", src)
-	p.Init(handle)
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
+	file := test_parseSource(t, src, false)
 
 	if len(file.Declarations) != 13 {
 		t.Fatalf("Expected 13 declarations, got %d", len(file.Declarations))
@@ -83,17 +73,7 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
     }
     `
 
-	p := Parser{}
-	handle := token.NewFile("test.sol", src)
-	p.Init(handle)
-	// p.ToggleTracing()
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
+	file := test_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
 		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
@@ -195,16 +175,7 @@ func Test_ParseReturnStatement(t *testing.T) {
 
 	numReturns := 5
 
-	p := Parser{}
-	handle := token.NewFile("test.sol", src)
-	p.Init(handle)
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
+	file := test_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
 		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
@@ -246,17 +217,7 @@ func Test_ParseBlocks(t *testing.T) {
     }
     `
 
-	p := Parser{}
-	handle := token.NewFile("test.sol", src)
-	p.Init(handle)
-	// p.ToggleTracing()
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
+	file := test_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
 		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))

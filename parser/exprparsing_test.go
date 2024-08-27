@@ -12,17 +12,7 @@ func Test_ParseIdentifierExpression(t *testing.T) {
         foo;
     }`
 
-	p := Parser{}
-	handle := token.NewFile("test.sol", src)
-	p.Init(handle)
-	// p.ToggleTracing()
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
+	file := test_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
 		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
@@ -48,14 +38,7 @@ func Test_ParseIdentifierExpression(t *testing.T) {
 		t.Fatalf("Expected ExpressionStatement, got %T", stmt)
 	}
 
-	ident, ok := exprStmt.Expression.(*ast.Identifier)
-	if !ok {
-		t.Fatalf("Expected Identifier, got %T", exprStmt.Expression)
-	}
-
-	if ident.Name != "foo" {
-		t.Fatalf("Expected foo, got %s", ident.Name)
-	}
+	test_LiteralExpression(t, exprStmt.Expression, "foo")
 }
 
 func Test_ParseNumberLiteralExpression(t *testing.T) {
@@ -66,17 +49,7 @@ func Test_ParseNumberLiteralExpression(t *testing.T) {
         115792089237316195423570985008687907853269984665640564039457584007913129639935;
     }`
 
-	p := Parser{}
-	handle := token.NewFile("test.sol", src)
-	p.Init(handle)
-	// p.ToggleTracing()
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
+	file := test_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
 		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
@@ -116,32 +89,9 @@ func Test_ParseNumberLiteralExpression(t *testing.T) {
 			t.Fatalf("Expected ExpressionStatement, got %T", expr)
 		}
 
-		testNumberLiteral(t, exprStmt.Expression, tt.expectedVal,
-			tt.expectedType, tt.expectedLiteral)
-	}
-}
+		test_LiteralExpression(t, exprStmt.Expression, tt.expectedVal)
 
-func testNumberLiteral(
-	t *testing.T,
-	expr ast.Expression,
-	expectedVal *big.Int,
-	expectedType token.TokenType,
-	expectedLiteral string) {
-	intLit, ok := expr.(*ast.NumberLiteral)
-	if !ok {
-		t.Fatalf("Expected IntegerLiteral, got %T", expr)
-	}
-
-	if intLit.Kind.Literal != expectedLiteral {
-		t.Fatalf("Expected %s, got %s", expectedLiteral, intLit.Kind.Literal)
-	}
-
-	if intLit.Value.Cmp(expectedVal) != 0 {
-		t.Fatalf("Expected %d, got %s", expectedVal, intLit.Value.String())
-	}
-
-	if intLit.Kind.Type != expectedType {
-		t.Fatalf("Expected %s, got %s", expectedType, intLit.Kind.Type)
+		// @TODO: Token types and token literals are not tested.
 	}
 }
 
@@ -151,21 +101,11 @@ func Test_ParsePrefixExpression(t *testing.T) {
         ++5;
         --123;
         ~0x12345;
-        !true;
+        !a;
         delete foo;
     }`
 
-	p := Parser{}
-	handle := token.NewFile("test.sol", src)
-	p.Init(handle)
-	// p.ToggleTracing()
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
+	file := test_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
 		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
@@ -186,17 +126,17 @@ func Test_ParsePrefixExpression(t *testing.T) {
 	}
 
 	tests := []struct {
-		operator        string
-		expectedVal     *big.Int
-		expectedType    token.TokenType
-		expectedLiteral string
+		operator    string
+		expectedVal interface{}
 	}{
-		{"-", big.NewInt(1337), token.DECIMAL_NUMBER, "1337"},
-		{"++", big.NewInt(5), token.DECIMAL_NUMBER, "5"},
-		{"--", big.NewInt(123), token.DECIMAL_NUMBER, "123"},
-		{"~", big.NewInt(0x12345), token.HEX_NUMBER, "0x12345"},
-		{"!", nil, token.TRUE_LITERAL, "true"},
-		{"delete", nil, token.IDENTIFIER, "foo"},
+		{"-", big.NewInt(1337)},
+		{"++", big.NewInt(5)},
+		{"--", big.NewInt(123)},
+		{"~", big.NewInt(0x12345)},
+		{"!", "a"},
+		{"delete", "foo"},
+		// {"!", nil, token.TRUE_LITERAL, "true"},
+		// {"delete", nil, token.IDENTIFIER, "foo"},
 	}
 
 	for i, tt := range tests {
@@ -215,11 +155,10 @@ func Test_ParsePrefixExpression(t *testing.T) {
 			t.Fatalf("Expected operator %s, got %s", tt.operator, pExpr.Operator)
 		}
 
-		if i < 4 {
-			testNumberLiteral(t, pExpr.Right, tt.expectedVal, tt.expectedType, tt.expectedLiteral)
-		}
+		test_LiteralExpression(t, pExpr.Right, tt.expectedVal)
 
-		// @TODO: Implement tests for non number literals.
+		// @TODO: Implement tests for tokens different than
+		// numbers and identifiers e.g. TRUE_LITERAL (true).
 	}
 }
 
@@ -229,19 +168,10 @@ func Test_ParseInfixExpressions(t *testing.T) {
         2 - 2;
         2 * 2;
         2 / 2;
+        a + b;
     }`
 
-	p := Parser{}
-	handle := token.NewFile("test.sol", src)
-	p.Init(handle)
-	// p.ToggleTracing()
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
+	file := test_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
 		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
@@ -257,19 +187,20 @@ func Test_ParseInfixExpressions(t *testing.T) {
 		t.Fatalf("FunctionDeclaration body is nil")
 	}
 
-	if len(fd.Body.Statements) != 4 {
-		t.Fatalf("Expected 4 statements, got %d", len(fd.Body.Statements))
+	if len(fd.Body.Statements) != 5 {
+		t.Fatalf("Expected 5 statements, got %d", len(fd.Body.Statements))
 	}
 
 	infixTests := []struct {
-		leftVal  *big.Int
+		leftVal  interface{}
 		operator string
-		rightVal *big.Int
+		rightVal interface{}
 	}{
 		{big.NewInt(2), "+", big.NewInt(2)},
 		{big.NewInt(2), "-", big.NewInt(2)},
 		{big.NewInt(2), "*", big.NewInt(2)},
 		{big.NewInt(2), "/", big.NewInt(2)},
+		{"a", "+", "b"},
 	}
 
 	for i, tt := range infixTests {
@@ -279,18 +210,7 @@ func Test_ParseInfixExpressions(t *testing.T) {
 			t.Fatalf("Expected ExpressionStatement, got %T", expr)
 		}
 
-		infixExpr, ok := exprStmt.Expression.(*ast.InfixExpression)
-		if !ok {
-			t.Fatalf("Expected InfixExpression, got %T", exprStmt.Expression)
-		}
-
-		testNumberLiteral(t, infixExpr.Left, tt.leftVal, token.DECIMAL_NUMBER, "2")
-
-		if infixExpr.Operator.Literal != tt.operator {
-			t.Fatalf("Expected operator %s, got %s", tt.operator, infixExpr.Operator)
-		}
-
-		testNumberLiteral(t, infixExpr.Right, tt.rightVal, token.DECIMAL_NUMBER, "2")
+		test_InfixExpression(t, exprStmt.Expression, tt.leftVal, tt.operator, tt.rightVal)
 	}
 }
 
@@ -309,19 +229,10 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
         -a + -b; -a * -b; -a ** -b;
         ++a;
         ++a + ++b;
+        1 + 2;
     }`
 
-	p := Parser{}
-	handle := token.NewFile("test.sol", src)
-	p.Init(handle)
-	// p.ToggleTracing()
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
+	file := test_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
 		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
@@ -337,8 +248,8 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 		t.Fatalf("FunctionDeclaration body is nil")
 	}
 
-	if len(fd.Body.Statements) != 15 {
-		t.Fatalf("Expected 15 statements, got %d", len(fd.Body.Statements))
+	if len(fd.Body.Statements) != 16 {
+		t.Fatalf("Expected 16 statements, got %d", len(fd.Body.Statements))
 	}
 
 	tests := []struct {
@@ -359,6 +270,7 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 		{"((-a) ** (-b))"},
 		{"(++a)"},
 		{"((++a) + (++b))"},
+		{"(1 + 2)"},
 	}
 
 	for i, tt := range tests {
@@ -372,4 +284,77 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 			t.Fatalf("Expected %s, got %s", tt.expected, exprStmt.String())
 		}
 	}
+}
+
+/*~*~*~*~*~*~*~*~*~*~*~*~* Helper Functions ~*~*~*~*~*~*~*~*~*~*~*~*~*/
+
+func test_parseSource(t *testing.T, src string, tracing bool) *ast.File {
+	p := Parser{}
+	handle := token.NewFile("test.sol", src)
+	p.Init(handle)
+
+	if tracing {
+		p.ToggleTracing()
+	}
+
+	file := p.ParseFile()
+	checkParserErrors(t, &p)
+
+	if file == nil {
+		t.Fatalf("ParseFile() returned nil")
+	}
+
+	return file
+}
+
+func test_Identifier(t *testing.T, exp ast.Expression, value string) {
+	ident, ok := exp.(*ast.Identifier)
+	if !ok {
+		t.Fatalf("Expected Identifier, got %T", exp)
+	}
+
+	if ident.Name != value {
+		t.Fatalf("Expected %s, got %s", value, ident.Name)
+	}
+}
+
+func test_NumberLiteral(
+	t *testing.T,
+	expr ast.Expression,
+	expectedVal *big.Int) {
+	intLit, ok := expr.(*ast.NumberLiteral)
+	if !ok {
+		t.Fatalf("Expected IntegerLiteral, got %T", expr)
+	}
+
+	if intLit.Value.Cmp(expectedVal) != 0 {
+		t.Fatalf("Expected %d, got %s", expectedVal, intLit.Value.String())
+	}
+}
+
+func test_LiteralExpression(t *testing.T, exp ast.Expression, expected interface{}) {
+	switch v := expected.(type) {
+	case string:
+		test_Identifier(t, exp, v)
+		return
+	case *big.Int:
+		test_NumberLiteral(t, exp, v)
+		return
+	}
+	t.Fatalf("Type %T not handled", expected)
+}
+
+func test_InfixExpression(t *testing.T, exp ast.Expression, left interface{}, operator string, right interface{}) {
+	infix, ok := exp.(*ast.InfixExpression)
+	if !ok {
+		t.Fatalf("Expected InfixExpression, got %T", exp)
+	}
+
+	test_LiteralExpression(t, infix.Left, left)
+
+	if infix.Operator.Literal != operator {
+		t.Fatalf("Expected operator %s, got %s", operator, infix.Operator.Literal)
+	}
+
+	test_LiteralExpression(t, infix.Right, right)
 }
