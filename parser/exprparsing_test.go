@@ -12,27 +12,15 @@ func Test_ParseIdentifierExpression(t *testing.T) {
         foo;
     }`
 
-	file := test_parseSource(t, src, false)
+	file := test_helper_parseSource(t, src, false)
 
-	if len(file.Declarations) != 1 {
-		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	fnBody := test_helper_parseFnBody(t, file)
+
+	if len(fnBody.Statements) != 1 {
+		t.Fatalf("Expected 1 statements, got %d", len(fnBody.Statements))
 	}
 
-	decl := file.Declarations[0]
-	fd, ok := decl.(*ast.FunctionDeclaration)
-	if !ok {
-		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
-	}
-
-	if fd.Body == nil {
-		t.Fatalf("FunctionDeclaration body is nil")
-	}
-
-	if len(fd.Body.Statements) != 1 {
-		t.Fatalf("Expected 1 statements, got %d", len(fd.Body.Statements))
-	}
-
-	stmt := fd.Body.Statements[0]
+	stmt := fnBody.Statements[0]
 	exprStmt, ok := stmt.(*ast.ExpressionStatement)
 	if !ok {
 		t.Fatalf("Expected ExpressionStatement, got %T", stmt)
@@ -49,24 +37,12 @@ func Test_ParseNumberLiteralExpression(t *testing.T) {
         115792089237316195423570985008687907853269984665640564039457584007913129639935;
     }`
 
-	file := test_parseSource(t, src, false)
+	file := test_helper_parseSource(t, src, false)
 
-	if len(file.Declarations) != 1 {
-		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
-	}
+	fnBody := test_helper_parseFnBody(t, file)
 
-	decl := file.Declarations[0]
-	fd, ok := decl.(*ast.FunctionDeclaration)
-	if !ok {
-		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
-	}
-
-	if fd.Body == nil {
-		t.Fatalf("FunctionDeclaration body is nil")
-	}
-
-	if len(fd.Body.Statements) != 4 {
-		t.Fatalf("Expected 4 statements, got %d", len(fd.Body.Statements))
+	if len(fnBody.Statements) != 4 {
+		t.Fatalf("Expected 4 statements, got %d", len(fnBody.Statements))
 	}
 
 	uint256max, _ := new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 0)
@@ -83,7 +59,7 @@ func Test_ParseNumberLiteralExpression(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		expr := fd.Body.Statements[i]
+		expr := fnBody.Statements[i]
 		exprStmt, ok := expr.(*ast.ExpressionStatement)
 		if !ok {
 			t.Fatalf("Expected ExpressionStatement, got %T", expr)
@@ -105,24 +81,12 @@ func Test_ParsePrefixExpression(t *testing.T) {
         delete foo;
     }`
 
-	file := test_parseSource(t, src, false)
+	file := test_helper_parseSource(t, src, false)
 
-	if len(file.Declarations) != 1 {
-		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
-	}
+	fnBody := test_helper_parseFnBody(t, file)
 
-	decl := file.Declarations[0]
-	fd, ok := decl.(*ast.FunctionDeclaration)
-	if !ok {
-		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
-	}
-
-	if fd.Body == nil {
-		t.Fatalf("FunctionDeclaration body is nil")
-	}
-
-	if len(fd.Body.Statements) != 6 {
-		t.Fatalf("Expected 6 statements, got %d", len(fd.Body.Statements))
+	if len(fnBody.Statements) != 6 {
+		t.Fatalf("Expected 6 statements, got %d", len(fnBody.Statements))
 	}
 
 	tests := []struct {
@@ -140,7 +104,7 @@ func Test_ParsePrefixExpression(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		expr := fd.Body.Statements[i]
+		expr := fnBody.Statements[i]
 		exprStmt, ok := expr.(*ast.ExpressionStatement)
 		if !ok {
 			t.Fatalf("Expected ExpressionStatement, got %T", expr)
@@ -171,24 +135,12 @@ func Test_ParseInfixExpressions(t *testing.T) {
         a + b;
     }`
 
-	file := test_parseSource(t, src, false)
+	file := test_helper_parseSource(t, src, false)
 
-	if len(file.Declarations) != 1 {
-		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
-	}
+	fnBody := test_helper_parseFnBody(t, file)
 
-	decl := file.Declarations[0]
-	fd, ok := decl.(*ast.FunctionDeclaration)
-	if !ok {
-		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
-	}
-
-	if fd.Body == nil {
-		t.Fatalf("FunctionDeclaration body is nil")
-	}
-
-	if len(fd.Body.Statements) != 5 {
-		t.Fatalf("Expected 5 statements, got %d", len(fd.Body.Statements))
+	if len(fnBody.Statements) != 5 {
+		t.Fatalf("Expected 5 statements, got %d", len(fnBody.Statements))
 	}
 
 	infixTests := []struct {
@@ -204,7 +156,7 @@ func Test_ParseInfixExpressions(t *testing.T) {
 	}
 
 	for i, tt := range infixTests {
-		expr := fd.Body.Statements[i]
+		expr := fnBody.Statements[i]
 		exprStmt, ok := expr.(*ast.ExpressionStatement)
 		if !ok {
 			t.Fatalf("Expected ExpressionStatement, got %T", expr)
@@ -232,24 +184,12 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
         1 + 2;
     }`
 
-	file := test_parseSource(t, src, false)
+	file := test_helper_parseSource(t, src, false)
 
-	if len(file.Declarations) != 1 {
-		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
-	}
+	fnBody := test_helper_parseFnBody(t, file)
 
-	decl := file.Declarations[0]
-	fd, ok := decl.(*ast.FunctionDeclaration)
-	if !ok {
-		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
-	}
-
-	if fd.Body == nil {
-		t.Fatalf("FunctionDeclaration body is nil")
-	}
-
-	if len(fd.Body.Statements) != 16 {
-		t.Fatalf("Expected 16 statements, got %d", len(fd.Body.Statements))
+	if len(fnBody.Statements) != 16 {
+		t.Fatalf("Expected 16 statements, got %d", len(fnBody.Statements))
 	}
 
 	tests := []struct {
@@ -274,7 +214,7 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		expr := fd.Body.Statements[i]
+		expr := fnBody.Statements[i]
 		exprStmt, ok := expr.(*ast.ExpressionStatement)
 		if !ok {
 			t.Fatalf("Expected ExpressionStatement, got %T", expr)
@@ -288,7 +228,7 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 
 /*~*~*~*~*~*~*~*~*~*~*~*~* Helper Functions ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
-func test_parseSource(t *testing.T, src string, tracing bool) *ast.File {
+func test_helper_parseSource(t *testing.T, src string, tracing bool) *ast.File {
 	p := Parser{}
 	handle := token.NewFile("test.sol", src)
 	p.Init(handle)
@@ -305,6 +245,24 @@ func test_parseSource(t *testing.T, src string, tracing bool) *ast.File {
 	}
 
 	return file
+}
+
+func test_helper_parseFnBody(t *testing.T, file *ast.File) *ast.BlockStatement {
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	}
+
+	decl := file.Declarations[0]
+	fd, ok := decl.(*ast.FunctionDeclaration)
+	if !ok {
+		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
+	}
+
+	if fd.Body == nil {
+		t.Fatalf("FunctionDeclaration body is nil")
+	}
+
+	return fd.Body
 }
 
 func test_Identifier(t *testing.T, exp ast.Expression, value string) {

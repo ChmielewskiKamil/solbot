@@ -22,7 +22,7 @@ func Test_ParseStateVariableDeclaration(t *testing.T) {
     uint256 transient blob = 0;
     `
 
-	file := test_parseSource(t, src, false)
+	file := test_helper_parseSource(t, src, false)
 
 	if len(file.Declarations) != 13 {
 		t.Fatalf("Expected 13 declarations, got %d", len(file.Declarations))
@@ -73,7 +73,7 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
     }
     `
 
-	file := test_parseSource(t, src, false)
+	file := test_helper_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
 		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
@@ -175,27 +175,15 @@ func Test_ParseReturnStatement(t *testing.T) {
 
 	numReturns := 5
 
-	file := test_parseSource(t, src, false)
+	file := test_helper_parseSource(t, src, false)
 
-	if len(file.Declarations) != 1 {
-		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	fnBody := test_helper_parseFnBody(t, file)
+
+	if len(fnBody.Statements) != numReturns {
+		t.Fatalf("Expected %d statements, got %d", numReturns, len(fnBody.Statements))
 	}
 
-	decl := file.Declarations[0]
-	fd, ok := decl.(*ast.FunctionDeclaration)
-	if !ok {
-		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
-	}
-
-	if fd.Body == nil {
-		t.Fatalf("FunctionDeclaration body is nil")
-	}
-
-	if len(fd.Body.Statements) != numReturns {
-		t.Fatalf("Expected %d statements, got %d", numReturns, len(fd.Body.Statements))
-	}
-
-	for _, stmt := range fd.Body.Statements {
+	for _, stmt := range fnBody.Statements {
 		retStmt, ok := stmt.(*ast.ReturnStatement)
 		if !ok {
 			t.Fatalf("Expected ReturnStatement, got %T", stmt)
@@ -217,28 +205,16 @@ func Test_ParseBlocks(t *testing.T) {
     }
     `
 
-	file := test_parseSource(t, src, false)
+	file := test_helper_parseSource(t, src, false)
 
-	if len(file.Declarations) != 1 {
-		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	fnBody := test_helper_parseFnBody(t, file)
+
+	if len(fnBody.Statements) != 4 {
+		t.Fatalf("Expected 4 statements, got %d", len(fnBody.Statements))
 	}
 
-	decl := file.Declarations[0]
-	fd, ok := decl.(*ast.FunctionDeclaration)
-	if !ok {
-		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
-	}
-
-	if fd.Body == nil {
-		t.Fatalf("FunctionDeclaration body is nil")
-	}
-
-	if len(fd.Body.Statements) != 4 {
-		t.Fatalf("Expected 4 statements, got %d", len(fd.Body.Statements))
-	}
-
-	uncheckedBlock := fd.Body.Statements[2]
-	_, ok = uncheckedBlock.(*ast.UncheckedBlockStatement)
+	uncheckedBlock := fnBody.Statements[2]
+	_, ok := uncheckedBlock.(*ast.UncheckedBlockStatement)
 	if !ok {
 		t.Fatalf("Expected UncheckedStatement, got %T", uncheckedBlock)
 	}
