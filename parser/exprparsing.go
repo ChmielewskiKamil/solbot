@@ -203,6 +203,18 @@ func (p *Parser) parseNumberLiteral() ast.Expression {
 	return numLit
 }
 
+func (p *Parser) parseBooleanLiteral() ast.Expression {
+	if p.trace {
+		defer un(trace("parseBooleanLiteral"))
+	}
+
+	bl := &ast.BooleanLiteral{
+		Pos:   p.currTkn.Pos,
+		Value: p.currTknIs(token.TRUE_LITERAL),
+	}
+	return bl
+}
+
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	if p.trace {
 		defer un(trace("parsePrefixExpression"))

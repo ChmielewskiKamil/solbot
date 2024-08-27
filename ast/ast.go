@@ -63,6 +63,11 @@ type (
 		Value big.Int     // value of the literal; decimal or hex
 	}
 
+	BooleanLiteral struct {
+		Pos   token.Pos // position of the value
+		Value bool
+	}
+
 	PrefixExpression struct {
 		Pos      token.Pos   // position of the operator
 		Operator token.Token // operator token
@@ -87,6 +92,13 @@ func (x *NumberLiteral) Start() token.Pos { return x.Pos }
 func (x *NumberLiteral) End() token.Pos {
 	return token.Pos(int(x.Pos) + len(x.Kind.Literal))
 }
+func (x *BooleanLiteral) Start() token.Pos { return x.Pos }
+func (x *BooleanLiteral) End() token.Pos {
+	if x.Value {
+		return token.Pos(int(x.Pos) + 4) // length of "true"
+	}
+	return token.Pos(int(x.Pos) + 5) // length of "false"
+}
 func (x *PrefixExpression) Start() token.Pos { return x.Pos }
 func (x *PrefixExpression) End() token.Pos {
 	return x.Right.End()
@@ -102,6 +114,7 @@ func (x *InfixExpression) End() token.Pos {
 
 func (*Identifier) expressionNode()       {}
 func (*NumberLiteral) expressionNode()    {}
+func (*BooleanLiteral) expressionNode()   {}
 func (*PrefixExpression) expressionNode() {}
 func (*InfixExpression) expressionNode()  {}
 
@@ -109,6 +122,12 @@ func (*InfixExpression) expressionNode()  {}
 
 func (x *Identifier) String() string    { return x.Name }
 func (x *NumberLiteral) String() string { return x.Kind.Literal }
+func (x *BooleanLiteral) String() string {
+	if x.Value {
+		return "true"
+	}
+	return "false"
+}
 func (x *PrefixExpression) String() string {
 	var out bytes.Buffer
 	out.WriteString("(")

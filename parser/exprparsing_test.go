@@ -67,6 +67,45 @@ func Test_ParseNumberLiteralExpression(t *testing.T) {
 	}
 }
 
+func Test_ParseBooleanLiteralExpression(t *testing.T) {
+	src := `function test() public {
+        true;
+        false;
+    }`
+
+	file := test_helper_parseSource(t, src, false)
+
+	fnBody := test_helper_parseFnBody(t, file)
+
+	if len(fnBody.Statements) != 2 {
+		t.Fatalf("Expected 2 statements, got %d", len(fnBody.Statements))
+	}
+
+	tests := []struct {
+		expectedVal bool
+	}{
+		{true},
+		{false},
+	}
+
+	for i, tt := range tests {
+		expr := fnBody.Statements[i]
+		exprStmt, ok := expr.(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("Expected ExpressionStatement, got %T", expr)
+		}
+
+		boolLit, ok := exprStmt.Expression.(*ast.BooleanLiteral)
+		if !ok {
+			t.Fatalf("Expected BooleanLiteral, got %T", exprStmt.Expression)
+		}
+
+		if boolLit.Value != tt.expectedVal {
+			t.Fatalf("Expected %t, got %t", tt.expectedVal, boolLit.Value)
+		}
+	}
+}
+
 func Test_ParsePrefixExpression(t *testing.T) {
 	src := `function test() public {
         -1337;
@@ -75,14 +114,16 @@ func Test_ParsePrefixExpression(t *testing.T) {
         ~0x12345;
         !a;
         delete foo;
+        !true;
+        !false;
     }`
 
 	file := test_helper_parseSource(t, src, false)
 
 	fnBody := test_helper_parseFnBody(t, file)
 
-	if len(fnBody.Statements) != 6 {
-		t.Fatalf("Expected 6 statements, got %d", len(fnBody.Statements))
+	if len(fnBody.Statements) != 8 {
+		t.Fatalf("Expected 8 statements, got %d", len(fnBody.Statements))
 	}
 
 	tests := []struct {
@@ -95,8 +136,8 @@ func Test_ParsePrefixExpression(t *testing.T) {
 		{"~", big.NewInt(0x12345)},
 		{"!", "a"},
 		{"delete", "foo"},
-		// {"!", nil, token.TRUE_LITERAL, "true"},
-		// {"delete", nil, token.IDENTIFIER, "foo"},
+		{"!", true},
+		{"!", false},
 	}
 
 	for i, tt := range tests {
@@ -116,9 +157,6 @@ func Test_ParsePrefixExpression(t *testing.T) {
 		}
 
 		test_LiteralExpression(t, pExpr.Right, tt.expectedVal)
-
-		// @TODO: Implement tests for tokens different than
-		// numbers and identifiers e.g. TRUE_LITERAL (true).
 	}
 }
 
@@ -129,14 +167,17 @@ func Test_ParseInfixExpressions(t *testing.T) {
         2 * 2;
         2 / 2;
         a + b;
+        true == true;
+        false != true;
+        false == false;
     }`
 
 	file := test_helper_parseSource(t, src, false)
 
 	fnBody := test_helper_parseFnBody(t, file)
 
-	if len(fnBody.Statements) != 5 {
-		t.Fatalf("Expected 5 statements, got %d", len(fnBody.Statements))
+	if len(fnBody.Statements) != 8 {
+		t.Fatalf("Expected 8 statements, got %d", len(fnBody.Statements))
 	}
 
 	infixTests := []struct {
@@ -149,6 +190,9 @@ func Test_ParseInfixExpressions(t *testing.T) {
 		{big.NewInt(2), "*", big.NewInt(2)},
 		{big.NewInt(2), "/", big.NewInt(2)},
 		{"a", "+", "b"},
+		{true, "==", true},
+		{false, "!=", true},
+		{false, "==", false},
 	}
 
 	for i, tt := range infixTests {
@@ -178,14 +222,16 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
         ++a;
         ++a + ++b;
         1 + 2;
+        3 > 8 == false;
+        3 < 8 == true;
     }`
 
 	file := test_helper_parseSource(t, src, false)
 
 	fnBody := test_helper_parseFnBody(t, file)
 
-	if len(fnBody.Statements) != 16 {
-		t.Fatalf("Expected 16 statements, got %d", len(fnBody.Statements))
+	if len(fnBody.Statements) != 18 {
+		t.Fatalf("Expected 18 statements, got %d", len(fnBody.Statements))
 	}
 
 	tests := []struct {
@@ -207,6 +253,8 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 		{"(++a)"},
 		{"((++a) + (++b))"},
 		{"(1 + 2)"},
+		{"((3 > 8) == false)"},
+		{"((3 < 8) == true)"},
 	}
 
 	for i, tt := range tests {
@@ -286,6 +334,17 @@ func test_NumberLiteral(
 	}
 }
 
+func test_BooleanLiteral(t *testing.T, exp ast.Expression, value bool) {
+	bl, ok := exp.(*ast.BooleanLiteral)
+	if !ok {
+		t.Fatalf("Expected BooleanLiteral, got %T", exp)
+	}
+
+	if bl.Value != value {
+		t.Fatalf("Expected %t, got %t", value, bl.Value)
+	}
+}
+
 func test_LiteralExpression(t *testing.T, exp ast.Expression, expected interface{}) {
 	switch v := expected.(type) {
 	case string:
@@ -293,6 +352,9 @@ func test_LiteralExpression(t *testing.T, exp ast.Expression, expected interface
 		return
 	case *big.Int:
 		test_NumberLiteral(t, exp, v)
+		return
+	case bool:
+		test_BooleanLiteral(t, exp, v)
 		return
 	}
 	t.Fatalf("Type %T not handled", expected)
