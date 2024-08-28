@@ -229,54 +229,57 @@ func (x *ElementaryType) String() string { return x.Value }
 
 /*~*~*~*~*~*~*~*~*~*~*~*~* Statements *~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
-// In Solidity statements appear in blocks, which are enclosed in curly braces.
-// Block: { <<statement>> (and/or) <<unchecked-block>> }
-// For example: Constructor, Function, Modifier etc. delcarations have a body, which
-// is a block. Similarly try-catch, if-else, for, while statements have a block as well.
-type BlockStatement struct {
-	LeftBrace  token.Pos   // position of the left curly brace
-	Statements []Statement // statements in the block
-	RightBrace token.Pos   // position of the right curly brace
-}
+type (
+	// In Solidity statements appear in blocks, which are enclosed in curly braces.
+	// Block: { <<statement>> (and/or) <<unchecked-block>> }
+	// For example: Constructor, Function, Modifier etc. delcarations have a body, which
+	// is a block. Similarly try-catch, if-else, for, while statements have a block as well.
+	BlockStatement struct {
+		LeftBrace  token.Pos   // position of the left curly brace
+		Statements []Statement // statements in the block
+		RightBrace token.Pos   // position of the right curly brace
+	}
 
-// UncheckedBlockStatement is a block that is declared as "unchecked".
-type UncheckedBlockStatement struct {
-	LeftBrace  token.Pos   // position of the left curly brace
-	Statements []Statement // statements in the block
-	RightBrace token.Pos   // position of the right curly brace
-}
+	// UncheckedBlockStatement is a block that is declared as "unchecked".
+	UncheckedBlockStatement struct {
+		LeftBrace  token.Pos   // position of the left curly brace
+		Statements []Statement // statements in the block
+		RightBrace token.Pos   // position of the right curly brace
+	}
 
-// VariableDeclarationStatement represents a declaration of a variable inside
-// a function. It is of a form: "type <<variable-name>> = <<expression>>;",
-// where the expression is optional.
-type VariableDeclarationStatement struct {
-	Type         Type         // e.g. elementary, function, user-defined type etc.
-	Name         *Identifier  // variable name
-	DataLocation DataLocation // data location e.g. storage, memory, calldata or nil
-	Value        Expression   // initial value or nil; optional (NOT FOR TUPLES)
-}
+	// VariableDeclarationStatement represents a declaration of a variable inside
+	// a function. It is of a form: "type <<variable-name>> = <<expression>>;",
+	// where the expression is optional.
+	VariableDeclarationStatement struct {
+		Type         Type         // e.g. elementary, function, user-defined type etc.
+		Name         *Identifier  // variable name
+		DataLocation DataLocation // data location e.g. storage, memory, calldata or nil
+		Value        Expression   // initial value or nil; optional (NOT FOR TUPLES)
+	}
 
-// @TODO Implement VariableDeclarationTupleStatement
+	// @TODO Implement VariableDeclarationTupleStatement
 
-// Return statement is in a form of "return <<expression>>;", where
-// the expression is optional. In languages like Go, the return statement can
-// return an array of Expressions e.g., "return x, y, z". In Solidity, however,
-// if you want to return multiple values, you return a tuple-expression e.g.,
-// "return (x, y, z);".
-type ReturnStatement struct {
-	Pos    token.Pos  // position of the "return" keyword
-	Result Expression // result expressions or nil
-}
+	// Return statement is in a form of "return <<expression>>;", where
+	// the expression is optional. In languages like Go, the return statement can
+	// return an array of Expressions e.g., "return x, y, z". In Solidity, however,
+	// if you want to return multiple values, you return a tuple-expression e.g.,
+	// "return (x, y, z);".
+	ReturnStatement struct {
+		Pos    token.Pos  // position of the "return" keyword
+		Result Expression // result expressions or nil
+	}
 
-// ExpressionStatement is a statement that consists of a single expression.
-// It is of a form: <<expression>>;
-// In Solidity it is legal to write code like this: `x + 10;` or `x = 10;` or
-// `foo();`. In Go, unused expressions are not allowed e.g. `x + 10` will give
-// you an error.
-type ExpressionStatement struct {
-	Pos        token.Pos  // position of the first character of the expression
-	Expression Expression // expression to be evaluated
-}
+	// ExpressionStatement is a statement that consists of a single expression.
+	// It is of a form: <<expression>>;
+	// In Solidity it is legal to write code like this: `x + 10;` or `x = 10;` or
+	// `foo();`. In Go, unused expressions are not allowed e.g. `x + 10` will give
+	// you an error.
+	ExpressionStatement struct {
+		Pos        token.Pos  // position of the first character of the expression
+		Expression Expression // expression to be evaluated
+	}
+
+)
 
 // Start() and End() implementations for Statement type Nodes
 
