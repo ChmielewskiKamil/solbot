@@ -256,3 +256,21 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 
 	return exp
 }
+
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	if p.trace {
+		defer un(trace("parseGroupedExpression"))
+	}
+
+	p.nextToken()
+
+	// Parse the thing inside parentheses.
+	exp := p.parseExpression(LOWEST)
+
+	// There should be a closing parenthesis.
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return exp
+}

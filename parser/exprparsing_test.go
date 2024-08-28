@@ -224,14 +224,16 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
         1 + 2;
         3 > 8 == false;
         3 < 8 == true;
+        3 * (8 + 2) * 2;
+        10 / (1 + 1);
     }`
 
 	file := test_helper_parseSource(t, src, false)
 
 	fnBody := test_helper_parseFnBody(t, file)
 
-	if len(fnBody.Statements) != 18 {
-		t.Fatalf("Expected 18 statements, got %d", len(fnBody.Statements))
+	if len(fnBody.Statements) != 20 {
+		t.Fatalf("Expected 20 statements, got %d", len(fnBody.Statements))
 	}
 
 	tests := []struct {
@@ -255,6 +257,8 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 		{"(1 + 2)"},
 		{"((3 > 8) == false)"},
 		{"((3 < 8) == true)"},
+		{"((3 * (8 + 2)) * 2)"},
+		{"(10 / (1 + 1))"},
 	}
 
 	for i, tt := range tests {

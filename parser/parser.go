@@ -40,6 +40,7 @@ func (p *Parser) Init(file *token.File) {
 	p.registerPrefix(token.HEX_NUMBER, p.parseNumberLiteral)
 	p.registerPrefix(token.TRUE_LITERAL, p.parseBooleanLiteral)
 	p.registerPrefix(token.FALSE_LITERAL, p.parseBooleanLiteral)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 
 	// Prefix Expressions
 	p.registerPrefix(token.NOT, p.parsePrefixExpression)
