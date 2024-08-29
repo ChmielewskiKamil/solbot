@@ -678,7 +678,7 @@ func init() {
 	// of the tokens.
 	keywords[Tokens[DELETE]] = DELETE
 
-	// The same goes for TRUE and FALSE boolean literals.
+	// Explicityly add TRUE and FALSE boolean literals to not mess with ordering.
 	keywords[Tokens[TRUE_LITERAL]] = TRUE_LITERAL
 	keywords[Tokens[FALSE_LITERAL]] = FALSE_LITERAL
 
@@ -686,6 +686,14 @@ func init() {
 	for i := elementary_type_beg + 1; i < elementary_type_end; i++ {
 		elementaryTypes[Tokens[i]] = i
 	}
+}
+
+func GetElementaryTypes() []TokenType {
+	types := make([]TokenType, 0, elementary_type_end-(elementary_type_beg+1))
+	for i := elementary_type_beg + 1; i < elementary_type_end; i++ {
+		types = append(types, i)
+	}
+	return types
 }
 
 func LookupIdent(ident string) TokenType {

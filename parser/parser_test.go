@@ -170,10 +170,11 @@ func Test_ParseReturnStatement(t *testing.T) {
     return true;
     return staked;
     return address(0);
+    return uint256(a + b);
     }
     `
 
-	numReturns := 5
+	numReturns := 6
 
 	file := test_helper_parseSource(t, src, false)
 
@@ -218,6 +219,134 @@ func Test_ParseBlocks(t *testing.T) {
 	if !ok {
 		t.Fatalf("Expected UncheckedStatement, got %T", uncheckedBlock)
 	}
+}
+
+func Test_ParseIfStatement(t *testing.T) {
+	src := `function test() public {
+        if (a > b) { return a; }
+    }`
+
+	file := test_helper_parseSource(t, src, false)
+
+	fnBody := test_helper_parseFnBody(t, file)
+
+	if len(fnBody.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(fnBody.Statements))
+	}
+
+	stmt := fnBody.Statements[0]
+	ifStmt, ok := stmt.(*ast.IfStatement)
+	if !ok {
+		t.Fatalf("Expected IfStatement, got %T", stmt)
+	}
+
+	if ifStmt.Condition == nil {
+		t.Fatalf("Condition expected to be <<Expression>>, got nil")
+	}
+
+	test_InfixExpression(t, ifStmt.Condition, "a", ">", "b")
+
+	if ifStmt.Consequence == nil {
+		t.Fatalf("Consequence expected to be <<BlockStatement>>, got nil")
+	}
+
+	blockStmt, ok := ifStmt.Consequence.(*ast.BlockStatement)
+	if !ok {
+		t.Fatalf("Expected BlockStatement, got %T", ifStmt.Consequence)
+	}
+
+	if len(blockStmt.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(blockStmt.Statements))
+	}
+
+	retStmt, ok := blockStmt.Statements[0].(*ast.ReturnStatement)
+	if !ok {
+		t.Fatalf("Expected ReturnStatement, got %T", blockStmt.Statements[0])
+	}
+
+	if retStmt.Result == nil {
+		t.Fatalf("Expected return stmt to return something, got nil")
+	}
+
+	test_Identifier(t, retStmt.Result, "a")
+
+	if ifStmt.Alternative != nil {
+		t.Fatalf("Expected nil alternative, got %T", ifStmt.Alternative)
+	}
+}
+
+func Test_ParseIfElseStatement(t *testing.T) {
+	src := `function test() public {
+        if (a > b) { return a; } else { return b; }
+    }`
+
+	file := test_helper_parseSource(t, src, false)
+
+	fnBody := test_helper_parseFnBody(t, file)
+
+	if len(fnBody.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(fnBody.Statements))
+	}
+
+	stmt := fnBody.Statements[0]
+	ifStmt, ok := stmt.(*ast.IfStatement)
+	if !ok {
+		t.Fatalf("Expected IfStatement, got %T", stmt)
+	}
+
+	if ifStmt.Condition == nil {
+		t.Fatalf("Condition expected to be <<Expression>>, got nil")
+	}
+
+	test_InfixExpression(t, ifStmt.Condition, "a", ">", "b")
+
+	if ifStmt.Consequence == nil {
+		t.Fatalf("Consequence expected to be <<BlockStatement>>, got nil")
+	}
+
+	blockStmt, ok := ifStmt.Consequence.(*ast.BlockStatement)
+	if !ok {
+		t.Fatalf("Expected BlockStatement, got %T", ifStmt.Consequence)
+	}
+
+	if len(blockStmt.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(blockStmt.Statements))
+	}
+
+	retStmt, ok := blockStmt.Statements[0].(*ast.ReturnStatement)
+	if !ok {
+		t.Fatalf("Expected ReturnStatement, got %T", blockStmt.Statements[0])
+	}
+
+	if retStmt.Result == nil {
+		t.Fatalf("Expected return stmt to return something, got nil")
+	}
+
+	test_Identifier(t, retStmt.Result, "a")
+
+	if ifStmt.Alternative == nil {
+		t.Fatalf("Expected Alternative to be <<BlockStatement>>, got nil")
+	}
+
+	blockStmt, ok = ifStmt.Alternative.(*ast.BlockStatement)
+	if !ok {
+		t.Fatalf("Expected BlockStatement, got %T", ifStmt.Alternative)
+	}
+
+	if len(blockStmt.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(blockStmt.Statements))
+	}
+
+	retStmt, ok = blockStmt.Statements[0].(*ast.ReturnStatement)
+	if !ok {
+		t.Fatalf("Expected ReturnStatement, got %T", blockStmt.Statements[0])
+	}
+
+	if retStmt.Result == nil {
+		t.Fatalf("Expected return stmt to return something, got nil")
+	}
+
+	test_Identifier(t, retStmt.Result, "b")
 }
 
 func testParseElementaryType(t *testing.T, decl ast.Declaration,

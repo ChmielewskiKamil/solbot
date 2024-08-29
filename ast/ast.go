@@ -160,10 +160,18 @@ func (x *InfixExpression) String() string {
 // fixed, fixed-bytes or ufixed. NOT a Contract, Function, mapping (these are
 // the four other types)
 type ElementaryType struct {
-	Pos   token.Pos   // position of the type keyword e.g. `a` in "address"
-	Kind  token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
-	Value string      // type literal value e.g. "address", "uint256", "bool" as a string
+	Pos  token.Pos   // position of the type keyword e.g. `a` in "address"
+	Kind token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
+	// nil when used as declaration e.g. `address a;`
+	// BUT also used in expressions e.g. `return uint256(a + b)`. Then it
+	// contains the expression a + b
+	Value Expression
 }
+
+// WARNING ElementaryType implements both Type and Expression interfaces.
+// It can be used as a type e.g. in variable declaration `uint256 x;` OR
+// as an expression in return statement `return uint256(a + b);`
+func (x *ElementaryType) expressionNode() {}
 
 // FunctionType represents a Solidity's function type. NOT TO BE CONFUSED WITH
 // FUNCTION DECLARATION. FunctionType is a weird thing that no one uses (lol) e.g.
@@ -216,7 +224,7 @@ type ParamList struct {
 // Start() and End() implementations for Expression type Nodes
 
 func (x *ElementaryType) Start() token.Pos { return x.Pos }
-func (x *ElementaryType) End() token.Pos   { return token.Pos(int(x.Pos) + len(x.Value)) }
+func (x *ElementaryType) End() token.Pos   { return token.Pos(int(x.Pos) + int(x.End())) }
 
 // expressionNode() implementations to ensure that only expressions and types
 // can be assigned to an Expression. This is useful if by mistake we try to use
@@ -225,7 +233,13 @@ func (x *ElementaryType) End() token.Pos   { return token.Pos(int(x.Pos) + len(x
 func (*ElementaryType) typeNode() {}
 
 // String() implementations for Types
-func (x *ElementaryType) String() string { return x.Value }
+func (x *ElementaryType) String() string {
+	var out bytes.Buffer
+	out.WriteString(x.Kind.Literal)
+	out.WriteString(" ")
+	out.WriteString(x.Value.String())
+	return out.String()
+}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~* Statements *~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
@@ -279,6 +293,12 @@ type (
 		Expression Expression // expression to be evaluated
 	}
 
+	IfStatement struct {
+		Pos         token.Pos  // position of the "if" keyword
+		Condition   Expression // condition to be evaluated
+		Consequence Statement  // consequence happens if the condition is true; or nil
+		Alternative Statement  // alternative happens if the condition is false; or nil
+	}
 )
 
 // Start() and End() implementations for Statement type Nodes
@@ -298,6 +318,20 @@ func (s *ReturnStatement) End() token.Pos {
 }
 func (s *ExpressionStatement) Start() token.Pos { return s.Pos }
 func (s *ExpressionStatement) End() token.Pos   { return s.Expression.End() }
+func (s *IfStatement) Start() token.Pos         { return s.Pos }
+func (s *IfStatement) End() token.Pos {
+	endPos := s.Pos + 2 // The length of "if".
+
+	if s.Consequence != nil {
+		endPos = s.Consequence.End()
+	}
+
+	if s.Alternative != nil {
+		endPos = s.Alternative.End()
+	}
+
+	return endPos
+}
 
 // statementNode() ensures that only statement nodes can be assigned to a Statement.
 func (*BlockStatement) statementNode()               {}
@@ -305,6 +339,7 @@ func (*UncheckedBlockStatement) statementNode()      {}
 func (*VariableDeclarationStatement) statementNode() {}
 func (*ReturnStatement) statementNode()              {}
 func (*ExpressionStatement) statementNode()          {}
+func (*IfStatement) statementNode()                  {}
 
 // String() implementations for Statements
 
@@ -360,6 +395,21 @@ func (s *ExpressionStatement) String() string {
 		return s.Expression.String()
 	}
 	return ""
+}
+
+func (s *IfStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("if")
+	out.WriteString(s.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(s.Consequence.String())
+
+	if s.Alternative != nil {
+		out.WriteString("else ")
+		out.WriteString(s.Alternative.String())
+	}
+
+	return out.String()
 }
 
 /*~*~*~*~*~*~*~*~*~*~*~*~ Declarations ~*~*~*~*~*~*~*~*~*~*~*~*~*/

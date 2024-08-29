@@ -40,7 +40,8 @@ func (p *Parser) Init(file *token.File) {
 	p.registerPrefix(token.HEX_NUMBER, p.parseNumberLiteral)
 	p.registerPrefix(token.TRUE_LITERAL, p.parseBooleanLiteral)
 	p.registerPrefix(token.FALSE_LITERAL, p.parseBooleanLiteral)
-	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+
+	registerPrefixElementaryTypes(p)
 
 	// Prefix Expressions
 	p.registerPrefix(token.NOT, p.parsePrefixExpression)
@@ -49,6 +50,7 @@ func (p *Parser) Init(file *token.File) {
 	p.registerPrefix(token.DEC, p.parsePrefixExpression)
 	p.registerPrefix(token.DELETE, p.parsePrefixExpression)
 	p.registerPrefix(token.SUB, p.parsePrefixExpression)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 
 	// Infix Expressions
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
@@ -85,6 +87,12 @@ func (p *Parser) Init(file *token.File) {
 	p.registerInfix(token.ASSIGN_MUL, p.parseInfixExpression)
 	p.registerInfix(token.ASSIGN_DIV, p.parseInfixExpression)
 	p.registerInfix(token.ASSIGN_MOD, p.parseInfixExpression)
+}
+
+func registerPrefixElementaryTypes(p *Parser) {
+	for _, tkType := range token.GetElementaryTypes() {
+		p.registerPrefix(tkType, p.parseElementaryType)
+	}
 }
 
 func (p *Parser) ToggleTracing() {
@@ -193,7 +201,7 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 	decl.Type = &ast.ElementaryType{
 		Pos:   p.currTkn.Pos,
 		Kind:  p.currTkn,
-		Value: p.currTkn.Literal,
+		Value: nil,
 	}
 
 	p.nextToken()
@@ -255,11 +263,14 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseExpressionStatement()
 	case token.IsElementaryType(tkType):
 		// @TODO: Implement other types that variables can have.
+		// @TODO: return address(0) and similar should be handled here
 		return p.parseVariableDeclarationStatement()
 	case tkType == token.LBRACE:
 		return p.parseBlockStatement()
 	case tkType == token.RETURN:
 		return p.parseReturnStatement()
+	case tkType == token.IF:
+		return p.parseIfStatement()
 	}
 }
 
@@ -344,7 +355,7 @@ func (p *Parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 	vdStmt.Type = &ast.ElementaryType{
 		Pos:   p.currTkn.Pos,
 		Kind:  p.currTkn,
-		Value: p.currTkn.Literal,
+		Value: nil,
 	}
 
 	p.nextToken()
@@ -383,8 +394,12 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	retStmt := &ast.ReturnStatement{}
 	retStmt.Pos = p.currTkn.Pos
 
-	// @TODO: Parse expression
-	for !p.currTknIs(token.SEMICOLON) {
+	// Advance to the next token; parse the expression.
+	p.nextToken()
+	retStmt.Result = p.parseExpression(LOWEST)
+
+	// Semicolon is optional on purpose to make it easier to type stuff into
+	if p.peekTkn.Type == token.SEMICOLON {
 		p.nextToken()
 	}
 
@@ -407,6 +422,44 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	}
 
 	return exprStmt
+}
+
+func (p *Parser) parseIfStatement() *ast.IfStatement {
+	if p.trace {
+		defer un(trace("parseIfStatement"))
+	}
+
+	// 1. If keyword
+	ifStmt := &ast.IfStatement{
+		Pos: p.currTkn.Pos,
+	}
+
+	// 2. Parenthesis of condition should be next; consume the lparen token.
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	// 3. Advance to condition; parse the condition.
+	p.nextToken()
+	ifStmt.Condition = p.parseExpression(LOWEST)
+
+	// 4. Consume the rparen token.
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	// 5. Advance; parse the consequence statement.
+	p.nextToken()
+	ifStmt.Consequence = p.parseStatement()
+
+	// 6. If there is an else, parse it.
+	if p.peekTkn.Type == token.ELSE {
+		p.nextToken() // Sitting on ELSE
+		p.nextToken() // Sitting on the <<statement>> after ELSE
+		ifStmt.Alternative = p.parseStatement()
+	}
+
+	return ifStmt
 }
 
 // expectPeek checks if the next token is of the expected type.

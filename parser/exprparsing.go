@@ -274,3 +274,36 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 
 	return exp
 }
+
+func (p *Parser) parseElementaryType() ast.Expression {
+	if p.trace {
+		defer un(trace("parseElementaryType"))
+	}
+
+	et := &ast.ElementaryType{
+		Pos: p.currTkn.Pos,
+		Kind: token.Token{
+			Type:    p.currTkn.Type,
+			Literal: p.currTkn.Literal,
+			Pos:     p.currTkn.Pos,
+		},
+	}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+	et.Value = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	// Semi-colon is optional.
+	if p.peekTkn.Type == token.SEMICOLON {
+		p.nextToken()
+	}
+
+	return et
+}
