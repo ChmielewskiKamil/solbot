@@ -138,6 +138,7 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 	if p.trace {
 		defer un(trace("parseFunctionDeclaration"))
 	}
+
 	decl := &ast.FunctionDeclaration{}
 
 	// 1. Function keyword
@@ -161,15 +162,70 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 	params := &ast.ParamList{}
 	params.Opening = p.currTkn.Pos
 
-	for !p.currTknIs(token.RPAREN) {
-		p.nextToken()
+	for !p.peekTknIs(token.RPAREN) {
+		// One loop iteration parses one parameter.
+		prm := &ast.Param{}
+		prm.DataLocation = ast.NO_DATA_LOCATION // Explicit default value
+
+		// param list looks like this:
+		// ( typeName <<data location>> <<identifier>>, ... )
+		// The typeName is required while data location and identifier are optional.
+
+		// @TODO: Params can have other types than elementary types. For example:
+		// - user defined like Contract names and structs
+		// - function types
+		// - arrays of other types
+		// - mappings (?)
+
+		if !token.IsElementaryType(p.peekTkn.Type) {
+			p.errors.Add(p.peekTkn.Pos, "Fn param: expected elementary type, got: "+p.peekTkn.Literal)
+			return nil
+		}
+		p.nextToken() // Move to the type name.
+
+		prm.Type = &ast.ElementaryType{
+			Pos:   p.currTkn.Pos,
+			Kind:  p.currTkn,
+			Value: nil, // Here it's a type, not an expression.
+		}
+
+		if token.IsDataLocation(p.peekTkn.Type) {
+			p.nextToken()
+			switch p.currTkn.Type {
+			case token.STORAGE:
+				prm.DataLocation = ast.Storage
+			case token.MEMORY:
+				prm.DataLocation = ast.Memory
+			case token.CALLDATA:
+				prm.DataLocation = ast.Calldata
+			}
+		}
+
+		if p.peekTknIs(token.IDENTIFIER) {
+			p.nextToken()
+			prm.Name = &ast.Identifier{
+				Pos:  p.currTkn.Pos,
+				Name: p.currTkn.Literal,
+			}
+		}
+
+		params.List = append(params.List, prm)
+
+		if p.peekTknIs(token.COMMA) {
+			p.nextToken()
+		}
 	}
 
+	p.nextToken() // Move to the closing parenthesis.
 	params.Closing = p.currTkn.Pos
 
 	// 4. Visibility, State Mutability, Modifier Invocation, Override, Virtual
 
+	// @TODO: Parse stuff after params before body block.
+
 	// 5. Returns ( Param List )
+
+	// @TODO: Parse returned results.
 
 	// 6. Body block
 	for !p.currTknIs(token.LBRACE) {
@@ -177,8 +233,6 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 	}
 
 	fnBody := p.parseBlockStatement()
-
-	// 7. Semicolon
 
 	decl.Params = params
 	decl.Body = fnBody
@@ -429,6 +483,8 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 		defer un(trace("parseIfStatement"))
 	}
 
+	// if (condition) { consequence } else { alternative }
+
 	// 1. If keyword
 	ifStmt := &ast.IfStatement{
 		Pos: p.currTkn.Pos,
@@ -483,6 +539,11 @@ func (p *Parser) peekError(t token.TokenType) {
 // currTknIs checks if the current token is of the expected type.
 func (p *Parser) currTknIs(t token.TokenType) bool {
 	return p.currTkn.Type == t
+}
+
+// peekTknIs checks if the next token is of the expected type.
+func (p *Parser) peekTknIs(t token.TokenType) bool {
+	return p.peekTkn.Type == t
 }
 
 func (p *Parser) registerPrefix(t token.TokenType, fn prefixParseFn) {

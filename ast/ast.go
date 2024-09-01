@@ -205,8 +205,9 @@ type FunctionType struct {
 // closely related to types.
 // @TODO: Data location is missing
 type Param struct {
-	Name *Identifier // param name e.g. "x" or "recipient"
-	Type Type        // e.g. ElementaryType, FunctionType etc.
+	Name         *Identifier  // param name e.g. "x" or "recipient"
+	Type         Type         // e.g. ElementaryType, FunctionType etc.
+	DataLocation DataLocation // data location e.g. storage, memory, calldata or nil
 }
 
 // ParamList is a list of parameters enclosed in parentheses. Similar to Param

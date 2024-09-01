@@ -67,7 +67,7 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 	// @TODO: When overriding the param identifier can be empty?
 	// e.g. function withdraw(uint256 assets, uint256) internal override ...
 	src := `
-    function getBalance(address owner) public view returns (uint256) {
+    function getBalance(address owner, uint256 amount) public view returns (uint256) {
         uint256 balance = 10;
         return balance;
     }
