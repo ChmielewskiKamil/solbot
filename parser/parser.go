@@ -171,6 +171,10 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 		// ( typeName <<data location>> <<identifier>>, ... )
 		// The typeName is required while data location and identifier are optional.
 
+		// @TODO: Param list parsing could be extracted to a separate
+		// function since it is used in other places as well e.g. fallback,
+		// receive functions, modifiers and return values.
+
 		// @TODO: Params can have other types than elementary types. For example:
 		// - user defined like Contract names and structs
 		// - function types

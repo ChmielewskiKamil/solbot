@@ -203,7 +203,6 @@ type FunctionType struct {
 
 // Param is not a type and not an expression, but we place it here since it is
 // closely related to types.
-// @TODO: Data location is missing
 type Param struct {
 	Name         *Identifier  // param name e.g. "x" or "recipient"
 	Type         Type         // e.g. ElementaryType, FunctionType etc.
