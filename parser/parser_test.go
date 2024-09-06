@@ -98,18 +98,15 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 	}
 
 	tests := []struct {
-		expectedType       interface{}
+		expectedTkType     token.TokenType
 		expectedIdentifier string
 	}{
-		{token, "owner"},
+		{token.ADDRESS, "owner"},
+		{token.UINT_256, "amount"},
 	}
 
 	for i, tt := range tests {
 		param := fd.Params.List[i]
-		if param.Name.Value != tt.expectedIdentifier {
-			t.Errorf("Expected parameter name %s, got %s", tt.expectedIdentifier, param.Name.Value)
-		}
-
 		if param.Type == nil {
 			t.Fatalf("Expected ElementaryType, got nil")
 		}
@@ -119,10 +116,11 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 			t.Fatalf("Expected ElementaryType, got %T", param.Type)
 		}
 
-		if et != tt.expectedType {
-			t.Errorf("Expected token type %T, got %T", tt.expectedType, et)
+		if et.Kind.Type != tt.expectedTkType {
+			t.Errorf("Expected token type %T, got %T", tt.expectedTkType, et.Kind.Type)
 		}
 
+		test_LiteralExpression(t, param.Name, tt.expectedIdentifier)
 	}
 
 	if fd.Body == nil {
@@ -356,6 +354,50 @@ func Test_ParseIfElseStatement(t *testing.T) {
 	}
 
 	test_Identifier(t, retStmt.Result, "b")
+}
+
+func Test_ParseParameterList(t *testing.T) {
+	tests := []struct {
+		src            string
+		expectedIdents []string
+		expectedTypes  []token.TokenType
+	}{
+		{`function test() {}`, []string{}, []token.TokenType{}},
+		{`function test(uint256 a) {}`, []string{"a"}, []token.TokenType{token.UINT_256}},
+		{`function test(uint256 a, bool b) {}`, []string{"a", "b"}, []token.TokenType{token.UINT_256, token.BOOL}},
+	}
+
+	for _, tt := range tests {
+		file := test_helper_parseSource(t, tt.src, false)
+
+		decl := file.Declarations[0]
+		fd, ok := decl.(*ast.FunctionDeclaration)
+		if !ok {
+			t.Fatalf("Expected FunctionDeclaration, got %T", decl)
+		}
+
+		if fd.Params == nil {
+			t.Fatalf("Expected ParamList, got nil")
+		}
+
+		if len(fd.Params.List) != len(tt.expectedIdents) {
+			t.Fatalf("Expected %d parameters, got %d", len(tt.expectedIdents), len(fd.Params.List))
+		}
+
+		for i, param := range fd.Params.List {
+			test_LiteralExpression(t, param.Name, tt.expectedIdents[i])
+
+			et, ok := param.Type.(*ast.ElementaryType)
+			if !ok {
+				t.Fatalf("Expected ElementaryType, got %T", param.Type)
+			}
+
+			if et.Kind.Type != tt.expectedTypes[i] {
+				t.Errorf("Expected token type %T, got %T", tt.expectedTypes[i], et.Kind.Type)
+			}
+		}
+
+	}
 }
 
 func testParseElementaryType(t *testing.T, decl ast.Declaration,
