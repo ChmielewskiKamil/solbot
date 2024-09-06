@@ -85,36 +85,45 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 		t.Fatalf("Expected FunctionDeclaration, got %T", decl)
 	}
 
-	if fd.Name.Name != "getBalance" {
-		t.Errorf("Expected function name getBalance, got %s", fd.Name.Name)
+	if fd.Name.Value != "getBalance" {
+		t.Errorf("Expected function name getBalance, got %s", fd.Name.Value)
 	}
 
 	if fd.Params == nil {
 		t.Fatalf("Expected ParamList, got nil")
 	}
 
-	// if len(fd.Type.Params.List) != 1 {
-	// 	t.Fatalf("Expected 1 parameter, got %d", len(fd.Type.Params.List))
-	// }
-	//
-	// param := fd.Type.Params.List[0]
-	// if param.Name.Name != "owner" {
-	// 	t.Errorf("Expected parameter name owner, got %s", param.Name.Name)
-	// }
+	if len(fd.Params.List) != 2 {
+		t.Fatalf("Expected 2 parameter, got %d", len(fd.Params.List))
+	}
 
-	// @TODO: We skip the type for now since it is an expression.
-	// if param.Type == nil {
-	// 	t.Fatalf("Expected ElementaryType, got nil")
-	// }
+	tests := []struct {
+		expectedType       interface{}
+		expectedIdentifier string
+	}{
+		{token, "owner"},
+	}
 
-	// et, ok := param.Type.(*ast.ElementaryType)
-	// if !ok {
-	// 	t.Fatalf("Expected ElementaryType, got %T", param.Type)
-	// }
-	//
-	// if et.Kind.Type != token.ADDRESS {
-	// 	t.Errorf("Expected token type ADDRESS, got %T", et.Kind.Type)
-	// }
+	for i, tt := range tests {
+		param := fd.Params.List[i]
+		if param.Name.Value != tt.expectedIdentifier {
+			t.Errorf("Expected parameter name %s, got %s", tt.expectedIdentifier, param.Name.Value)
+		}
+
+		if param.Type == nil {
+			t.Fatalf("Expected ElementaryType, got nil")
+		}
+
+		et, ok := param.Type.(*ast.ElementaryType)
+		if !ok {
+			t.Fatalf("Expected ElementaryType, got %T", param.Type)
+		}
+
+		if et != tt.expectedType {
+			t.Errorf("Expected token type %T, got %T", tt.expectedType, et)
+		}
+
+	}
 
 	if fd.Body == nil {
 		t.Fatalf("Expected BlockStatement, got nil")
@@ -143,8 +152,8 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 		t.Fatalf("Expected Identifier, got nil")
 	}
 
-	if vdStmt.Name.Name != "balance" {
-		t.Errorf("Expected balance, got %s", vdStmt.Name.Name)
+	if vdStmt.Name.Value != "balance" {
+		t.Errorf("Expected balance, got %s", vdStmt.Name.Value)
 	}
 
 	if vdStmt.DataLocation != ast.NO_DATA_LOCATION {
@@ -362,9 +371,9 @@ func testParseElementaryType(t *testing.T, decl ast.Declaration,
 		return false
 	}
 
-	if vd.Name.Name != expectedIdentifier {
+	if vd.Name.Value != expectedIdentifier {
 		t.Errorf("Expected identifier %s, got %s",
-			expectedIdentifier, vd.Name.Name)
+			expectedIdentifier, vd.Name.Value)
 		return false
 	}
 

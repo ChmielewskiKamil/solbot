@@ -53,8 +53,8 @@ func (c *Comment) End() token.Pos {
 
 type (
 	Identifier struct {
-		Pos  token.Pos // identifier position
-		Name string    // identifier name
+		Pos   token.Pos // identifier position
+		Value string    // identifier name
 	}
 
 	NumberLiteral struct {
@@ -86,7 +86,7 @@ type (
 
 func (x *Identifier) Start() token.Pos { return x.Pos }
 func (x *Identifier) End() token.Pos {
-	return token.Pos(int(x.Pos) + len(x.Name))
+	return token.Pos(int(x.Pos) + len(x.Value))
 }
 func (x *NumberLiteral) Start() token.Pos { return x.Pos }
 func (x *NumberLiteral) End() token.Pos {
@@ -120,7 +120,7 @@ func (*InfixExpression) expressionNode()  {}
 
 // String() implementations for Expressions
 
-func (x *Identifier) String() string    { return x.Name }
+func (x *Identifier) String() string    { return x.Value }
 func (x *NumberLiteral) String() string { return x.Kind.Literal }
 func (x *BooleanLiteral) String() string {
 	if x.Value {
@@ -489,7 +489,7 @@ func (d *StateVariableDeclaration) String() string {
 	return out.String()
 }
 
-// @TODO: Is debug view for function declarations necessary?
+// @TODO: Implement String() for FunctionDeclaration
 func (d *FunctionDeclaration) String() string { return "TO BE IMPLEMENTED" }
 
 /*~*~*~*~*~*~*~*~*~*~*~*~*~* Files ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/

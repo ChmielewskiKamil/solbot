@@ -36,14 +36,14 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 				}
 				// @TODO: Add immutable variables as well (but they can only be contract level)
 				if v.Mutability == ast.Constant {
-					if !isScreamingSnakeCase(v.Name.Name) {
+					if !isScreamingSnakeCase(v.Name.Value) {
 						finding.Locations = append(
 							finding.Locations, reporter.Location{
 								Position: token.Position{
 									Offset: v.Name.Pos,
 								},
 								// Save ident name for the report.
-								Context: v.Name.Name,
+								Context: v.Name.Value,
 							})
 						matches++
 					}

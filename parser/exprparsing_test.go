@@ -319,8 +319,8 @@ func test_Identifier(t *testing.T, exp ast.Expression, value string) {
 		t.Fatalf("Expected Identifier, got %T", exp)
 	}
 
-	if ident.Name != value {
-		t.Fatalf("Expected %s, got %s", value, ident.Name)
+	if ident.Value != value {
+		t.Fatalf("Expected %s, got %s", value, ident.Value)
 	}
 }
 
