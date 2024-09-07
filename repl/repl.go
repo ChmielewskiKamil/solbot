@@ -9,6 +9,15 @@ import (
 
 const PROMPT = ">> "
 const FN_BOILERPLATE = "function repl() public { "
+const ASCII_ART = `
+|￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣|
+|   You fucked up, try again...    |
+|＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿|
+              \ (•◡•) / 
+               \     / 
+                 ————
+                 |   |
+                 |_  |_`
 
 // @TODO: After introducing the file handle, the REPL does not work.
 func Start(in io.Reader, out io.Writer) {
@@ -30,6 +39,8 @@ func Start(in io.Reader, out io.Writer) {
 
 		file := p.ParseFile()
 		if len(p.Errors()) > 0 {
+			io.WriteString(out, ASCII_ART)
+			io.WriteString(out, "\n")
 			for _, err := range p.Errors() {
 				io.WriteString(out, "\t"+err.Msg+"\n")
 			}
