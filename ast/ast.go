@@ -80,6 +80,12 @@ type (
 		Operator token.Token // operator token
 		Right    Expression  // right operand
 	}
+
+	CallExpression struct {
+		Pos      token.Pos    // Position of the identifier being called
+		Function Expression   // Function being called
+		Args     []Expression // Comma-separated list of arguments
+	}
 )
 
 // Start() and End() implementations for Expression type Nodes
@@ -107,6 +113,13 @@ func (x *InfixExpression) Start() token.Pos { return x.Pos }
 func (x *InfixExpression) End() token.Pos {
 	return x.Right.End()
 }
+func (x *CallExpression) Start() token.Pos { return x.Pos }
+func (x *CallExpression) End() token.Pos {
+	if len(x.Args) > 0 {
+		return x.Args[len(x.Args)-1].End() + 1 // @TODO: Shouldnt +2?
+	}
+	return x.Pos + 2 // length of "()"
+}
 
 // expressionNode() implementations to ensure that only expressions can be
 // assigned to an Expression. This is useful if by mistake we try to use
@@ -117,6 +130,7 @@ func (*NumberLiteral) expressionNode()    {}
 func (*BooleanLiteral) expressionNode()   {}
 func (*PrefixExpression) expressionNode() {}
 func (*InfixExpression) expressionNode()  {}
+func (*CallExpression) expressionNode()   {}
 
 // String() implementations for Expressions
 
@@ -144,6 +158,19 @@ func (x *InfixExpression) String() string {
 	out.WriteString(x.Operator.Literal)
 	out.WriteString(" ")
 	out.WriteString(x.Right.String())
+	out.WriteString(")")
+	return out.String()
+}
+func (x *CallExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString(x.Function.String())
+	out.WriteString("(")
+	for i, arg := range x.Args {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(arg.String())
+	}
 	out.WriteString(")")
 	return out.String()
 }

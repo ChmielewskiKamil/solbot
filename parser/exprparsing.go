@@ -114,6 +114,7 @@ var precedences = map[token.TokenType]int{
 	// 1.
 	// @TODO: The function calls, array subscripting, member access etc.
 	// is harder to implement.
+	token.LPAREN: HIGHEST,
 }
 
 func (p *Parser) peekPrecedence() int {
@@ -306,4 +307,50 @@ func (p *Parser) parseElementaryType() ast.Expression {
 	}
 
 	return et
+}
+
+// parseCallExpression is called when LPAREN is encountered in an
+// infix position. That's why we have access to the function ident
+// and we can pass it as an argument to the function.
+func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
+	if p.trace {
+		defer un(trace("parseCallExpression"))
+	}
+
+	callExp := &ast.CallExpression{
+		Pos:      fn.Start(), // TODO: fn is not passed as ref, will this work?
+		Function: fn,
+	}
+
+	callExp.Args = p.parseCallArguments()
+	return callExp
+}
+
+func (p *Parser) parseCallArguments() []ast.Expression {
+	if p.trace {
+		defer un(trace("parseCallArguments"))
+	}
+
+	args := []ast.Expression{}
+	if p.peekTkn.Type == token.RPAREN {
+		p.nextToken()
+		return args
+	}
+
+	// Move to the first arg.
+	p.nextToken()
+	args = append(args, p.parseExpression(LOWEST))
+
+	for p.peekTkn.Type == token.COMMA {
+		p.nextToken() // Sitting on comma
+		p.nextToken() // Move to the next arg
+
+		args = append(args, p.parseExpression(LOWEST))
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return args
 }

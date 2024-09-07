@@ -274,6 +274,40 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 	}
 }
 
+func Test_ParseCallExpression(t *testing.T) {
+	src := `function test() public {
+        foo(a + b, 3 * 5, bar);
+    }`
+
+	file := test_helper_parseSource(t, src, false)
+
+	fnBody := test_helper_parseFnBody(t, file)
+
+	if len(fnBody.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(fnBody.Statements))
+	}
+
+	exprStmt, ok := fnBody.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Expected ExpressionStatement, got %T", fnBody.Statements[0])
+	}
+
+	callExpr, ok := exprStmt.Expression.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("Expected CallExpression, got %T", exprStmt.Expression)
+	}
+
+	test_Identifier(t, callExpr.Function, "foo")
+
+	if len(callExpr.Args) != 3 {
+		t.Fatalf("Expected 3 arguments, got %d", len(callExpr.Args))
+	}
+
+	test_InfixExpression(t, callExpr.Args[0], "a", "+", "b")
+	test_InfixExpression(t, callExpr.Args[1], big.NewInt(3), "*", big.NewInt(5))
+	test_LiteralExpression(t, callExpr.Args[2], "bar")
+}
+
 /*~*~*~*~*~*~*~*~*~*~*~*~* Helper Functions ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 func test_helper_parseSource(t *testing.T, src string, tracing bool) *ast.File {

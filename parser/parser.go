@@ -87,6 +87,8 @@ func (p *Parser) Init(file *token.File) {
 	p.registerInfix(token.ASSIGN_MUL, p.parseInfixExpression)
 	p.registerInfix(token.ASSIGN_DIV, p.parseInfixExpression)
 	p.registerInfix(token.ASSIGN_MOD, p.parseInfixExpression)
+
+	p.registerInfix(token.LPAREN, p.parseCallExpression)
 }
 
 func registerPrefixElementaryTypes(p *Parser) {
