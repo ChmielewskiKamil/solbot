@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"math/big"
 	"solbot/ast"
 	"solbot/token"
 	"testing"
@@ -33,20 +34,21 @@ func Test_ParseStateVariableDeclaration(t *testing.T) {
 		expectedMutability ast.Mutability
 		expectedVisibility ast.Visibility
 		expectedIdentifier string
+		expectedValue      interface{}
 	}{
-		{token.ADDRESS, 0, ast.Internal, "owner"},
-		{token.UINT_256, 0, ast.Internal, "balance"},
-		{token.BOOL, 0, ast.Internal, "isOwner"},
-		{token.BOOL, 4, ast.Internal, "IS_OWNER"},
-		{token.BOOL, 4, ast.Internal, "isOwner"},
-		{token.BOOL, 4, ast.Internal, "is_owner"},
-		{token.UINT_256, 0, ast.Internal, "balance"},
-		{token.ADDRESS, 4, ast.Internal, "router"},
-		{token.BOOL, 0, ast.Internal, "isOwner"},
-		{token.UINT_16, 4, ast.Internal, "ONE_hundred_IS_100"},
-		{token.UINT_256, 4, ast.Internal, "DENOMINATOR"},
-		{token.UINT_256, 4, ast.Private, "Is_This_Snake_Case"},
-		{token.UINT_256, 6, ast.Internal, "blob"},
+		{token.ADDRESS, 0, ast.Internal, "owner", big.NewInt(0x12345)},
+		{token.UINT_256, 0, ast.Internal, "balance", big.NewInt(100)},
+		{token.BOOL, 0, ast.Internal, "isOwner", true},
+		{token.BOOL, 4, ast.Internal, "IS_OWNER", true},
+		{token.BOOL, 4, ast.Internal, "isOwner", false},
+		{token.BOOL, 4, ast.Internal, "is_owner", false},
+		{token.UINT_256, 0, ast.Internal, "balance", big.NewInt(100)},
+		{token.ADDRESS, 4, ast.Internal, "router", big.NewInt(0x1337)},
+		{token.BOOL, 0, ast.Internal, "isOwner", true},
+		{token.UINT_16, 4, ast.Internal, "ONE_hundred_IS_100", big.NewInt(100)},
+		{token.UINT_256, 4, ast.Internal, "DENOMINATOR", big.NewInt(1_000_000)},
+		{token.UINT_256, 4, ast.Private, "Is_This_Snake_Case", big.NewInt(0)},
+		{token.UINT_256, 6, ast.Internal, "blob", big.NewInt(0)},
 	}
 
 	for i, tt := range tests {
@@ -57,7 +59,8 @@ func Test_ParseStateVariableDeclaration(t *testing.T) {
 			tt.expectedType,
 			tt.expectedMutability,
 			tt.expectedVisibility,
-			tt.expectedIdentifier) {
+			tt.expectedIdentifier,
+			tt.expectedValue) {
 			return
 		}
 	}
@@ -191,14 +194,29 @@ func Test_ParseReturnStatement(t *testing.T) {
 		t.Fatalf("Expected %d statements, got %d", numReturns, len(fnBody.Statements))
 	}
 
-	for _, stmt := range fnBody.Statements {
+	tests := []struct {
+		expectedValue interface{}
+	}{
+		{big.NewInt(10)},
+		{big.NewInt(0x12345)},
+		{true},
+		{"staked"},
+	}
+
+	for i, tt := range tests {
+		stmt := fnBody.Statements[i]
 		retStmt, ok := stmt.(*ast.ReturnStatement)
 		if !ok {
 			t.Fatalf("Expected ReturnStatement, got %T", stmt)
 		}
 
-		// @TODO: Test the expression inside the return statement.
-		_ = retStmt
+		if retStmt.Result == nil {
+			t.Fatalf("Expected return stmt to return something, got nil")
+		}
+
+		// @TODO: return address(0) is not tested because it is an elementary type.
+
+		test_LiteralExpression(t, retStmt.Result, tt.expectedValue)
 	}
 }
 
@@ -402,7 +420,8 @@ func Test_ParseParameterList(t *testing.T) {
 
 func testParseElementaryType(t *testing.T, decl ast.Declaration,
 	expectedType token.TokenType, expectedMutability ast.Mutability,
-	expectedVisibility ast.Visibility, expectedIdentifier string) bool {
+	expectedVisibility ast.Visibility, expectedIdentifier string,
+	expectedValue interface{}) bool {
 	if decl == nil {
 		t.Fatalf("Expected Declaration, got nil")
 	}
@@ -440,6 +459,12 @@ func testParseElementaryType(t *testing.T, decl ast.Declaration,
 		t.Errorf("Expected ast mutability token type %v, got %v", expectedMutability, vd.Mutability)
 		return false
 	}
+
+	if vd.Value == nil {
+		t.Fatalf("Expected value, got nil")
+	}
+
+	test_LiteralExpression(t, vd.Value, expectedValue)
 
 	return true
 }

@@ -306,11 +306,8 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 			// @TODO: Handle override. It requires changes in the AST.
 			p.nextToken()
 		case tkType == token.ASSIGN:
-			// @TODO: The next token is an expression, which we want to skip
-			// for now.
-			for !p.currTknIs(token.SEMICOLON) {
-				p.nextToken()
-			}
+			p.nextToken()
+			decl.Value = p.parseExpression(LOWEST)
 		case tkType == token.SEMICOLON:
 			return decl
 		}
