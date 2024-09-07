@@ -276,7 +276,7 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	return exp
 }
 
-func (p *Parser) parseElementaryType() ast.Expression {
+func (p *Parser) parseElementaryTypeExpression() ast.Expression {
 	if p.trace {
 		defer un(trace("parseElementaryType"))
 	}

@@ -263,8 +263,10 @@ func (*ElementaryType) typeNode() {}
 func (x *ElementaryType) String() string {
 	var out bytes.Buffer
 	out.WriteString(x.Kind.Literal)
-	out.WriteString(" ")
-	out.WriteString(x.Value.String())
+	if x.Value != nil {
+		out.WriteString(" ")
+		out.WriteString(x.Value.String())
+	}
 	return out.String()
 }
 
@@ -517,7 +519,16 @@ func (d *StateVariableDeclaration) String() string {
 }
 
 // @TODO: Implement String() for FunctionDeclaration
-func (d *FunctionDeclaration) String() string { return "TO BE IMPLEMENTED" }
+func (d *FunctionDeclaration) String() string {
+	var out bytes.Buffer
+	if d.Body != nil {
+		for _, stmt := range d.Body.Statements {
+			out.WriteString(stmt.String())
+		}
+	}
+
+	return out.String()
+}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~*~* Files ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 

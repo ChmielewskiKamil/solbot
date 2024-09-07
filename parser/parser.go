@@ -93,7 +93,7 @@ func (p *Parser) Init(file *token.File) {
 
 func registerPrefixElementaryTypes(p *Parser) {
 	for _, tkType := range token.GetElementaryTypes() {
-		p.registerPrefix(tkType, p.parseElementaryType)
+		p.registerPrefix(tkType, p.parseElementaryTypeExpression)
 	}
 }
 
@@ -275,7 +275,7 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 	for {
 		switch tkType := p.currTkn.Type; {
 		default:
-			p.nextToken()
+			p.errors.Add(p.currTkn.Pos, "Unexpected token: "+p.currTkn.Literal)
 		case tkType == token.IDENTIFIER:
 			decl.Name = &ast.Identifier{
 				Pos:   p.currTkn.Pos,
@@ -308,6 +308,7 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 		case tkType == token.ASSIGN:
 			p.nextToken()
 			decl.Value = p.parseExpression(LOWEST)
+			p.nextToken()
 		case tkType == token.SEMICOLON:
 			return decl
 		}
@@ -406,12 +407,17 @@ func (p *Parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 	if p.trace {
 		defer un(trace("parseVariableDeclarationStatement"))
 	}
+
 	vdStmt := &ast.VariableDeclarationStatement{}
 	vdStmt.DataLocation = ast.NO_DATA_LOCATION // assign default value
 
 	vdStmt.Type = &ast.ElementaryType{
-		Pos:   p.currTkn.Pos,
-		Kind:  p.currTkn,
+		Pos: p.currTkn.Pos,
+		Kind: token.Token{
+			Type:    p.currTkn.Type,
+			Literal: p.currTkn.Literal,
+			Pos:     p.currTkn.Pos,
+		},
 		Value: nil,
 	}
 
@@ -420,7 +426,8 @@ func (p *Parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 	for {
 		switch tkType := p.currTkn.Type; {
 		default:
-			p.nextToken()
+			p.errors.Add(p.currTkn.Pos, "Unexpected token: "+p.currTkn.Literal)
+			return nil
 		case tkType == token.IDENTIFIER:
 			vdStmt.Name = &ast.Identifier{
 				Pos:   p.currTkn.Pos,
@@ -436,6 +443,10 @@ func (p *Parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 			case token.CALLDATA:
 				vdStmt.DataLocation = ast.Calldata
 			}
+			p.nextToken()
+		case tkType == token.ASSIGN:
+			p.nextToken()
+			vdStmt.Value = p.parseExpression(LOWEST)
 			p.nextToken()
 		case tkType == token.SEMICOLON:
 			return vdStmt
@@ -555,4 +566,8 @@ func (p *Parser) registerPrefix(t token.TokenType, fn prefixParseFn) {
 
 func (p *Parser) registerInfix(t token.TokenType, fn infixParseFn) {
 	p.infixParseFns[t] = fn
+}
+
+func (p *Parser) Errors() ErrorList {
+	return p.errors
 }
