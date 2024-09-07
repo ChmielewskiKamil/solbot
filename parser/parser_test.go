@@ -72,7 +72,7 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 	src := `
     function getBalance(address owner, uint256 amount) public view returns (uint256) {
         uint256 balance = 10;
-        return balance;
+        return tester;
     }
     `
 
@@ -162,10 +162,16 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 	}
 
 	stmt = fd.Body.Statements[1]
-	_, ok = stmt.(*ast.ReturnStatement)
+	rtStmt, ok := stmt.(*ast.ReturnStatement)
 	if !ok {
 		t.Fatalf("Expected ReturnStatement, got %T", stmt)
 	}
+
+	if rtStmt.Result == nil {
+		t.Fatalf("Expected return stmt to return something, got nil")
+	}
+
+	test_Identifier(t, rtStmt.Result, "tester")
 }
 
 // Since the return statement is a "statement", and there are no free-floating
