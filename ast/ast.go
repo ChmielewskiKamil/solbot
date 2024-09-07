@@ -86,6 +86,14 @@ type (
 		Function Expression   // Function being called
 		Args     []Expression // Comma-separated list of arguments
 	}
+
+	ElementaryTypeExpression struct {
+		Pos  token.Pos   // position of the type keyword e.g. `a` in "address"
+		Kind token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
+		// Used in expressions e.g. `return uint256(a + b)`. Then it
+		// contains the expression a + b
+		Value Expression
+	}
 )
 
 // Start() and End() implementations for Expression type Nodes
@@ -120,17 +128,25 @@ func (x *CallExpression) End() token.Pos {
 	}
 	return x.Pos + 2 // length of "()"
 }
+func (x *ElementaryTypeExpression) Start() token.Pos { return x.Pos }
+func (x *ElementaryTypeExpression) End() token.Pos {
+	if x.Value != nil {
+		return x.Value.End()
+	}
+	return x.Pos + token.Pos(len(x.Kind.Literal))
+}
 
 // expressionNode() implementations to ensure that only expressions can be
 // assigned to an Expression. This is useful if by mistake we try to use
 // a Statement in a place where an Expression should be used instead.
 
-func (*Identifier) expressionNode()       {}
-func (*NumberLiteral) expressionNode()    {}
-func (*BooleanLiteral) expressionNode()   {}
-func (*PrefixExpression) expressionNode() {}
-func (*InfixExpression) expressionNode()  {}
-func (*CallExpression) expressionNode()   {}
+func (*Identifier) expressionNode()               {}
+func (*NumberLiteral) expressionNode()            {}
+func (*BooleanLiteral) expressionNode()           {}
+func (*PrefixExpression) expressionNode()         {}
+func (*InfixExpression) expressionNode()          {}
+func (*CallExpression) expressionNode()           {}
+func (*ElementaryTypeExpression) expressionNode() {}
 
 // String() implementations for Expressions
 
@@ -174,6 +190,16 @@ func (x *CallExpression) String() string {
 	out.WriteString(")")
 	return out.String()
 }
+func (x *ElementaryTypeExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString(x.Kind.Literal)
+	if x.Value != nil {
+		out.WriteString("(")
+		out.WriteString(x.Value.String())
+		out.WriteString(")")
+	}
+	return out.String()
+}
 
 /*~*~*~*~*~*~*~*~*~*~*~*~*~* Types ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*/
 // Type nodes are constrains on expressions. They define the kinds of values
@@ -189,16 +215,7 @@ func (x *CallExpression) String() string {
 type ElementaryType struct {
 	Pos  token.Pos   // position of the type keyword e.g. `a` in "address"
 	Kind token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
-	// nil when used as declaration e.g. `address a;`
-	// BUT also used in expressions e.g. `return uint256(a + b)`. Then it
-	// contains the expression a + b
-	Value Expression
 }
-
-// WARNING ElementaryType implements both Type and Expression interfaces.
-// It can be used as a type e.g. in variable declaration `uint256 x;` OR
-// as an expression in return statement `return uint256(a + b);`
-func (x *ElementaryType) expressionNode() {}
 
 // FunctionType represents a Solidity's function type. NOT TO BE CONFUSED WITH
 // FUNCTION DECLARATION. FunctionType is a weird thing that no one uses (lol) e.g.
@@ -263,10 +280,6 @@ func (*ElementaryType) typeNode() {}
 func (x *ElementaryType) String() string {
 	var out bytes.Buffer
 	out.WriteString(x.Kind.Literal)
-	if x.Value != nil {
-		out.WriteString(" ")
-		out.WriteString(x.Value.String())
-	}
 	return out.String()
 }
 

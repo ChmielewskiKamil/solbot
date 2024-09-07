@@ -281,7 +281,7 @@ func (p *Parser) parseElementaryTypeExpression() ast.Expression {
 		defer un(trace("parseElementaryType"))
 	}
 
-	et := &ast.ElementaryType{
+	et := &ast.ElementaryTypeExpression{
 		Pos: p.currTkn.Pos,
 		Kind: token.Token{
 			Type:    p.currTkn.Type,

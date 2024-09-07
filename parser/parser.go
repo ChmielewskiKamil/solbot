@@ -182,7 +182,6 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 		// - function types
 		// - arrays of other types
 		// - mappings (?)
-
 		if !token.IsElementaryType(p.peekTkn.Type) {
 			p.errors.Add(p.peekTkn.Pos, "Fn param: expected elementary type, got: "+p.peekTkn.Literal)
 			return nil
@@ -190,9 +189,12 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 		p.nextToken() // Move to the type name.
 
 		prm.Type = &ast.ElementaryType{
-			Pos:   p.currTkn.Pos,
-			Kind:  p.currTkn,
-			Value: nil, // Here it's a type, not an expression.
+			Pos: p.currTkn.Pos,
+			Kind: token.Token{
+				Type:    p.currTkn.Type,
+				Literal: p.currTkn.Literal,
+				Pos:     p.currTkn.Pos,
+			},
 		}
 
 		if token.IsDataLocation(p.peekTkn.Type) {
@@ -259,9 +261,12 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 
 	// We are sitting on the variable type e.g. address or uint256
 	decl.Type = &ast.ElementaryType{
-		Pos:   p.currTkn.Pos,
-		Kind:  p.currTkn,
-		Value: nil,
+		Pos: p.currTkn.Pos,
+		Kind: token.Token{
+			Type:    p.currTkn.Type,
+			Literal: p.currTkn.Literal,
+			Pos:     p.currTkn.Pos,
+		},
 	}
 
 	p.nextToken()
@@ -418,40 +423,46 @@ func (p *Parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 			Literal: p.currTkn.Literal,
 			Pos:     p.currTkn.Pos,
 		},
-		Value: nil,
 	}
 
-	p.nextToken()
+	if !p.expectPeek(token.IDENTIFIER) {
+		return nil
+	}
 
-	for {
-		switch tkType := p.currTkn.Type; {
-		default:
-			p.errors.Add(p.currTkn.Pos, "Unexpected token: "+p.currTkn.Literal)
-			return nil
-		case tkType == token.IDENTIFIER:
-			vdStmt.Name = &ast.Identifier{
-				Pos:   p.currTkn.Pos,
-				Value: p.currTkn.Literal,
-			}
-			p.nextToken()
-		case token.IsDataLocation(tkType):
-			switch tkType {
-			case token.STORAGE:
-				vdStmt.DataLocation = ast.Storage
-			case token.MEMORY:
-				vdStmt.DataLocation = ast.Memory
-			case token.CALLDATA:
-				vdStmt.DataLocation = ast.Calldata
-			}
-			p.nextToken()
-		case tkType == token.ASSIGN:
-			p.nextToken()
-			vdStmt.Value = p.parseExpression(LOWEST)
-			p.nextToken()
-		case tkType == token.SEMICOLON:
-			return vdStmt
+	vdStmt.Name = &ast.Identifier{
+		Pos:   p.currTkn.Pos,
+		Value: p.currTkn.Literal,
+	}
+
+	if token.IsDataLocation(p.peekTkn.Type) {
+		p.nextToken()
+		switch p.currTkn.Type {
+		case token.STORAGE:
+			vdStmt.DataLocation = ast.Storage
+		case token.MEMORY:
+			vdStmt.DataLocation = ast.Memory
+		case token.CALLDATA:
+			vdStmt.DataLocation = ast.Calldata
 		}
 	}
+
+	if p.peekTknIs(token.SEMICOLON) {
+		p.nextToken()
+		return vdStmt
+	}
+
+	if !p.expectPeek(token.ASSIGN) {
+		return nil
+	}
+
+	p.nextToken() // Move past the ASSIGN token
+	vdStmt.Value = p.parseExpression(LOWEST)
+
+	if p.peekTknIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return vdStmt
 }
 
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
