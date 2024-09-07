@@ -226,13 +226,16 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
         3 < 8 == true;
         3 * (8 + 2) * 2;
         10 / (1 + 1);
+        a + foo(b + c);
+        foo(a * b, c / d + e)
+        foo(a * b) + bar(c / d, e);
     }`
 
 	file := test_helper_parseSource(t, src, false)
 
 	fnBody := test_helper_parseFnBody(t, file)
 
-	if len(fnBody.Statements) != 20 {
+	if len(fnBody.Statements) != 23 {
 		t.Fatalf("Expected 20 statements, got %d", len(fnBody.Statements))
 	}
 
@@ -259,6 +262,9 @@ func Test_ParseOperatorPrecedence(t *testing.T) {
 		{"((3 < 8) == true)"},
 		{"((3 * (8 + 2)) * 2)"},
 		{"(10 / (1 + 1))"},
+		{"(a + foo((b + c)))"},
+		{"foo((a * b), ((c / d) + e))"},
+		{"(foo((a * b)) + bar((c / d), e))"},
 	}
 
 	for i, tt := range tests {
