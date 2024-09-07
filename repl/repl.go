@@ -2,16 +2,16 @@ package repl
 
 import (
 	"bufio"
-	"fmt"
 	"io"
-	"solbot/lexer"
+	"solbot/parser"
 	"solbot/token"
 )
 
 const PROMPT = ">> "
+const FN_BOILERPLATE = "function repl() public { "
 
 // @TODO: After introducing the file handle, the REPL does not work.
-func Start(in io.Reader) {
+func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
 
 	for {
@@ -22,15 +22,19 @@ func Start(in io.Reader) {
 			return
 		}
 
-		// line := scanner.Text()
+		line := scanner.Text()
+		src := FN_BOILERPLATE + line + " }"
+		p := parser.Parser{}
+		handle := token.NewFile("repl.sol", src)
+		p.Init(handle)
 
-		l := lexer.Lex(nil) // @TODO: Figure out how to use the file handle in REPL
+		file := p.ParseFile()
+		// if len(p.Errors()) > 0 {
+		// 	p.Errors().Print()
+		// 	continue
+		// }
 
-		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			// % is the indicator of the start of a format specifier
-			// + is used to present struct field names
-			// v specifies the default format: show values
-			fmt.Printf("%+v\n", tok)
-		}
+		io.WriteString(out, file.String())
+		io.WriteString(out, "\n")
 	}
 }

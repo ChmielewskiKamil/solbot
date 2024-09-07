@@ -12,6 +12,7 @@ import (
 	"solbot/lsp/analysis"
 	"solbot/lsp/rpc"
 	"solbot/parser"
+	"solbot/repl"
 	"solbot/reporter"
 	"solbot/token"
 )
@@ -29,6 +30,8 @@ func main() {
 			log.Fatalf("File path is required in analyzer mode.\nUse --file path/to/file.sol to analyze a file.")
 		}
 		startAnalyzer(*filePath)
+	case "repl":
+		startRepl()
 	default:
 		log.Fatalf("Unknown mode: `%s` Available modes: `lsp` or `analyzer`", *mode)
 		os.Exit(1)
@@ -78,6 +81,11 @@ func startAnalyzer(filePath string) {
 	}
 
 	reporter.GenerateReport(findings, "solbot.md")
+}
+
+func startRepl() {
+	println("Welcome to Solbot's repl mode")
+	repl.Start(os.Stdin, os.Stdout)
 }
 
 func handleMessage(logger *log.Logger, writer io.Writer, state analysis.State, method string, content []byte) {
