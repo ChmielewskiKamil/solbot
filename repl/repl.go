@@ -29,10 +29,12 @@ func Start(in io.Reader, out io.Writer) {
 		p.Init(handle)
 
 		file := p.ParseFile()
-		// if len(p.Errors()) > 0 {
-		// 	p.Errors().Print()
-		// 	continue
-		// }
+		if len(p.Errors()) > 0 {
+			for _, err := range p.Errors() {
+				io.WriteString(out, "\t"+err.Msg+"\n")
+			}
+			continue
+		}
 
 		io.WriteString(out, file.String())
 		io.WriteString(out, "\n")
