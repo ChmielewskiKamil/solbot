@@ -173,11 +173,11 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 		// ( typeName <<data location>> <<identifier>>, ... )
 		// The typeName is required while data location and identifier are optional.
 
-		// @TODO: Param list parsing could be extracted to a separate
+		// TODO: Param list parsing could be extracted to a separate
 		// function since it is used in other places as well e.g. fallback,
 		// receive functions, modifiers and return values.
 
-		// @TODO: Params can have other types than elementary types. For example:
+		// TODO: Params can have other types than elementary types. For example:
 		// - user defined like Contract names and structs
 		// - function types
 		// - arrays of other types
@@ -227,11 +227,11 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 
 	// 4. Visibility, State Mutability, Modifier Invocation, Override, Virtual
 
-	// @TODO: Parse stuff after params before body block.
+	// TODO: Parse stuff after params before body block.
 
 	// 5. Returns ( Param List )
 
-	// @TODO: Parse returned results.
+	// TODO: Parse returned results.
 
 	// 6. Body block
 	for !p.currTknIs(token.LBRACE) {
@@ -303,7 +303,7 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 			}
 			p.nextToken()
 		case tkType == token.OVERRIDE:
-			// @TODO: Handle override. It requires changes in the AST.
+			// TODO: Handle override. It requires changes in the AST.
 			p.nextToken()
 		case tkType == token.ASSIGN:
 			p.nextToken()
@@ -319,8 +319,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	default:
 		return p.parseExpressionStatement()
 	case token.IsElementaryType(tkType):
-		// @TODO: Implement other types that variables can have.
-		// @TODO: return address(0) and similar should be handled here
+		// TODO: Implement other types that variables can have.
+		// TODO: return address(0) and similar should be handled here
 		return p.parseVariableDeclarationStatement()
 	case tkType == token.LBRACE:
 		return p.parseBlockStatement()
