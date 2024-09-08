@@ -3,6 +3,7 @@ package repl
 import (
 	"bufio"
 	"io"
+	"solbot/evaluator"
 	"solbot/parser"
 	"solbot/token"
 )
@@ -19,7 +20,6 @@ const ASCII_ART = `
                  |   |
                  |_  |_`
 
-// @TODO: After introducing the file handle, the REPL does not work.
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
 
@@ -47,7 +47,10 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		io.WriteString(out, file.String())
-		io.WriteString(out, "\n")
+		evaluated := evaluator.Eval(file)
+		if evaluated != nil {
+			io.WriteString(out, evaluated.Inspect())
+			io.WriteString(out, "\n")
+		}
 	}
 }
