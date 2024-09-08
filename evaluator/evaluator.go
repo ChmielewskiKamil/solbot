@@ -28,7 +28,10 @@ func Eval(node ast.Node) object.Object {
 	// Expressions
 
 	case *ast.NumberLiteral:
+		// TODO: This should probably distinguish between hex and decimal.
 		return &object.Integer{Value: node.Value}
+	case *ast.BooleanLiteral:
+		return &object.Boolean{Value: node.Value}
 	}
 
 	return nil
