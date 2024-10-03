@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"math/big"
 	"solbot/ast"
 	"solbot/object"
 	"solbot/token"
@@ -17,6 +18,8 @@ var (
 
 func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
+	default:
+		return retEvalErrorObj(fmt.Sprintf("Unhandled ast node: %T", node))
 	// File
 
 	case *ast.File:
@@ -46,8 +49,6 @@ func Eval(node ast.Node) object.Object {
 		right := Eval(node.Right)
 		return evalPrefixExpression(node.Operator, right)
 	}
-
-	return nil
 }
 
 func evalDeclarations(decls []ast.Declaration) object.Object {
@@ -84,11 +85,13 @@ func evalPrefixExpression(operator token.Token, right object.Object) object.Obje
 		return retEvalErrorObj(
 			fmt.Sprintf("Unknown prefix operator: %s", operator.String()))
 	case token.NOT:
-		return evalNotOperatorExpression(right)
+		return evalNotPrefixOperatorExpression(right)
+	case token.SUB:
+		return evalSubPrefixOperatorExpression(right)
 	}
 }
 
-func evalNotOperatorExpression(right object.Object) *object.Boolean {
+func evalNotPrefixOperatorExpression(right object.Object) object.Object {
 	switch right {
 	default:
 		return FALSE
@@ -99,6 +102,21 @@ func evalNotOperatorExpression(right object.Object) *object.Boolean {
 	}
 }
 
+func evalSubPrefixOperatorExpression(right object.Object) object.Object {
+	if right.Type() != object.INTEGER_OBJ {
+		return retEvalErrorObj(
+			fmt.Sprintf(
+				"The '-' prefix operator can only be used with integers. Got: %T instead.",
+				right))
+	}
+
+	value := right.(*object.Integer).Value
+	return &object.Integer{Value: *new(big.Int).Neg(&value)}
+}
+
+// retEvalErrorObj is an error handling helper. Since evaluation functions
+// expect some kind of object to be returned and we don't have nil, we
+// just return EvalError object. The caller can decide what to do with it.
 func retEvalErrorObj(message string) *object.EvalError {
 	return &object.EvalError{Message: message}
 }

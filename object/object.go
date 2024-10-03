@@ -20,6 +20,8 @@ type Object interface {
 }
 
 type (
+	// Special object used to handle errors in object evaluation phase. It is
+	// not connected to the Solidity language.
 	EvalError struct {
 		Message string
 	}

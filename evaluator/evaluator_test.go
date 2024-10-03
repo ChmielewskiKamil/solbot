@@ -15,6 +15,8 @@ func Test_EvalIntegerExpression(t *testing.T) {
 	}{
 		{"1", big.NewInt(1)},
 		{"50", big.NewInt(50)},
+		{"-1", big.NewInt(-1)},
+		{"-50", big.NewInt(-50)},
 	}
 
 	for _, tt := range tests {
