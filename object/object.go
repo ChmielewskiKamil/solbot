@@ -9,6 +9,7 @@ import (
 type ObjectType string
 
 const (
+	EVAL_ERROR  = "EVAL_ERROR"
 	INTEGER_OBJ = "INTEGER"
 	BOOLEAN_OBJ = "BOOLEAN"
 )
@@ -18,16 +19,27 @@ type Object interface {
 	Inspect() string
 }
 
-type Integer struct {
-	Value big.Int
+type (
+	EvalError struct {
+		Message string
+	}
+
+	Integer struct {
+		Value big.Int
+	}
+
+	Boolean struct {
+		Value bool
+	}
+)
+
+func (o *EvalError) Inspect() string {
+	return fmt.Sprintf("Evaluation error: %s", o.Message)
 }
+func (o *EvalError) Type() ObjectType { return EVAL_ERROR }
 
-func (i *Integer) Inspect() string  { return i.Value.String() }
-func (i *Integer) Type() ObjectType { return INTEGER_OBJ }
+func (o *Integer) Inspect() string  { return o.Value.String() }
+func (o *Integer) Type() ObjectType { return INTEGER_OBJ }
 
-type Boolean struct {
-	Value bool
-}
-
-func (b *Boolean) Inspect() string  { return fmt.Sprintf("%t", b.Value) }
-func (b *Boolean) Type() ObjectType { return BOOLEAN_OBJ }
+func (o *Boolean) Inspect() string  { return fmt.Sprintf("%t", o.Value) }
+func (o *Boolean) Type() ObjectType { return BOOLEAN_OBJ }

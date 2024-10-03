@@ -38,6 +38,24 @@ func Test_EvalBooleanExpression(t *testing.T) {
 	}
 }
 
+// token.NOT is ! (bang)
+func Test_NotOperator(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"!true", false},
+		{"!false", true},
+		{"!!true", true},
+		{"!!false", false},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input, true)
+		testBooleanObject(t, evaluated, tt.expected)
+	}
+}
+
 /*~*~*~*~*~*~*~*~*~*~*~*~* Helper Functions ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 func testEval(input string, boilerplate bool) object.Object {
