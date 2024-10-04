@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func Test_EvalIntegerExpression(t *testing.T) {
+func Test_Eval_IntegerExpression(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected *big.Int
@@ -29,7 +29,7 @@ func Test_EvalIntegerExpression(t *testing.T) {
 	}
 }
 
-func Test_EvalBooleanExpression(t *testing.T) {
+func Test_Eval_BooleanExpression(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected bool
@@ -42,16 +42,16 @@ func Test_EvalBooleanExpression(t *testing.T) {
 		{"2 < 1", false},
 		{"3 == 3", true},
 		{"3 == 5", false},
-		{"3 != 4", true},
+		{"4 != 4", false},
 		{"5 != 5", false},
 		{"true == true", true},
 		{"false != true", true},
 		{"true != true", false},
 		{"true == false", false},
-		{"(2 > 5) == false", false},
-		{"(5 > 2) == true", false},
-		{"false != (5 > 2)", false},
-		{"true != (2 > 5)", false},
+		{"(2 > 5) == false", true},
+		{"(5 > 2) == true", true},
+		{"false != (5 > 2)", true},
+		{"true != (2 > 5)", true},
 	}
 
 	for _, tt := range tests {
@@ -61,7 +61,7 @@ func Test_EvalBooleanExpression(t *testing.T) {
 }
 
 // token.NOT is ! (bang)
-func Test_NotOperator(t *testing.T) {
+func Test_Eval_NotOperator(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected bool
@@ -75,6 +75,32 @@ func Test_NotOperator(t *testing.T) {
 	for _, tt := range tests {
 		evaluated := testEval(tt.input, true)
 		testBooleanObject(t, evaluated, tt.expected)
+	}
+}
+
+func Test_Eval_IfElseExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"if (true) { 10 }", big.NewInt(10)},
+		{"if (false) { 10 }", nil},
+		{"if (1 < 2) { 10 }", big.NewInt(10)},
+		{"if (5 > 3) { 10 }", big.NewInt(10)},
+		{"if (5 < 3) { 10 }", nil},
+		{"if (10 > 20) { 10 } else { 20 }", big.NewInt(20)},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input, true)
+		expectedInt, ok := tt.expected.(*big.Int)
+		if ok {
+			testIntegerObject(t, evaluated, expectedInt)
+		} else {
+			if evaluated != nil {
+				t.Errorf("Expected nil, got: %T", evaluated)
+			}
+		}
 	}
 }
 

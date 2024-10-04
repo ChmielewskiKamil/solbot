@@ -38,6 +38,8 @@ func Eval(node ast.Node) object.Object {
 		return Eval(node.Expression)
 	case *ast.BlockStatement:
 		return evalStatements(node.Statements)
+	case *ast.IfStatement:
+		return evalIfStatement(node)
 
 	// Expressions
 
@@ -172,6 +174,24 @@ func evalIntegerInfixExpression(
 		isNotEqual := leftVal.Cmp(&rightVal) != 0
 		return nativeBoolToBooleanObject(isNotEqual)
 	}
+}
+
+func evalIfStatement(ifStmt *ast.IfStatement) object.Object {
+	evaluated := Eval(ifStmt.Condition)
+	cond, ok := evaluated.(*object.Boolean)
+	if !ok {
+		return retEvalErrorObj(fmt.Sprintf(
+			"The condition has to be an *object.Boolean, got: %T instead.",
+			evaluated))
+	}
+
+	if cond.Value == true {
+		return Eval(ifStmt.Consequence)
+	} else if ifStmt.Alternative != nil {
+		return Eval(ifStmt.Alternative)
+	}
+
+	return nil
 }
 
 func nativeBoolToBooleanObject(nodeVal bool) *object.Boolean {
