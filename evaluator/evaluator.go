@@ -150,6 +150,18 @@ func evalIntegerInfixExpression(
 	case token.DIV:
 		result := new(big.Int).Div(&leftVal, &rightVal)
 		return &object.Integer{Value: *result}
+	case token.GREATER_THAN:
+		isGreater := leftVal.Cmp(&rightVal) == 1
+		return nativeBoolToBooleanObject(isGreater)
+	case token.LESS_THAN:
+		isLess := leftVal.Cmp(&rightVal) == -1
+		return nativeBoolToBooleanObject(isLess)
+	case token.EQUAL:
+		isEqual := leftVal.Cmp(&rightVal) == 0
+		return nativeBoolToBooleanObject(isEqual)
+	case token.NOT_EQUAL:
+		isNotEqual := leftVal.Cmp(&rightVal) != 0
+		return nativeBoolToBooleanObject(isNotEqual)
 	}
 }
 
