@@ -122,6 +122,15 @@ func evalInfixExpression(
 		return retEvalErrorObj("Incorrect object types for infix expression.")
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
+	case operator.Type == token.EQUAL:
+		// Comparing two objects uses pointer comparison. Since boolean objects
+		// TRUE and FALSE are always the same (point to the same memory address)
+		// we can compare them right away here. For integer objects we allocate
+		// new object each time and have to compare the value stored inside them.
+		// For integers 5 == 5 when compared on objects would return false.
+		return nativeBoolToBooleanObject(left == right)
+	case operator.Type == token.NOT_EQUAL:
+		return nativeBoolToBooleanObject(left != right)
 	}
 }
 
