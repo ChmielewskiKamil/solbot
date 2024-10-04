@@ -20,6 +20,7 @@ func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	default:
 		return retEvalErrorObj(fmt.Sprintf("Unhandled ast node: %T", node))
+
 	// File
 
 	case *ast.File:
@@ -48,6 +49,10 @@ func Eval(node ast.Node) object.Object {
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
 		return evalPrefixExpression(node.Operator, right)
+	case *ast.InfixExpression:
+		left := Eval(node.Left)
+		right := Eval(node.Right)
+		return evalInfixExpression(node.Operator, left, right)
 	}
 }
 
@@ -71,14 +76,6 @@ func evalStatements(stmts []ast.Statement) object.Object {
 	return result
 }
 
-func nativeBoolToBooleanObject(nodeVal bool) *object.Boolean {
-	if nodeVal {
-		return TRUE
-	}
-
-	return FALSE
-}
-
 func evalPrefixExpression(operator token.Token, right object.Object) object.Object {
 	switch operator.Type {
 	default:
@@ -94,6 +91,7 @@ func evalPrefixExpression(operator token.Token, right object.Object) object.Obje
 func evalNotPrefixOperatorExpression(right object.Object) object.Object {
 	switch right {
 	default:
+		// TODO: Why do we return true in the default case?
 		return FALSE
 	case TRUE:
 		return FALSE
@@ -112,6 +110,55 @@ func evalSubPrefixOperatorExpression(right object.Object) object.Object {
 
 	value := right.(*object.Integer).Value
 	return &object.Integer{Value: *new(big.Int).Neg(&value)}
+}
+
+func evalInfixExpression(
+	operator token.Token,
+	left object.Object,
+	right object.Object) object.Object {
+
+	switch {
+	default:
+		return retEvalErrorObj("Incorrect object types for infix expression.")
+	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
+		return evalIntegerInfixExpression(operator, left, right)
+	}
+}
+
+func evalIntegerInfixExpression(
+	operator token.Token,
+	left object.Object,
+	right object.Object) object.Object {
+
+	leftVal := left.(*object.Integer).Value
+	rightVal := right.(*object.Integer).Value
+
+	switch operator.Type {
+	default:
+		return retEvalErrorObj(
+			fmt.Sprintf("Unhandled: %s operator when evaluating infix expression.",
+				operator.String()))
+	case token.ADD:
+		result := new(big.Int).Add(&leftVal, &rightVal)
+		return &object.Integer{Value: *result}
+	case token.SUB:
+		result := new(big.Int).Sub(&leftVal, &rightVal)
+		return &object.Integer{Value: *result}
+	case token.MUL:
+		result := new(big.Int).Mul(&leftVal, &rightVal)
+		return &object.Integer{Value: *result}
+	case token.DIV:
+		result := new(big.Int).Div(&leftVal, &rightVal)
+		return &object.Integer{Value: *result}
+	}
+}
+
+func nativeBoolToBooleanObject(nodeVal bool) *object.Boolean {
+	if nodeVal {
+		return TRUE
+	}
+
+	return FALSE
 }
 
 // retEvalErrorObj is an error handling helper. Since evaluation functions
