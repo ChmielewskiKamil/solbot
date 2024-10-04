@@ -55,6 +55,9 @@ func Eval(node ast.Node) object.Object {
 		left := Eval(node.Left)
 		right := Eval(node.Right)
 		return evalInfixExpression(node.Operator, left, right)
+	case *ast.ReturnStatement:
+		result := Eval(node.Result)
+		return &object.ReturnValue{Value: result}
 	}
 }
 
@@ -73,6 +76,11 @@ func evalStatements(stmts []ast.Statement) object.Object {
 
 	for _, stmt := range stmts {
 		result = Eval(stmt)
+
+		// If we encounter a return statement, we have to return earlier.
+		if retValue, ok := result.(*object.ReturnValue); ok {
+			return retValue.Value
+		}
 	}
 
 	return result
