@@ -112,8 +112,64 @@ func Test_Eval_ReturnStatements(t *testing.T) {
 		{"return 5;", big.NewInt(5)},
 		{"1 + 2; return 5", big.NewInt(5)},
 		{"1 + 2; return 5; 5 * 3;", big.NewInt(5)},
+		{`if (2 > 1) { 
+            if (3 > 2) { 
+                return 3; 
+            } return 5; 
+        }`, big.NewInt(3)},
 	}
 
+	for _, tt := range tests {
+		evaluated := testEval(tt.input, true)
+		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
+
+func Test_Eval_ErrorHandling(t *testing.T) {
+	tests := []struct {
+		input       string
+		expectedMsg string
+	}{
+		{"1 + true", "Incorrect object types for infix expression: INTEGER + BOOLEAN."},
+		{"-true", "The '-' prefix operator can only be used with integers. Got: BOOLEAN instead."},
+		{"!5", "The '!' prefix operator can only be used with booleans. Got: INTEGER instead."},
+		{"1 >> 2", "Incorrect operator: '>>' in integer infix expression."},
+		{`if (5 > 3) {
+            true + 5;
+        }`, "Incorrect object types for infix expression: BOOLEAN + INTEGER."},
+		{`if (5 > 3) {
+            if (10 > 5) {
+                true * false;
+            }
+        }`, "Incorrect object types for infix expression: BOOLEAN * BOOLEAN."},
+		{"foo", "Identifier not found: foo"},
+		// {"", ""},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input, true)
+		errObj, ok := evaluated.(*object.EvalError)
+		if !ok {
+			t.Errorf("Expected eval error object, got: %T(%+v)",
+				evaluated, evaluated)
+			// If we didn't get the err obj we can't access its message.
+			continue
+		}
+
+		if errObj.Message != tt.expectedMsg {
+			t.Errorf("Err message is wrong. Expected: %q, got: %q",
+				tt.expectedMsg, errObj.Message)
+		}
+	}
+}
+
+func Test_Eval_VariableDeclarationStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected *big.Int
+	}{
+		{"uint256 a = 5; uint256 b = 5; return a + b;", big.NewInt(10)},
+	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input, true)
 		testIntegerObject(t, evaluated, tt.expected)

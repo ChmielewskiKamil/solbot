@@ -19,7 +19,7 @@ var (
 func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	default:
-		return retEvalErrorObj(fmt.Sprintf("Unhandled ast node: %T", node))
+		return newError(fmt.Sprintf("Unhandled ast node: %T", node))
 
 	// File
 
@@ -30,16 +30,18 @@ func Eval(node ast.Node) object.Object {
 
 	case *ast.FunctionDeclaration:
 		// TODO: Hacky way to eval other parts in tests, fix later.
-		return Eval(node.Body)
+		return evalFunctionDeclaration(node)
 
 	// Statements
 
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
 	case *ast.BlockStatement:
-		return evalStatements(node.Statements)
+		return evalBlockStatement(node.Statements)
 	case *ast.IfStatement:
 		return evalIfStatement(node)
+	case *ast.VariableDeclarationStatement:
+		return evalVariableDeclarationStatement(node)
 
 	// Expressions
 
@@ -50,15 +52,31 @@ func Eval(node ast.Node) object.Object {
 		return nativeBoolToBooleanObject(node.Value)
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
 		return evalPrefixExpression(node.Operator, right)
 	case *ast.InfixExpression:
 		left := Eval(node.Left)
+		if isError(left) {
+			return left
+		}
 		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
 		return evalInfixExpression(node.Operator, left, right)
 	case *ast.ReturnStatement:
 		result := Eval(node.Result)
+		if isError(result) {
+			return result
+		}
 		return &object.ReturnValue{Value: result}
 	}
+}
+
+func evalFunctionDeclaration(fn *ast.FunctionDeclaration) object.Object {
+	return Eval(fn.Body)
 }
 
 func evalDeclarations(decls []ast.Declaration) object.Object {
@@ -66,20 +84,35 @@ func evalDeclarations(decls []ast.Declaration) object.Object {
 
 	for _, decl := range decls {
 		result = Eval(decl)
+		// TODO: Not sure if this should be here.
+		if isError(result) {
+			return result
+		}
+		// TODO: Declarations shouldn't return anything, right? The below is a
+		// hack (?) to make the tests work.
+		// If we encounter a return statement, we have to return earlier.
+		if retValue, ok := result.(*object.ReturnValue); ok {
+			// We don't return the return value object, just the value itself.
+			// This value is the object previously wrapped in
+			// a ReturnValue object.
+			return retValue.Value
+		}
 	}
 
 	return result
 }
 
-func evalStatements(stmts []ast.Statement) object.Object {
+func evalBlockStatement(stmts []ast.Statement) object.Object {
 	var result object.Object
 
 	for _, stmt := range stmts {
 		result = Eval(stmt)
-
-		// If we encounter a return statement, we have to return earlier.
-		if retValue, ok := result.(*object.ReturnValue); ok {
-			return retValue.Value
+		if result != nil {
+			// If we encounter a return statement (return value object) just bubble
+			// it up and let the outer block handle it. Same for error.
+			if result.Type() == object.EVAL_ERROR || result.Type() == object.RETURN_VALUE_OBJ {
+				return result
+			}
 		}
 	}
 
@@ -89,8 +122,8 @@ func evalStatements(stmts []ast.Statement) object.Object {
 func evalPrefixExpression(operator token.Token, right object.Object) object.Object {
 	switch operator.Type {
 	default:
-		return retEvalErrorObj(
-			fmt.Sprintf("Unknown prefix operator: %s", operator.String()))
+		return newError("Unknown prefix operator '%s%s'.",
+			operator.Literal, right.Type())
 	case token.NOT:
 		return evalNotPrefixOperatorExpression(right)
 	case token.SUB:
@@ -101,8 +134,9 @@ func evalPrefixExpression(operator token.Token, right object.Object) object.Obje
 func evalNotPrefixOperatorExpression(right object.Object) object.Object {
 	switch right {
 	default:
-		// TODO: Why do we return true in the default case?
-		return FALSE
+		return newError(
+			"The '!' prefix operator can only be used with booleans. Got: %s instead.", right.Type(),
+		)
 	case TRUE:
 		return FALSE
 	case FALSE:
@@ -112,10 +146,8 @@ func evalNotPrefixOperatorExpression(right object.Object) object.Object {
 
 func evalSubPrefixOperatorExpression(right object.Object) object.Object {
 	if right.Type() != object.INTEGER_OBJ {
-		return retEvalErrorObj(
-			fmt.Sprintf(
-				"The '-' prefix operator can only be used with integers. Got: %T instead.",
-				right))
+		return newError("The '-' prefix operator can only be used with integers. Got: %s instead.",
+			right.Type())
 	}
 
 	value := right.(*object.Integer).Value
@@ -129,7 +161,8 @@ func evalInfixExpression(
 
 	switch {
 	default:
-		return retEvalErrorObj("Incorrect object types for infix expression.")
+		return newError("Incorrect object types for infix expression: %s %s %s.",
+			left.Type(), operator.Literal, right.Type())
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
 	case operator.Type == token.EQUAL:
@@ -154,9 +187,9 @@ func evalIntegerInfixExpression(
 
 	switch operator.Type {
 	default:
-		return retEvalErrorObj(
-			fmt.Sprintf("Unhandled: %s operator when evaluating infix expression.",
-				operator.String()))
+		return newError(
+			"Incorrect operator: '%s' in integer infix expression.",
+			operator.Literal)
 	case token.ADD:
 		result := new(big.Int).Add(&leftVal, &rightVal)
 		return &object.Integer{Value: *result}
@@ -188,9 +221,9 @@ func evalIfStatement(ifStmt *ast.IfStatement) object.Object {
 	evaluated := Eval(ifStmt.Condition)
 	cond, ok := evaluated.(*object.Boolean)
 	if !ok {
-		return retEvalErrorObj(fmt.Sprintf(
+		return newError(
 			"The condition has to be an *object.Boolean, got: %T instead.",
-			evaluated))
+			evaluated)
 	}
 
 	if cond.Value == true {
@@ -198,6 +231,11 @@ func evalIfStatement(ifStmt *ast.IfStatement) object.Object {
 	} else if ifStmt.Alternative != nil {
 		return Eval(ifStmt.Alternative)
 	}
+
+	return nil
+}
+
+func evalVariableDeclarationStatement(vdStmt *ast.VariableDeclarationStatement) object.Object {
 
 	return nil
 }
@@ -210,9 +248,19 @@ func nativeBoolToBooleanObject(nodeVal bool) *object.Boolean {
 	return FALSE
 }
 
-// retEvalErrorObj is an error handling helper. Since evaluation functions
+// newError is an error handling helper. Since evaluation functions
 // expect some kind of object to be returned and we don't have nil, we
 // just return EvalError object. The caller can decide what to do with it.
-func retEvalErrorObj(message string) *object.EvalError {
-	return &object.EvalError{Message: message}
+func newError(format string, a ...interface{}) *object.EvalError {
+	return &object.EvalError{Message: fmt.Sprintf(format, a...)}
+}
+
+// isError is used to stop evaluation early when calling Eval recursively.
+// For example when evaluating left + right, there is no need to continue Eval
+// when we know that left returned an error.
+func isError(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.EVAL_ERROR
+	}
+	return false
 }
