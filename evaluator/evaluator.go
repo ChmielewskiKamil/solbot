@@ -16,7 +16,7 @@ var (
 	FALSE = &object.Boolean{Value: false}
 )
 
-func Eval(node ast.Node) object.Object {
+func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
 	default:
 		return newError(fmt.Sprintf("Unhandled ast node: %T", node))
@@ -24,24 +24,28 @@ func Eval(node ast.Node) object.Object {
 	// File
 
 	case *ast.File:
-		return evalDeclarations(node.Declarations)
+		return evalDeclarations(node.Declarations, env)
 
 	// Declarations
 
 	case *ast.FunctionDeclaration:
 		// TODO: Hacky way to eval other parts in tests, fix later.
-		return evalFunctionDeclaration(node)
+		return evalFunctionDeclaration(node, env)
 
 	// Statements
 
 	case *ast.ExpressionStatement:
-		return Eval(node.Expression)
+		return Eval(node.Expression, env)
 	case *ast.BlockStatement:
-		return evalBlockStatement(node.Statements)
+		return evalBlockStatement(node.Statements, env)
 	case *ast.IfStatement:
-		return evalIfStatement(node)
+		return evalIfStatement(node, env)
 	case *ast.VariableDeclarationStatement:
-		return evalVariableDeclarationStatement(node)
+		val := Eval(node.Value, env)
+		if isError(val) {
+			return val
+		}
+		return env.Set(node.Name.Value, val)
 
 	// Expressions
 
@@ -51,39 +55,41 @@ func Eval(node ast.Node) object.Object {
 	case *ast.BooleanLiteral:
 		return nativeBoolToBooleanObject(node.Value)
 	case *ast.PrefixExpression:
-		right := Eval(node.Right)
+		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
 		}
 		return evalPrefixExpression(node.Operator, right)
 	case *ast.InfixExpression:
-		left := Eval(node.Left)
+		left := Eval(node.Left, env)
 		if isError(left) {
 			return left
 		}
-		right := Eval(node.Right)
+		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
 		}
 		return evalInfixExpression(node.Operator, left, right)
 	case *ast.ReturnStatement:
-		result := Eval(node.Result)
+		result := Eval(node.Result, env)
 		if isError(result) {
 			return result
 		}
 		return &object.ReturnValue{Value: result}
+	case *ast.Identifier:
+		return evalIdentifier(node, env)
 	}
 }
 
-func evalFunctionDeclaration(fn *ast.FunctionDeclaration) object.Object {
-	return Eval(fn.Body)
+func evalFunctionDeclaration(fn *ast.FunctionDeclaration, env *object.Environment) object.Object {
+	return Eval(fn.Body, env)
 }
 
-func evalDeclarations(decls []ast.Declaration) object.Object {
+func evalDeclarations(decls []ast.Declaration, env *object.Environment) object.Object {
 	var result object.Object
 
 	for _, decl := range decls {
-		result = Eval(decl)
+		result = Eval(decl, env)
 		// TODO: Not sure if this should be here.
 		if isError(result) {
 			return result
@@ -102,11 +108,11 @@ func evalDeclarations(decls []ast.Declaration) object.Object {
 	return result
 }
 
-func evalBlockStatement(stmts []ast.Statement) object.Object {
+func evalBlockStatement(stmts []ast.Statement, env *object.Environment) object.Object {
 	var result object.Object
 
 	for _, stmt := range stmts {
-		result = Eval(stmt)
+		result = Eval(stmt, env)
 		if result != nil {
 			// If we encounter a return statement (return value object) just bubble
 			// it up and let the outer block handle it. Same for error.
@@ -217,8 +223,8 @@ func evalIntegerInfixExpression(
 	}
 }
 
-func evalIfStatement(ifStmt *ast.IfStatement) object.Object {
-	evaluated := Eval(ifStmt.Condition)
+func evalIfStatement(ifStmt *ast.IfStatement, env *object.Environment) object.Object {
+	evaluated := Eval(ifStmt.Condition, env)
 	cond, ok := evaluated.(*object.Boolean)
 	if !ok {
 		return newError(
@@ -227,17 +233,21 @@ func evalIfStatement(ifStmt *ast.IfStatement) object.Object {
 	}
 
 	if cond.Value == true {
-		return Eval(ifStmt.Consequence)
+		return Eval(ifStmt.Consequence, env)
 	} else if ifStmt.Alternative != nil {
-		return Eval(ifStmt.Alternative)
+		return Eval(ifStmt.Alternative, env)
 	}
 
 	return nil
 }
 
-func evalVariableDeclarationStatement(vdStmt *ast.VariableDeclarationStatement) object.Object {
+func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
+	val, ok := env.Get(node.Value)
+	if !ok {
+		return newError("Identifier not found: %s", node.Value)
+	}
 
-	return nil
+	return val
 }
 
 func nativeBoolToBooleanObject(nodeVal bool) *object.Boolean {

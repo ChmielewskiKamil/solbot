@@ -180,6 +180,7 @@ func Test_Eval_VariableDeclarationStatements(t *testing.T) {
 
 func testEval(input string, boilerplate bool) object.Object {
 	p := parser.Parser{}
+	env := object.NewEnvironment()
 
 	if boilerplate {
 		input = "function test() { " + input + " }"
@@ -190,7 +191,7 @@ func testEval(input string, boilerplate bool) object.Object {
 
 	file := p.ParseFile()
 
-	return Eval(file)
+	return Eval(file, env)
 }
 
 func testIntegerObject(t *testing.T, obj object.Object, expected *big.Int) bool {

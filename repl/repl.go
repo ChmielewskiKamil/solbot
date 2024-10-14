@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"solbot/evaluator"
+	"solbot/object"
 	"solbot/parser"
 	"solbot/token"
 )
@@ -22,6 +23,7 @@ const ASCII_ART = `
 
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
+	env := object.NewEnvironment()
 
 	for {
 		print(PROMPT)
@@ -47,7 +49,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		evaluated := evaluator.Eval(file)
+		evaluated := evaluator.Eval(file, env)
 		if evaluated != nil {
 			io.WriteString(out, evaluated.Inspect())
 			io.WriteString(out, "\n")
