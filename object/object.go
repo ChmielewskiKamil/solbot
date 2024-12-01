@@ -2,17 +2,20 @@
 package object
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
+	"solbot/ast"
 )
 
 type ObjectType string
 
 const (
-	EVAL_ERROR       = "EVAL_ERROR"
+	EVAL_ERROR_OBJ   = "EVAL_ERROR"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	INTEGER_OBJ      = "INTEGER"
 	BOOLEAN_OBJ      = "BOOLEAN"
+	FUNCTION_OBJ     = "FUNCTION"
 )
 
 type Object interface {
@@ -38,12 +41,23 @@ type (
 	Boolean struct {
 		Value bool
 	}
+
+	// TODO: This looks like 1:1 copy of the FunctionDeclaration ast struct
+	// Name is probably needed as well to create the binding.
+	Function struct {
+		Params     *ast.ParamList
+		Results    *ast.ParamList
+		Body       *ast.BlockStatement
+		Mutability ast.Mutability
+		Visibility ast.Visibility
+		Env        *Environment // TODO: Do I need the env if Solidity does not have closures?
+	}
 )
 
 func (o *EvalError) Inspect() string {
 	return fmt.Sprintf("Evaluation error: %s", o.Message)
 }
-func (o *EvalError) Type() ObjectType { return EVAL_ERROR }
+func (o *EvalError) Type() ObjectType { return EVAL_ERROR_OBJ }
 
 func (o *ReturnValue) Inspect() string {
 	return o.Value.Inspect()
@@ -55,3 +69,42 @@ func (o *Integer) Type() ObjectType { return INTEGER_OBJ }
 
 func (o *Boolean) Inspect() string  { return fmt.Sprintf("%t", o.Value) }
 func (o *Boolean) Type() ObjectType { return BOOLEAN_OBJ }
+
+func (o *Function) Inspect() string {
+	var out bytes.Buffer
+
+	// non-nil slice; it is initialized so we can append elements right away
+	// if there are no params this will just be empty string
+	params := []string{}
+	for _, p := range o.Params.List {
+		var str string
+		if p.DataLocation != ast.NO_DATA_LOCATION {
+			str = p.Type.String() + " " + p.DataLocation.String() + " " + p.Name.String()
+		} else {
+			str = p.Type.String() + " " + p.Name.String()
+		}
+		params = append(params, str)
+	}
+
+	results := []string{}
+	for _, r := range o.Results.List {
+		var str string
+		if r.DataLocation != ast.NO_DATA_LOCATION {
+			str = r.Type.String() + " " + r.DataLocation.String() + " " + r.Name.String()
+		} else {
+			str = r.Type.String() + " " + r.Name.String()
+		}
+		results = append(results, str)
+	}
+
+	out.WriteString("function")
+	out.WriteString(" ")
+	out.WriteString(" ")
+	out.WriteString(" ")
+	out.WriteString(" ")
+	out.WriteString(" ")
+
+	return out.String()
+}
+
+func (o *Function) Type() ObjectType { return FUNCTION_OBJ }

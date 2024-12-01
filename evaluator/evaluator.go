@@ -116,7 +116,7 @@ func evalBlockStatement(stmts []ast.Statement, env *object.Environment) object.O
 		if result != nil {
 			// If we encounter a return statement (return value object) just bubble
 			// it up and let the outer block handle it. Same for error.
-			if result.Type() == object.EVAL_ERROR || result.Type() == object.RETURN_VALUE_OBJ {
+			if result.Type() == object.EVAL_ERROR_OBJ || result.Type() == object.RETURN_VALUE_OBJ {
 				return result
 			}
 		}
@@ -270,7 +270,7 @@ func newError(format string, a ...interface{}) *object.EvalError {
 // when we know that left returned an error.
 func isError(obj object.Object) bool {
 	if obj != nil {
-		return obj.Type() == object.EVAL_ERROR
+		return obj.Type() == object.EVAL_ERROR_OBJ
 	}
 	return false
 }
