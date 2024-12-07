@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"solbot/ast"
+	"strings"
 )
 
 type ObjectType string
@@ -42,14 +43,14 @@ type (
 		Value bool
 	}
 
-	// TODO: This looks like 1:1 copy of the FunctionDeclaration ast struct
-	// Name is probably needed as well to create the binding.
 	Function struct {
+		Name       *ast.Identifier
 		Params     *ast.ParamList
 		Results    *ast.ParamList
-		Body       *ast.BlockStatement
 		Mutability ast.Mutability
 		Visibility ast.Visibility
+		Virtual    bool
+		Body       *ast.BlockStatement
 		Env        *Environment // TODO: Do I need the env if Solidity does not have closures?
 	}
 )
@@ -98,11 +99,14 @@ func (o *Function) Inspect() string {
 	}
 
 	out.WriteString("function")
-	out.WriteString(" ")
-	out.WriteString(" ")
-	out.WriteString(" ")
-	out.WriteString(" ")
-	out.WriteString(" ")
+	out.WriteString(o.Name.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(")\n")
+	// TODO: Add mutability, visibility, virtual and return params
+	out.WriteString("{\n")
+	out.WriteString(o.Body.String())
+	out.WriteString("}")
 
 	return out.String()
 }

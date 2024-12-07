@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	mode := flag.String("mode", "analyzer", "Operation mode: lsp or analyzer")
+	mode := flag.String("mode", "analyzer", "Operation mode: lsp, analyzer or repl.")
 	filePath := flag.String("file", "", "File path to analyze")
 	flag.Parse()
 
@@ -33,7 +33,7 @@ func main() {
 	case "repl":
 		startRepl()
 	default:
-		log.Fatalf("Unknown mode: `%s` Available modes: `lsp` or `analyzer`", *mode)
+		log.Fatalf("Unknown mode: `%s` Available modes: `lsp`, `analyzer` or `repl`.", *mode)
 		os.Exit(1)
 	}
 }

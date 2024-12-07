@@ -29,7 +29,6 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	// Declarations
 
 	case *ast.FunctionDeclaration:
-		// TODO: Hacky way to eval other parts in tests, fix later.
 		return evalFunctionDeclaration(node, env)
 
 	// Statements
@@ -82,7 +81,13 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 }
 
 func evalFunctionDeclaration(fn *ast.FunctionDeclaration, env *object.Environment) object.Object {
-	return Eval(fn.Body, env)
+	function := &object.Function{
+		Name: fn.Name,
+		Body: fn.Body,
+		Env:  env,
+	}
+
+	return env.Set(function.Name.Value, function)
 }
 
 func evalDeclarations(decls []ast.Declaration, env *object.Environment) object.Object {
@@ -90,18 +95,8 @@ func evalDeclarations(decls []ast.Declaration, env *object.Environment) object.O
 
 	for _, decl := range decls {
 		result = Eval(decl, env)
-		// TODO: Not sure if this should be here.
 		if isError(result) {
 			return result
-		}
-		// TODO: Declarations shouldn't return anything, right? The below is a
-		// hack (?) to make the tests work.
-		// If we encounter a return statement, we have to return earlier.
-		if retValue, ok := result.(*object.ReturnValue); ok {
-			// We don't return the return value object, just the value itself.
-			// This value is the object previously wrapped in
-			// a ReturnValue object.
-			return retValue.Value
 		}
 	}
 

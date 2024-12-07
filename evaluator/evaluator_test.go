@@ -176,6 +176,23 @@ func Test_Eval_VariableDeclarationStatements(t *testing.T) {
 	}
 }
 
+func Test_Eval_FunctionDeclaration(t *testing.T) {
+	input := `function add(uint256 a, uint256 b) public virtual pure returns (uint256) {
+        return a + b;
+    }`
+
+	evaluated := testEval(input, false)
+
+	fn, ok := evaluated.(*object.Function)
+	if !ok {
+		t.Fatalf("Object is not a Function. got=%T (%+v)", evaluated, evaluated)
+	}
+
+	if fn.Name.String() != "add" {
+		t.Fatalf("Function's name is not add. got=%s", fn.Name.String())
+	}
+}
+
 /*~*~*~*~*~*~*~*~*~*~*~*~* Helper Functions ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 func testEval(input string, boilerplate bool) object.Object {
@@ -191,7 +208,22 @@ func testEval(input string, boilerplate bool) object.Object {
 
 	file := p.ParseFile()
 
-	return Eval(file, env)
+	evaluated := Eval(file, env)
+
+	if boilerplate {
+		fn, ok := evaluated.(*object.Function)
+		if !ok {
+			panic("Test boilerplate does not work, should have wrapped in a function.")
+		}
+
+		result := Eval(fn.Body, env)
+		if retValue, ok := result.(*object.ReturnValue); ok {
+			return retValue.Value
+		}
+		return result
+	}
+
+	return evaluated
 }
 
 func testIntegerObject(t *testing.T, obj object.Object, expected *big.Int) bool {
