@@ -191,6 +191,14 @@ func Test_Eval_FunctionDeclaration(t *testing.T) {
 	if fn.Name.String() != "add" {
 		t.Fatalf("Function's name is not add. got=%s", fn.Name.String())
 	}
+
+	if len(fn.Params.List) != 2 {
+		t.Fatalf("Function has wrong parameterst. got=%+v", fn.Params.List)
+	}
+
+	if fn.Params.List[0].Name.String() != "a" {
+		t.Fatalf("Function param incorrect. got=%s", fn.Params.List[0].Name.String())
+	}
 }
 
 /*~*~*~*~*~*~*~*~*~*~*~*~* Helper Functions ~*~*~*~*~*~*~*~*~*~*~*~*~*/

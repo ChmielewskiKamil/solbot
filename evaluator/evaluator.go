@@ -82,9 +82,10 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 func evalFunctionDeclaration(fn *ast.FunctionDeclaration, env *object.Environment) object.Object {
 	function := &object.Function{
-		Name: fn.Name,
-		Body: fn.Body,
-		Env:  env,
+		Name:   fn.Name,
+		Params: fn.Params,
+		Body:   fn.Body,
+		Env:    env,
 	}
 
 	return env.Set(function.Name.Value, function)
