@@ -77,17 +77,32 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.ReturnValue{Value: result}
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
+	case *ast.CallExpression:
+		function := Eval(node.Function, env)
+		if isError(function) {
+			return function
+		}
+
+		args := evalExpressions(node.Args, env)
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
+
+		// Execute function logic and unwrap return value
+		return applyFunction(function, args, env)
 	}
 }
 
 func evalFunctionDeclaration(fn *ast.FunctionDeclaration, env *object.Environment) object.Object {
+	// TODO: Implement remaining fields
 	function := &object.Function{
 		Name:   fn.Name,
 		Params: fn.Params,
 		Body:   fn.Body,
-		Env:    env,
+		Env:    env, // TODO: Do I need this if there are no closures?
 	}
 
+	// TODO: Should function be added to env?
 	return env.Set(function.Name.Value, function)
 }
 
@@ -244,6 +259,54 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 	}
 
 	return val
+}
+
+func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
+	var result []object.Object
+
+	for _, e := range exps {
+		evaluated := Eval(e, env)
+		if isError(evaluated) {
+			// on error return a single error obj and discard everything else
+			return []object.Object{evaluated}
+		}
+		result = append(result, evaluated)
+	}
+	return result
+}
+
+func applyFunction(fn object.Object, args []object.Object, env *object.Environment) object.Object {
+	function, ok := fn.(*object.Function)
+	if !ok {
+		return newError("object is not a function: %s", fn.Type())
+	}
+
+	// extend function env by args to create a new inner scope
+	extendedEnv := extendFunctionEnv(function, args, env)
+
+	// evaluate function body using the extended env
+	evaluated := Eval(function.Body, extendedEnv)
+
+	// since this is a call, unwrap return val to produce the value
+	return unwrapReturnValue(evaluated)
+}
+
+func extendFunctionEnv(fn *object.Function, args []object.Object, env *object.Environment) *object.Environment {
+	extendedEnv := object.NewEnclosedEnvironment(env)
+
+	for paramIdx, param := range fn.Params.List {
+		extendedEnv.Set(param.Name.Value, args[paramIdx])
+	}
+
+	return extendedEnv
+}
+
+func unwrapReturnValue(obj object.Object) object.Object {
+	if retVal, ok := obj.(*object.ReturnValue); ok {
+		return retVal.Value
+	}
+
+	return obj
 }
 
 func nativeBoolToBooleanObject(nodeVal bool) *object.Boolean {

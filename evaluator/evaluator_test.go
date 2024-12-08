@@ -201,6 +201,37 @@ func Test_Eval_FunctionDeclaration(t *testing.T) {
 	}
 }
 
+// func Test_Eval_FunctionCalls(t *testing.T) {
+// 	tests := []struct {
+// 		input    string
+// 		expected *big.Int
+// 	}{
+// 		{`function add(uint256 a, uint256 b) public returns (uint256) {
+//             return a + b ;
+//         }
+//         add(5, 5);`, big.NewInt(10)},
+// 		{`function double(uint256 x) public returns (uint256) {
+//             return x * 2;
+//         }
+//         double(50);`, big.NewInt(100)},
+// 		{`function mul(uint256 a, uint256 b) public returns (uint256) {
+//             return a * b;
+//         }
+//         mul(10, mul(4, 5));`, big.NewInt(200)},
+// 		{`function query(uint256 x) public returns (uint256) {
+//             return x;
+//         }
+//         function test() public returns (uint256) {
+//             return query(1337);
+//         }
+//         `, big.NewInt(1337)},
+// 	}
+//
+// 	for _, tt := range tests {
+// 		testIntegerObject(t, testEval(tt.input, false), tt.expected)
+// 	}
+// }
+
 /*~*~*~*~*~*~*~*~*~*~*~*~* Helper Functions ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 func testEval(input string, boilerplate bool) object.Object {
@@ -230,6 +261,31 @@ func testEval(input string, boilerplate bool) object.Object {
 		}
 		return result
 	}
+
+	return evaluated
+}
+
+func testEvalInterpreterMode(input string) object.Object {
+	p := parser.Parser{}
+	env := object.NewEnvironment()
+
+	handle := token.NewFile("test.sol", input)
+	p.Init(handle)
+
+	file := p.ParseFile()
+
+	evaluated := Eval(file, env)
+
+	fn, ok := evaluated.(*object.Function)
+	if !ok {
+		panic("Test boilerplate does not work, should have wrapped in a function.")
+	}
+
+	result := Eval(fn.Body, env)
+	if retValue, ok := result.(*object.ReturnValue); ok {
+		return retValue.Value
+	}
+	return result
 
 	return evaluated
 }
