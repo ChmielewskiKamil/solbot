@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-// Pos is the offset to the beginning of a token, starting from 0
+// Pos is the file offset to the beginning of a token, starting from 0
 type Pos int
 
 type Position struct {
@@ -14,6 +14,9 @@ type Position struct {
 	Line     int
 	Column   int
 }
+
+// TODO: offset to position could be the method of pos which takes a ref to a
+// file and returns a proper position struct.
 
 func OffsetToPosition(reader io.Reader, pos *Position) {
 	// Wrap into a buffered reader to use utility functions e.g. ReadString()
