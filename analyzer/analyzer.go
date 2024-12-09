@@ -4,6 +4,7 @@ import (
 	"solbot/analyzer/screamingsnakeconst"
 	"solbot/ast"
 	"solbot/reporter"
+	"solbot/symbols"
 )
 
 type Detector interface {
@@ -30,3 +31,5 @@ func AnalyzeFile(file *ast.File) []reporter.Finding {
 
 	return findings
 }
+
+func PopulateSymbols(node ast.Node, env *symbols.Environment) {}
