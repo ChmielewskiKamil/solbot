@@ -8,7 +8,7 @@ import (
 )
 
 type Parser struct {
-	file   *token.File
+	file   *token.SourceFile
 	l      lexer.Lexer
 	errors ErrorList
 
@@ -24,7 +24,7 @@ type Parser struct {
 	infixParseFns  map[token.TokenType]infixParseFn
 }
 
-func (p *Parser) Init(file *token.File) {
+func (p *Parser) Init(file *token.SourceFile) {
 	p.l = *lexer.Lex(file)
 	p.errors = ErrorList{}
 	p.file = file

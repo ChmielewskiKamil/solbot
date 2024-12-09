@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -28,7 +29,11 @@ func main() {
 		if *filePath == "" {
 			log.Fatalf("File path is required in analyzer mode.\nUse --file path/to/file.sol to analyze a file.")
 		}
-		startAnalyzer(*filePath)
+		err := startAnalyzer(*filePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "There was an error running the analyzer: %s\n", err)
+			os.Exit(1)
+		}
 	default:
 		log.Fatalf("Unknown mode: `%s` Available modes: `lsp` or `analyzer`.", *mode)
 		os.Exit(1)
@@ -57,15 +62,14 @@ func startLanguageServer() {
 	}
 }
 
-func startAnalyzer(filePath string) {
+func startAnalyzer(filePath string) error {
 	println("Solbot starts")
-	src, err := os.ReadFile(filePath)
+	p := parser.Parser{}
+	handle, err := token.NewSourceFile(filePath, "")
 	if err != nil {
-		log.Fatalf("Error reading file: %s\n", err)
+		return err
 	}
 
-	p := parser.Parser{}
-	handle := token.NewFile(filePath, string(src))
 	p.Init(handle)
 	p.ToggleTracing()
 
@@ -78,6 +82,8 @@ func startAnalyzer(filePath string) {
 	}
 
 	reporter.GenerateReport(findings, "solbot.md")
+
+	return nil
 }
 
 func handleMessage(logger *log.Logger, writer io.Writer, state analysis.State, method string, content []byte) {

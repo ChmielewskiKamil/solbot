@@ -2,7 +2,10 @@ package token
 
 import (
 	"bufio"
+	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 )
 
 // Pos is the file offset to the beginning of a token, starting from 0
@@ -59,23 +62,87 @@ func OffsetToPosition(reader io.Reader, pos *Position) {
 	pos.Column = column
 }
 
-type File struct {
-	name  string // file name e.g. "foo.sol"
-	src   string // file content; source code passed to the parser
-	lines []int  // offsets of the first character of each line
+type SourceFile struct {
+	name                    string // file name e.g. "foo.sol"
+	filePathFromProjectRoot string // path to the file from project root e.g. where foundry.toml is defined
+	content                 string // file content; source code passed to the parser
+	lines                   []int  // offsets of the first character of each line
 }
 
-func (f *File) Name() string {
+func (f *SourceFile) Name() string {
 	return f.name
 }
 
-func (f *File) Src() string {
-	return f.src
+func (f *SourceFile) Content() string {
+	return f.content
 }
 
-func NewFile(name, src string) *File {
-	return &File{
-		name: name,
-		src:  src,
+func NewSourceFile(fileNameOrPath, src string) (*SourceFile, error) {
+	// Passing input string is useful for testing.
+	if src != "" {
+		return &SourceFile{
+			name:    fileNameOrPath,
+			content: src,
+		}, nil
 	}
+
+	// In production use cases it is handy to read straight from file/path.
+	content, err := os.ReadFile(fileNameOrPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file from path %s: %w", fileNameOrPath, err)
+	}
+
+	// Compute relative path from project root
+	relativePath, err := getRelativePath(fileNameOrPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine relative path for %s: %w", fileNameOrPath, err)
+	}
+
+	return &SourceFile{
+		name:                    filepath.Base(fileNameOrPath),
+		filePathFromProjectRoot: relativePath,
+		content:                 string(content),
+	}, nil
+}
+
+// projectMarkers defines files or directories that indicate the project root.
+var projectMarkers = []string{
+	"hardhat.config.js",
+	"hardhat.config.ts",
+	"foundry.toml",
+	"remappings.txt",
+	"truffle.js",
+	"truffle-config.js",
+	"ape-config.yaml",
+	".git",
+	"package.json",
+	"node_modules",
+}
+
+// findProjectRoot traverses up the directory tree to locate the project root.
+func findProjectRoot(startPath string) (string, error) {
+	// startPath is the dir where .sol file is.
+	currPath := startPath
+	for {
+		for _, marker := range projectMarkers {
+			// Look for markers at each dir.
+			if _, err := os.Stat(filepath.Join(currPath, marker)); err == nil {
+				return currPath, nil
+			}
+		}
+		parentDir := filepath.Dir(currPath)
+		if parentDir == currPath {
+			return "", fmt.Errorf("Couldn't find foundry/hardhat/ape project root. You can init a git repo (or add foundry.toml etc.) to create one.")
+		}
+		currPath = parentDir
+	}
+}
+
+// getRelativePath computes the relative path to the project root.
+func getRelativePath(filePath string) (string, error) {
+	projectRoot, err := findProjectRoot(filepath.Dir(filePath))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Rel(projectRoot, filePath)
 }

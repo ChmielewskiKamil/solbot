@@ -318,7 +318,7 @@ func Test_ParseCallExpression(t *testing.T) {
 
 func test_helper_parseSource(t *testing.T, src string, tracing bool) *ast.File {
 	p := Parser{}
-	handle := token.NewFile("test.sol", src)
+	handle, _ := token.NewSourceFile("", src)
 	p.Init(handle)
 
 	if tracing {

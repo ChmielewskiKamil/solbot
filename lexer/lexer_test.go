@@ -237,7 +237,7 @@ func TestNextToken(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	handle := token.NewFile("test.sol", input)
+	handle, _ := token.NewSourceFile("", input)
 
 	lexer := Lex(handle)
 

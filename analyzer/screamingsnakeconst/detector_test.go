@@ -21,7 +21,7 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 
 	p := parser.Parser{}
 
-	handle := token.NewFile("test.sol", src)
+	handle, _ := token.NewSourceFile("", src)
 
 	p.Init(handle)
 
@@ -77,7 +77,7 @@ func Test_ShouldReturnNilIfNoVariables(t *testing.T) {
 
 	p := parser.Parser{}
 
-	handle := token.NewFile("test.sol", src)
+	handle, _ := token.NewSourceFile("", src)
 
 	p.Init(handle)
 

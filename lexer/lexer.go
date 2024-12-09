@@ -34,18 +34,18 @@ func (l *Lexer) run() {
 
 // The Lexer holds the state of the scanner.
 type Lexer struct {
-	file   *token.File      // Handle to the source file
-	input  string           // The string being scanned.
-	start  int              // Start position of this token.Token; in a big string, this is the start of the current token.
-	pos    int              // Current position in the input.
-	width  int              // Width of last rune read from input.
-	tokens chan token.Token // Channel of scanned token.
+	file   *token.SourceFile // Handle to the source file
+	input  string            // The string being scanned.
+	start  int               // Start position of this token.Token; in a big string, this is the start of the current token.
+	pos    int               // Current position in the input.
+	width  int               // Width of last rune read from input.
+	tokens chan token.Token  // Channel of scanned token.
 }
 
-func Lex(file *token.File) *Lexer {
+func Lex(file *token.SourceFile) *Lexer {
 	l := &Lexer{
 		file:   file,
-		input:  file.Src(),
+		input:  file.Content(),
 		tokens: make(chan token.Token, 2), // Buffer 2 tokens. We don't need more.
 	}
 

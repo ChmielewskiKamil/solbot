@@ -22,10 +22,10 @@ type Location struct {
 	Context  string         // The line with the issue itself or with its surroundings.
 }
 
-func (f *Finding) CalculatePositions(file *token.File) {
+func (f *Finding) CalculatePositions(file *token.SourceFile) {
 	for i := range f.Locations {
 		// @TODO: This resets reader's state, but it is inefficient.
-		reader := strings.NewReader(file.Src())
+		reader := strings.NewReader(file.Content())
 		token.OffsetToPosition(reader, &f.Locations[i].Position)
 		// @TODO: Add file name to the position.
 		f.Locations[i].Position.Filename = file.Name()
