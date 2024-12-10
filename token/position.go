@@ -63,18 +63,125 @@ func OffsetToPosition(reader io.Reader, pos *Position) {
 }
 
 type SourceFile struct {
-	name                    string // file name e.g. "foo.sol"
-	filePathFromProjectRoot string // path to the file from project root e.g. where foundry.toml is defined
-	content                 string // file content; source code passed to the parser
-	lines                   []int  // offsets of the first character of each line
+	name                        string // file name e.g. "foo.sol"
+	relativePathFromProjectRoot string // path to the file from project root e.g. where foundry.toml is defined
+	content                     string // file content; source code passed to the parser
+	lines                       []int  // offsets of the first character of each line
 }
 
-func (f *SourceFile) Name() string {
-	return f.name
+func (sf *SourceFile) Name() string {
+	return sf.name
 }
 
-func (f *SourceFile) Content() string {
-	return f.content
+func (sf *SourceFile) Content() string {
+	return sf.content
+}
+
+func (sf *SourceFile) RelativePathFromProjectRoot() string {
+	return sf.relativePathFromProjectRoot
+}
+
+func (sf *SourceFile) LineOffsets() []int {
+	return sf.lines
+}
+
+func (sf *SourceFile) ComputeLineOffsets() {
+	// Explicitly add 0th line offset so that the lines length include it.
+	// Since we append pointing to next line, on first iter, 0th one would
+	// be skipped.
+	lines := []int{0}
+	for offset, char := range sf.content {
+		if char == '\n' {
+			// +1 to skip \n and point to start of next line
+			lines = append(lines, offset+1)
+		}
+	}
+	sf.lines = lines
+}
+
+// GetLineAndColumn returns the (line, column) position in a source file based on the
+// provided offset. If the provided offset is invalid, the function returns (-1, -1).
+// If the line offsets were not computed yet for this SourceFile, GetLineAndColumn
+// will call ComputeLineOffsets function.
+func (sf *SourceFile) GetLineAndColumn(offset Pos) (int, int) {
+	// Check if the offset is valid
+	if offset < 0 || int(offset) >= len(sf.content) {
+		return -1, -1
+	}
+
+	if len(sf.lines) == 0 {
+		sf.ComputeLineOffsets()
+	}
+
+	// Initialize the search range for binary search.
+	// `low` is the start of the range, and `high` is the end of the range.
+	// The `-1` for `high` ensures we stay within the valid index range of the array,
+	// since arrays are zero-indexed.
+	low, high := 0, len(sf.lines)-1
+
+	// Perform binary search to find the line that contains the offset.
+	for low <= high {
+		// Calculate the middle index of the current search range.
+		// This is where we will check if the offset falls before, at, or after this line.
+		mid := (low + high) / 2
+
+		// If the starting position of the current line (`sf.lines[mid]`)
+		// is less than or equal to the target `offset`, then the offset
+		// might be within this line or one of the lines after it.
+		// In this case, we adjust `low` to narrow the search range to the right half.
+		if sf.lines[mid] <= int(offset) {
+			low = mid + 1
+		} else {
+			// If the starting position of the current line (`sf.lines[mid]`)
+			// is greater than the target `offset`, then the offset must be in one
+			// of the lines before this line. We adjust `high` to narrow the search
+			// range to the left half.
+			high = mid - 1
+		}
+	}
+
+	// After the loop ends:
+	// - `high` will point to the largest index where `sf.lines[high]` is still less than
+	//   or equal to the `offset`. This means it identifies the start of the line that
+	//   contains the `offset`.
+	// - `low` will be the index of the next line, which is strictly greater than the `offset`.
+	// We stop the loop because we've narrowed down the line where the `offset` resides.
+
+	// +1 because line numbers in text editors start at 1 instead of 0.
+	line := high + 1
+	// The same +1 based indexing applies to columns.
+	column := int(offset) - sf.lines[high] + 1
+
+	return line, column
+}
+
+// GetOffset returns the offset in the source file based on the provided line and column.
+// If the provided line or column is invalid, it returns -1.
+// If the line offsets were not computed yet for this SourceFile, GetOffset
+// will call ComputeLineOffsets function.
+func (sf *SourceFile) GetOffset(line, column int) Pos {
+	// Validate the line number.
+	if line <= 0 || line > len(sf.lines) {
+		return -1 // Invalid line number.
+	}
+
+	// Ensure the line offsets are computed.
+	if len(sf.lines) == 0 {
+		sf.ComputeLineOffsets()
+	}
+
+	// Get the starting offset for the specified line.
+	lineStart := sf.lines[line-1] // Line numbers are 1-based, so subtract 1 for the index.
+
+	// Compute the offset by adding the column offset.
+	offset := lineStart + column - 1 // Columns are also 1-based, so subtract 1.
+
+	// Validate the computed offset against the file length.
+	if offset < 0 || offset >= len(sf.content) {
+		return -1 // Invalid column for the given line.
+	}
+
+	return Pos(offset)
 }
 
 func NewSourceFile(fileNameOrPath, src string) (*SourceFile, error) {
@@ -99,9 +206,9 @@ func NewSourceFile(fileNameOrPath, src string) (*SourceFile, error) {
 	}
 
 	return &SourceFile{
-		name:                    filepath.Base(fileNameOrPath),
-		filePathFromProjectRoot: relativePath,
-		content:                 string(content),
+		name:                        filepath.Base(fileNameOrPath),
+		relativePathFromProjectRoot: relativePath,
+		content:                     string(content),
 	}, nil
 }
 
