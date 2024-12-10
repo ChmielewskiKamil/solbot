@@ -112,6 +112,7 @@ func (p *Parser) ParseFile() *ast.File {
 	}
 
 	file := &ast.File{}
+	file.SourceFile = p.file
 	file.Declarations = []ast.Declaration{}
 
 	for p.currTkn.Type != token.EOF {

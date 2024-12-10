@@ -15,7 +15,7 @@ type BaseSymbol struct {
 	SourceFile *token.SourceFile // Pointer to the source file were symbol was declared.
 	Offset     token.Pos         // Offset to the symbol name.
 	References []Reference       // Places where the symbol was used.
-	AstNode    *ast.Node         // Pointer to ast node.
+	AstNode    ast.Node          // Pointer to ast node.
 }
 
 func (bs *BaseSymbol) Location() string {
@@ -33,6 +33,8 @@ func (bs *BaseSymbol) Location() string {
 	return fmt.Sprintf("Missing location of symbol: %s. No source file info.", bs.Name)
 }
 
+// References are resolved in the second phase of the analysis. They can be
+// analyzed to undersand where a symbol is used and how.
 type Reference struct {
 	SourceFile *token.SourceFile  // Pointer to the source file were symbol reference was found.
 	Offset     token.Pos          // Offset to the place where symbol was referenced in the source file.
@@ -46,6 +48,17 @@ type Contract struct {
 
 type FunctionDeclaration struct {
 	BaseSymbol
+	Parameters []*Param
+	Results    []*Param
+	Visibility ast.Visibility
+	Mutability ast.Mutability
+	Virtual    bool
+}
+
+type Param struct {
+	BaseSymbol
+	// Type
+	DataLocation ast.DataLocation
 }
 
 type ReferenceUsageType int

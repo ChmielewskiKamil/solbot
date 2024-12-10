@@ -549,6 +549,7 @@ func (d *FunctionDeclaration) String() string {
 // file.
 type File struct {
 	Name         string
+	SourceFile   *token.SourceFile
 	Declarations []Declaration
 }
 
