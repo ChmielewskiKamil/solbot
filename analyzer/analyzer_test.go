@@ -1,31 +1,16 @@
 package analyzer
 
 import (
-	"solbot/parser"
-	"solbot/symbols"
-	"solbot/token"
 	"testing"
 )
 
 func Test_PopulateSymbols_GetSymbolsByName(t *testing.T) {
 	testContractPath := "testdata/foundry/src/002_SimpleCounter.sol"
-	p := parser.Parser{}
-	sourceFile, err := token.NewSourceFile(testContractPath, "")
-	if err != nil {
-		t.Fatalf("Could not create source file: %s", err)
-	}
+	analyzer := Analyzer{}
+	analyzer.Init(testContractPath)
+	checkParserErrors(t, &analyzer)
 
-	p.Init(sourceFile)
-
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
-
-	if file == nil {
-		t.Fatalf("ParseFile() returned nil")
-	}
-
-	env := symbols.NewEnvironment()
-	discoverSymbols(file, env, nil)
+	analyzer.AnalyzeCurrentFile()
 
 	tests := []struct {
 		expectedSymbolName string
@@ -36,6 +21,10 @@ func Test_PopulateSymbols_GetSymbolsByName(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		env := analyzer.GetCurrentFileEnv()
+		if env == nil {
+			t.Fatalf("Currently analyzed file's env is nil.")
+		}
 		_, found := env.Get(tt.expectedSymbolName)
 		if !found {
 			t.Fatalf("Symbol: '%s' not found.", tt.expectedSymbolName)
@@ -43,8 +32,8 @@ func Test_PopulateSymbols_GetSymbolsByName(t *testing.T) {
 	}
 }
 
-func checkParserErrors(t *testing.T, p *parser.Parser) {
-	errors := p.Errors()
+func checkParserErrors(t *testing.T, a *Analyzer) {
+	errors := a.GetParserErrors()
 	if len(errors) == 0 {
 		return
 	}

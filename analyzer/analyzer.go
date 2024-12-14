@@ -1,8 +1,10 @@
 package analyzer
 
 import (
+	"fmt"
 	"solbot/analyzer/screamingsnakeconst"
 	"solbot/ast"
+	"solbot/parser"
 	"solbot/reporter"
 	"solbot/symbols"
 	"solbot/token"
@@ -18,47 +20,90 @@ func GetAllDetectors() *[]Detector {
 	}
 }
 
-func AnalyzeFile(file *ast.File) []reporter.Finding {
-	globalEnv := symbols.NewEnvironment()
+type Analyzer struct {
+	// All findings found during the analysis.
+	findings []reporter.Finding
+
+	currentFile    *ast.File            // The currently analysed file; returned from parser.ParseFile.
+	currentFileEnv *symbols.Environment // The environment of the currently analyred file.
+	parser         *parser.Parser       // Parser is used to parse newly encountered files.
+}
+
+func (a *Analyzer) Init(filePathToAnalyze string) error {
+	a.parser = &parser.Parser{}
+
+	sourceFile, err := token.NewSourceFile(filePathToAnalyze, "")
+	if err != nil {
+		return err
+	}
+
+	a.parser.Init(sourceFile)
+	file := a.parser.ParseFile()
+	if file == nil {
+		return fmt.Errorf("Could not parse file. Check parses errors.")
+	}
+
+	a.currentFile = file
+	return nil
+}
+
+func (a *Analyzer) AnalyzeCurrentFile() {
+	a.AnalyzeFile(a.currentFile)
+}
+
+func (a *Analyzer) AnalyzeFile(file *ast.File) {
+	fileEnv := symbols.NewEnvironment()
+	a.currentFileEnv = fileEnv
 
 	// Phase 1: Get all declarations first to avoid unknown symbol errors if
 	// the symbols are defined later in a file or somewhere else.
-	discoverSymbols(file, globalEnv, nil)
+	a.discoverSymbols(file, fileEnv)
 
 	// Phase 2: Populate all definitions and references. Resolve overrides and
 	// inheritance structure.
-	resolveDefinitions(file, globalEnv)
+	a.resolveDefinitions(file, fileEnv)
 
 	// Phase 3: The environment is populated with context at this point.
 	// Diagnose issues with the code. Run detectors.
-	findings := detectIssues(file, globalEnv)
+	findings := a.detectIssues(file, fileEnv)
 
-	return findings
+	for _, finding := range findings {
+		a.findings = append(a.findings, finding)
+	}
+}
+
+func (a *Analyzer) GetFindings() []reporter.Finding {
+	return a.findings
+}
+
+func (a *Analyzer) GetCurrentFileEnv() *symbols.Environment {
+	return a.currentFileEnv
+}
+
+func (a *Analyzer) GetParserErrors() parser.ErrorList {
+	return a.parser.Errors()
 }
 
 ////////////////////////////////////////////////////////////////////
 //                            PHASE 1			                  //
 ////////////////////////////////////////////////////////////////////
 
-func discoverSymbols(node ast.Node,
-	env *symbols.Environment, src *token.SourceFile) {
+func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
 	switch n := node.(type) {
 	case *ast.File:
 		for _, decl := range n.Declarations {
-			discoverSymbols(decl, env, n.SourceFile)
+			a.discoverSymbols(decl, env)
 		}
 	case *ast.FunctionDeclaration:
-		populateFunctionDeclaration(n, env, src)
+		a.populateFunctionDeclaration(n, env)
 	}
 }
 
-func populateFunctionDeclaration(
-	node *ast.FunctionDeclaration,
-	env *symbols.Environment,
-	src *token.SourceFile) {
+func (a *Analyzer) populateFunctionDeclaration(
+	node *ast.FunctionDeclaration, env *symbols.Environment) {
 	baseSymbol := symbols.BaseSymbol{
 		Name:       node.Name.Value,
-		SourceFile: src,
+		SourceFile: a.currentFile.SourceFile,
 		Offset:     node.Pos,
 		AstNode:    node,
 	}
@@ -74,9 +119,9 @@ func populateFunctionDeclaration(
 //                            PHASE 2			                  //
 ////////////////////////////////////////////////////////////////////
 
-func resolveDefinitions(node ast.Node, env *symbols.Environment) {}
+func (a *Analyzer) resolveDefinitions(node ast.Node, env *symbols.Environment) {}
 
-func detectIssues(node ast.Node, env *symbols.Environment) []reporter.Finding {
+func (a *Analyzer) detectIssues(node ast.Node, env *symbols.Environment) []reporter.Finding {
 	var findings []reporter.Finding
 
 	// detectors := *GetAllDetectors()

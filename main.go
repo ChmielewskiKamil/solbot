@@ -12,9 +12,7 @@ import (
 	"solbot/lsp"
 	"solbot/lsp/analysis"
 	"solbot/lsp/rpc"
-	"solbot/parser"
 	"solbot/reporter"
-	"solbot/token"
 )
 
 func main() {
@@ -64,24 +62,14 @@ func startLanguageServer() {
 
 func startAnalyzer(filePath string) error {
 	println("Solbot starts")
-	p := parser.Parser{}
-	handle, err := token.NewSourceFile(filePath, "")
-	if err != nil {
-		return err
-	}
 
-	p.Init(handle)
-	p.ToggleTracing()
-
-	file := p.ParseFile()
+	a := analyzer.Analyzer{}
+	a.Init(filePath)
+	a.AnalyzeCurrentFile()
 
 	println("Solbot is analyzing your file...")
-	findings := analyzer.AnalyzeFile(file)
-	for _, finding := range findings {
-		finding.CalculatePositions(handle)
-	}
 
-	reporter.GenerateReport(findings, "solbot.md")
+	reporter.GenerateReport(a.GetFindings(), "solbot.md")
 
 	return nil
 }
