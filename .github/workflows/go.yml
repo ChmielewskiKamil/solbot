@@ -24,5 +24,8 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Test
+    - name: Run unit tests
       run: go test -v ./...
+
+    - name: Run fuzz tests for the token package
+      run: go test -fuzz=. -fuzztime=300s ./token
