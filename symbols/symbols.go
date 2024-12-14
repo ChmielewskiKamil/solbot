@@ -11,7 +11,7 @@ type Symbol interface {
 }
 
 type BaseSymbol struct {
-	Name       string            // symbol name e.g. "Vault", "add", "balanceOf", "x", "Ownable"	SourceFile *token.SourceFile // Pointer to the source file were symbol was declared
+	Name       string            // symbol name e.g. "Vault", "add", "balanceOf", "x", "Ownable"
 	SourceFile *token.SourceFile // Pointer to the source file were symbol was declared.
 	Offset     token.Pos         // Offset to the symbol name.
 	References []Reference       // Places where the symbol was used.
