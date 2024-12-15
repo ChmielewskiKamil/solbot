@@ -127,30 +127,35 @@ func (p *Parser) ParseFile() *ast.File {
 }
 
 func (p *Parser) parseSourceUnitDeclaration() ast.Declaration {
-	// Cases below should match elements outlined in:
-	// 'rule source-unit' in Solidity Grammar
-	// pragma
-	// import-directive
-	// using-directive
-	// contract-definition
-	// interface-definition
-	// library-definition
-	// function-definition
-	// constant-variable-declaration
-	// struct-definition
-	// enum-definition
-	// user-defined-value-type-definition
-	// error-definition
-	// event-definition
-	switch tkType := p.currTkn.Type; {
-	case tkType == token.CONTRACT || tkType == token.ABSTRACT:
-		return p.parseContractDeclaration()
-	// case token.IsElementaryType(tkType):
-	// 	return p.parseStateVariableDeclaration()
-	case tkType == token.FUNCTION:
-		return p.parseFunctionDeclaration()
+	// Cases below should match elements outlined in the
+	// 'rule source-unit' in Solidity Grammar.
+	// TODO: Implement remaining SourceUnit elements.
+	switch tk := p.currTkn.Type; {
 	default:
+		// TODO: Once this function is fully implemented, the default case
+		// should only be hit on errors. Add the parses error then.
+		// p.errors.Add(p.currTkn.Pos, "Unhandled declaration type in the SourceUnit: "+p.currTkn.Literal)
 		return nil
+
+		// pragma
+		// import-directive
+		// using-directive
+
+	case tk == token.CONTRACT || tk == token.ABSTRACT: // contract-definition
+		return p.parseContractDeclaration()
+
+		// interface-definition
+		// library-definition
+
+	case tk == token.FUNCTION: // function-definition
+		return p.parseFunctionDeclaration()
+
+		// constant-variable-declaration
+		// struct-definition
+		// enum-definition
+		// user-defined-value-type-definition
+		// error-definition
+		// event-definition
 	}
 }
 
@@ -239,9 +244,12 @@ func (p *Parser) parseContractBody() *ast.ContractBody {
 	for {
 		// The cases below should mimic 1:1 elements outlined in:
 		// 'rule contract-body-element' from Solidity Grammar page.
+		// TODO: Implement remaining ContractBody elements.
 		switch tk := p.currTkn.Type; {
 		default:
-			p.errors.Add(p.currTkn.Pos, "Unhandled declaration in contract's body: "+p.currTkn.Literal)
+			// TODO Once this function is fully implemented, throw parses errors
+			// when default case is hit.
+			// p.errors.Add(p.currTkn.Pos, "Unhandled declaration in contract's body: "+p.currTkn.Literal)
 			p.nextToken()
 
 		// case tk == token.CONSTRUCTOR: // Constructor definition
