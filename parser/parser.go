@@ -116,7 +116,7 @@ func (p *Parser) ParseFile() *ast.File {
 	file.Declarations = []ast.Declaration{}
 
 	for p.currTkn.Type != token.EOF {
-		decl := p.parseDeclaration()
+		decl := p.parseSourceUnitDeclaration()
 		if decl != nil {
 			file.Declarations = append(file.Declarations, decl)
 		}
@@ -126,12 +126,27 @@ func (p *Parser) ParseFile() *ast.File {
 	return file
 }
 
-func (p *Parser) parseDeclaration() ast.Declaration {
+func (p *Parser) parseSourceUnitDeclaration() ast.Declaration {
+	// Cases below should match elements outlined in:
+	// 'rule source-unit' in Solidity Grammar
+	// pragma
+	// import-directive
+	// using-directive
+	// contract-definition
+	// interface-definition
+	// library-definition
+	// function-definition
+	// constant-variable-declaration
+	// struct-definition
+	// enum-definition
+	// user-defined-value-type-definition
+	// error-definition
+	// event-definition
 	switch tkType := p.currTkn.Type; {
 	case tkType == token.CONTRACT || tkType == token.ABSTRACT:
 		return p.parseContractDeclaration()
-	case token.IsElementaryType(tkType):
-		return p.parseStateVariableDeclaration()
+	// case token.IsElementaryType(tkType):
+	// 	return p.parseStateVariableDeclaration()
 	case tkType == token.FUNCTION:
 		return p.parseFunctionDeclaration()
 	default:

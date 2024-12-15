@@ -8,7 +8,8 @@ import (
 )
 
 func Test_DetectSnakeCaseConst(t *testing.T) {
-	src := `address owner = 0x12345;          // no match
+	src := `contract Test {
+       address owner = 0x12345;                  // no match
 	   bool constant IS_OWNER = true;            // no match
 	   bool constant isOwner = false;            // match
 	   bool constant is_owner = false;           // match
@@ -17,6 +18,7 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 	   bool isOwner = true;                      // no match
 	   uint16 constant ONE_hundred_IS_100 = 100; // match
 	   uint256 constant DENOMINATOR = 1_000_000; // no match
+       }
 	   `
 
 	p := parser.Parser{}
@@ -29,7 +31,8 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 	if file == nil {
 		t.Fatalf("Parsed file is nil")
 	}
-	if len(file.Declarations) == 0 {
+
+	if len(file.Declarations) != 1 {
 		t.Fatalf("Parsed file has no declarations")
 	}
 
@@ -49,10 +52,10 @@ func Test_DetectSnakeCaseConst(t *testing.T) {
 	finding.CalculatePositions(handle)
 
 	expectedLocations := []reporter.Location{
-		{Position: token.Position{Line: 3, Column: 19}, Context: "isOwner"},
-		{Position: token.Position{Line: 4, Column: 19}, Context: "is_owner"},
-		{Position: token.Position{Line: 6, Column: 22}, Context: "router"},
-		{Position: token.Position{Line: 8, Column: 21}, Context: "ONE_hundred_IS_100"},
+		{Position: token.Position{Line: 4, Column: 19}, Context: "isOwner"},
+		{Position: token.Position{Line: 5, Column: 19}, Context: "is_owner"},
+		{Position: token.Position{Line: 7, Column: 22}, Context: "router"},
+		{Position: token.Position{Line: 9, Column: 21}, Context: "ONE_hundred_IS_100"},
 	}
 
 	for i, loc := range finding.Locations {

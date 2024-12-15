@@ -28,27 +28,32 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 	// constant and immutable variables.
 	case *ast.File:
 		for _, decl := range n.Declarations {
-			if v, ok := decl.(*ast.StateVariableDeclaration); ok {
-				if v == nil {
-					// This handles an edge case where the AST was not properly built
-					// e.g. the parser added the declarations but they are empty.
-					continue
-				}
-				// @TODO: Add immutable variables as well (but they can only be contract level)
-				if v.Mutability == ast.Constant {
-					if !isScreamingSnakeCase(v.Name.Value) {
-						finding.Locations = append(
-							finding.Locations, reporter.Location{
-								Position: token.Position{
-									Offset: v.Name.Pos,
-								},
-								// Save ident name for the report.
-								Context: v.Name.Value,
-							})
-						matches++
+			if c, ok := decl.(*ast.ContractDeclaration); ok {
+				for _, stateVar := range c.Body.Declarations {
+					if v, ok := stateVar.(*ast.StateVariableDeclaration); ok {
+						if v == nil {
+							// This handles an edge case where the AST was not properly built
+							// e.g. the parser added the declarations but they are empty.
+							continue
+						}
+						// @TODO: Add immutable variables as well (but they can only be contract level)
+						if v.Mutability == ast.Constant {
+							if !isScreamingSnakeCase(v.Name.Value) {
+								finding.Locations = append(
+									finding.Locations, reporter.Location{
+										Position: token.Position{
+											Offset: v.Name.Pos,
+										},
+										// Save ident name for the report.
+										Context: v.Name.Value,
+									})
+								matches++
+							}
+						}
 					}
 				}
 			}
+
 		}
 
 		if matches > 0 {

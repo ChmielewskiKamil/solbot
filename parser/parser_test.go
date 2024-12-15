@@ -8,7 +8,8 @@ import (
 )
 
 func Test_ParseStateVariableDeclaration(t *testing.T) {
-	src := `address owner = 0x12345;
+	src := `contract Test {
+    address owner = 0x12345;
     uint256 balance = 100;
     bool isOwner = true;
     bool constant IS_OWNER = true;           
@@ -21,12 +22,13 @@ func Test_ParseStateVariableDeclaration(t *testing.T) {
     uint256 constant DENOMINATOR = 1_000_000; 
     uint256 private constant Is_This_Snake_Case = 0;
     uint256 transient blob = 0;
+    }
     `
 
 	file := test_helper_parseSource(t, src, false)
 
-	if len(file.Declarations) != 13 {
-		t.Fatalf("Expected 13 declarations, got %d", len(file.Declarations))
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
 	}
 
 	tests := []struct {
@@ -51,11 +53,17 @@ func Test_ParseStateVariableDeclaration(t *testing.T) {
 		{token.UINT_256, 6, ast.Internal, "blob", big.NewInt(0)},
 	}
 
+	decl := file.Declarations[0]
+	contract, ok := decl.(*ast.ContractDeclaration)
+	if !ok {
+		t.Fatalf("Expected contract declaration, got: %T", decl)
+	}
+
 	for i, tt := range tests {
-		decl := file.Declarations[i]
+		stateVar := contract.Body.Declarations[i]
 		if !testParseElementaryType(
 			t,
-			decl,
+			stateVar,
 			tt.expectedType,
 			tt.expectedMutability,
 			tt.expectedVisibility,
