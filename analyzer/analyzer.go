@@ -94,9 +94,27 @@ func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
 		for _, decl := range n.Declarations {
 			a.discoverSymbols(decl, env)
 		}
+	case *ast.ContractDeclaration:
+		a.populateContractDeclaration(n, env)
 	case *ast.FunctionDeclaration:
 		a.populateFunctionDeclaration(n, env)
 	}
+}
+
+func (a *Analyzer) populateContractDeclaration(
+	node *ast.ContractDeclaration, env *symbols.Environment) {
+	baseSymbol := symbols.BaseSymbol{
+		Name:       node.Name.Value,
+		SourceFile: a.currentFile.SourceFile,
+		Offset:     node.Pos,
+		AstNode:    node,
+	}
+
+	contractSymbol := &symbols.Contract{
+		BaseSymbol: baseSymbol,
+	}
+
+	env.Set(node.Name.Value, contractSymbol)
 }
 
 func (a *Analyzer) populateFunctionDeclaration(

@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func Test_PopulateSymbols_GetSymbolsByName(t *testing.T) {
+func Test_DiscoverSymbols_GetSymbolsByName(t *testing.T) {
 	testContractPath := "testdata/foundry/src/002_SimpleCounter.sol"
 	analyzer := Analyzer{}
 	analyzer.Init(testContractPath)
@@ -15,6 +15,7 @@ func Test_PopulateSymbols_GetSymbolsByName(t *testing.T) {
 	tests := []struct {
 		expectedSymbolName string
 	}{
+		{"Counter"},
 		{"increment"},
 		{"decrement"},
 		{"reset"},
