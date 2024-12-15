@@ -228,25 +228,25 @@ func Test_ParseContractDeclaration(t *testing.T) {
 		t.Fatalf("Expected 2 declarations in the contract body, got %d", len(body.Declarations))
 	}
 
-	// // Verify state variable
-	// varDecl, ok := body.Declarations[0].(*ast.VariableDeclaration)
-	// if !ok {
-	// 	t.Fatalf("Expected VariableDeclaration, got %T", body.Declarations[0])
-	// }
-	//
-	// if varDecl.Name.Value != "myVar" {
-	// 	t.Errorf("Expected variable name myVar, got %s", varDecl.Name.Value)
-	// }
-	//
-	// // Verify function declaration
-	// funcDecl, ok := body.Declarations[1].(*ast.FunctionDeclaration)
-	// if !ok {
-	// 	t.Fatalf("Expected FunctionDeclaration, got %T", body.Declarations[1])
-	// }
-	//
-	// if funcDecl.Name.Value != "myFunction" {
-	// 	t.Errorf("Expected function name myFunction, got %s", funcDecl.Name.Value)
-	// }
+	// Verify state variable
+	varDecl, ok := body.Declarations[0].(*ast.StateVariableDeclaration)
+	if !ok {
+		t.Fatalf("Expected VariableDeclaration, got %T", body.Declarations[0])
+	}
+
+	if varDecl.Name.Value != "myVar" {
+		t.Errorf("Expected variable name myVar, got %s", varDecl.Name.Value)
+	}
+
+	// Verify function declaration
+	funcDecl, ok := body.Declarations[1].(*ast.FunctionDeclaration)
+	if !ok {
+		t.Fatalf("Expected FunctionDeclaration, got %T", body.Declarations[1])
+	}
+
+	if funcDecl.Name.Value != "myFunction" {
+		t.Errorf("Expected function name myFunction, got %s", funcDecl.Name.Value)
+	}
 }
 
 // Since the return statement is a "statement", and there are no free-floating
