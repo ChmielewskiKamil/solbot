@@ -174,6 +174,73 @@ func Test_ParseFunctionDeclaration(t *testing.T) {
 	test_Identifier(t, rtStmt.Result, "tester")
 }
 
+func Test_ParseContractDeclaration(t *testing.T) {
+	src := `
+    contract MyContract is BaseContract {
+        uint256 public myVar;
+        function myFunction() public view returns (uint256) {
+            return myVar;
+        }
+    }
+    `
+
+	file := test_helper_parseSource(t, src, false)
+
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	}
+
+	decl := file.Declarations[0]
+	contract, ok := decl.(*ast.ContractDeclaration)
+	if !ok {
+		t.Fatalf("Expected ContractDeclaration, got %T", decl)
+	}
+
+	// Verify the contract's name
+	if contract.Name.Value != "MyContract" {
+		t.Errorf("Expected contract name MyContract, got %s", contract.Name.Value)
+	}
+
+	// Verify inheritance
+	if len(contract.Parents) != 1 {
+		t.Fatalf("Expected 1 parent contract, got %d", len(contract.Parents))
+	}
+
+	if contract.Parents[0].Value != "BaseContract" {
+		t.Errorf("Expected parent contract BaseContract, got %s", contract.Parents[0].Value)
+	}
+
+	// Verify the body
+	body := contract.Body
+	if body == nil {
+		t.Fatalf("Expected ContractBody, got nil")
+	}
+
+	if len(body.Declarations) != 2 {
+		t.Fatalf("Expected 2 declarations in the contract body, got %d", len(body.Declarations))
+	}
+
+	// // Verify state variable
+	// varDecl, ok := body.Declarations[0].(*ast.VariableDeclaration)
+	// if !ok {
+	// 	t.Fatalf("Expected VariableDeclaration, got %T", body.Declarations[0])
+	// }
+	//
+	// if varDecl.Name.Value != "myVar" {
+	// 	t.Errorf("Expected variable name myVar, got %s", varDecl.Name.Value)
+	// }
+	//
+	// // Verify function declaration
+	// funcDecl, ok := body.Declarations[1].(*ast.FunctionDeclaration)
+	// if !ok {
+	// 	t.Fatalf("Expected FunctionDeclaration, got %T", body.Declarations[1])
+	// }
+	//
+	// if funcDecl.Name.Value != "myFunction" {
+	// 	t.Errorf("Expected function name myFunction, got %s", funcDecl.Name.Value)
+	// }
+}
+
 // Since the return statement is a "statement", and there are no free-floating
 // statements in Solidity, we have to wrap it in some kind of declaration e.g.
 // a function declaration. Since the ast.File got a list of declarations, we

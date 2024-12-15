@@ -456,9 +456,6 @@ func (s *IfStatement) String() string {
 
 /*~*~*~*~*~*~*~*~*~*~*~*~ Declarations ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
-// @TODO: Add Contract declaration
-// @TODO: Add Interface declaration
-// @TODO: Add Library declaration
 // @TODO: Add Struct declaration
 // @TODO: Add Enum declaration
 // @TODO: Add Event declaration
@@ -470,6 +467,35 @@ func (s *IfStatement) String() string {
 // they are connected with a particular file.
 // @TODO?: Add Pragma Directive declaration
 // @TODO?: Add Import Directive declaration
+
+type ContractBase struct {
+	Pos  token.Pos     // position of the "contract/interface/library/abstract" keyword
+	Name *Identifier   // contract's name
+	Body *ContractBody // contract's body containing other declarations
+}
+
+type ContractDeclaration struct {
+	ContractBase
+	Parents  []*Identifier // contracts or interfaces inherited by this contract
+	Abstract bool          // whether the contract is abstract or not
+}
+
+type InterfaceDeclaration struct {
+	ContractBase
+	Parents []*Identifier // interfaces inherited by this contract
+}
+
+type LibraryDeclaration struct {
+	ContractBase
+}
+
+// The contract/interface/library body containing declarations. It is enclosed by
+// curly braces.
+type ContractBody struct {
+	LeftBrace    token.Pos     // position of the left curly brace
+	Declarations []Declaration // declarations in the contract/interface/lib body.
+	RightBrace   token.Pos     // position of the right curly brace
+}
 
 // @TODO: Add modifier invocations *CallExpression
 // @TODO: Add override specifier
@@ -496,7 +522,10 @@ type StateVariableDeclaration struct {
 }
 
 // Start() and End() implementations for Declaration type Nodes
-
+func (d *ContractBase) Start() token.Pos             { return d.Pos }
+func (d *ContractBase) End() token.Pos               { return d.Body.End() }
+func (d *ContractBody) Start() token.Pos             { return d.LeftBrace }
+func (d *ContractBody) End() token.Pos               { return d.RightBrace + 1 }
 func (d *StateVariableDeclaration) Start() token.Pos { return d.Type.Start() }
 func (d *StateVariableDeclaration) End() token.Pos   { return d.Value.End() }
 func (d *FunctionDeclaration) Start() token.Pos      { return d.Name.Start() }
@@ -505,10 +534,19 @@ func (d *FunctionDeclaration) End() token.Pos        { return d.Body.End() }
 // declarationNode() implementations to ensure that only declaration nodes can
 // be assigned to a Declaration.
 
+func (*ContractBase) declarationNode()             {}
 func (*StateVariableDeclaration) declarationNode() {}
 func (*FunctionDeclaration) declarationNode()      {}
 
 // String() implementations for Declarations
+func (d *ContractDeclaration) String() string {
+	// TODO: Implement pretty print of contract declaration
+	var out bytes.Buffer
+	out.WriteString(d.Name.Value)
+
+	return out.String()
+}
+
 func (d *StateVariableDeclaration) String() string {
 	// @TODO: If visibility and mutability is not set, they will give empty
 	// spaces but who cares

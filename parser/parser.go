@@ -128,12 +128,134 @@ func (p *Parser) ParseFile() *ast.File {
 
 func (p *Parser) parseDeclaration() ast.Declaration {
 	switch tkType := p.currTkn.Type; {
+	case tkType == token.CONTRACT || tkType == token.ABSTRACT:
+		return p.parseContractDeclaration()
 	case token.IsElementaryType(tkType):
 		return p.parseStateVariableDeclaration()
 	case tkType == token.FUNCTION:
 		return p.parseFunctionDeclaration()
 	default:
 		return nil
+	}
+}
+
+func (p *Parser) parseContractDeclaration() *ast.ContractDeclaration {
+	if p.trace {
+		defer un(trace("parseContractDeclaration"))
+	}
+
+	decl := &ast.ContractDeclaration{}
+	base := ast.ContractBase{}
+
+	// Parser is sitting either on the 'Contract' or 'Abstract' keyword.
+
+	// If it is currently 'Abstract', the next will be 'Contract'
+	if p.peekTknIs(token.CONTRACT) {
+		decl.Abstract = true
+		base.Pos = p.currTkn.Pos
+		p.nextToken() // move to 'Contract'
+	} else {
+		// Pos of 'Contract'
+		base.Pos = p.currTkn.Pos
+	}
+
+	// Parses is on the 'Contract' in both cases now.
+
+	if !p.expectPeek(token.IDENTIFIER) {
+		p.errors.Add(p.currTkn.Pos, "Expected an identifier after Contract keyword. Got: "+p.peekTkn.Literal)
+		// Move to get out of error state
+		p.nextToken()
+	}
+
+	base.Name = &ast.Identifier{
+		Pos:   p.currTkn.Pos,
+		Value: p.currTkn.Literal,
+	}
+
+	// Parse inheritance, if any
+	if p.peekTknIs(token.IS) {
+		p.nextToken() // Move to 'IS'
+
+		for {
+			if !p.expectPeek(token.IDENTIFIER) {
+				p.errors.Add(p.currTkn.Pos, "Expected an identifier after IS keyword. Got: "+p.peekTkn.Literal)
+				break
+			}
+
+			decl.Parents = append(decl.Parents, &ast.Identifier{
+				Pos:   p.currTkn.Pos,
+				Value: p.currTkn.Literal,
+			})
+
+			if !p.peekTknIs(token.COMMA) {
+				break
+			}
+
+			p.nextToken() // Move past the comma
+		}
+	}
+
+	// Parses either went through the ihneritance branch, or is still sitting on
+	// the identifier.
+
+	if p.expectPeek(token.LBRACE) {
+		base.Body = p.parseContractBody()
+	}
+
+	decl.ContractBase = base
+
+	return decl
+}
+
+func (p *Parser) parseContractBody() *ast.ContractBody {
+	if p.trace {
+		defer un(trace("parseContractBody"))
+	}
+
+	// Parser is sitting on the LBRACE
+	body := &ast.ContractBody{
+		LeftBrace: p.currTkn.Pos,
+	}
+
+	p.nextToken() // Move past LBRACE
+
+	decls := []ast.Declaration{}
+
+	for {
+		// The cases below should mimic 1:1 elements outlined in:
+		// 'rule contract-body-element' from Solidity Grammar page.
+		switch tk := p.currTkn.Type; {
+		default:
+			p.errors.Add(p.currTkn.Pos, "Unhandled declaration in contract's body: "+p.currTkn.Literal)
+			p.nextToken()
+
+		// case tk == token.CONSTRUCTOR: // Constructor definition
+
+		case tk == token.FUNCTION: // Function definition
+			decls = append(decls, p.parseFunctionDeclaration())
+			p.nextToken() // Move past RBRACE
+
+			// Modifier definition
+			// fallback-function-definition
+			// receive-function-definition
+			// struct-definition
+			// enum-definition
+			// user-defined-value-type-definition
+
+		case token.IsElementaryType(tk): // state-variable-declaration
+			decls = append(decls, p.parseStateVariableDeclaration())
+			p.nextToken() // Move past semicolon
+
+			// event-definition
+			// error-definition
+			// using-directive
+
+		case tk == token.RBRACE: // End of contract's body
+			body.Declarations = decls
+			body.RightBrace = p.currTkn.Pos
+
+			return body
+		}
 	}
 }
 
