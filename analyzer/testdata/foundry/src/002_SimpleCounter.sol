@@ -6,7 +6,7 @@ contract Counter {
 
     // Comment?
     constructor() {
-        count = 0;
+        count = 100;
     }
 
     function increment() public {
