@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"solbot/symbols"
 	"testing"
 )
 
@@ -12,25 +13,64 @@ func Test_DiscoverSymbols_GetSymbolsByName(t *testing.T) {
 
 	analyzer.AnalyzeCurrentFile()
 
-	tests := []struct {
-		expectedSymbolName string
+	env := analyzer.GetCurrentFileEnv()
+	println("Current file env: ", env)
+	if env == nil {
+		t.Fatalf("Currently analyzed file's env is nil.")
+	}
+
+	expectedFileDecls := []struct {
+		declName string
 	}{
 		{"Counter"},
+	}
+
+	_, found := env.Get(expectedFileDecls[0].declName)
+	if !found {
+		t.Fatalf("Symbol: '%s' not found.", expectedFileDecls[0].declName)
+	}
+
+	expectedContractDecls := []struct {
+		declName string
+	}{
+		{"count"},
 		{"increment"},
 		{"decrement"},
 		{"reset"},
 	}
 
-	for _, tt := range tests {
-		env := analyzer.GetCurrentFileEnv()
-		if env == nil {
-			t.Fatalf("Currently analyzed file's env is nil.")
+	// Iterate through all contracts discovered in the file
+	contracts := symbols.GetAllSymbolsByType[*symbols.Contract](env)
+	if len(contracts) != len(expectedFileDecls) {
+		t.Fatalf("Expected %d contracts, but found %d.", len(expectedFileDecls), len(contracts))
+	}
+
+	for _, contract := range contracts {
+		if contract.Name != expectedFileDecls[0].declName {
+			t.Fatalf("Unexpected contract name: '%s'. Expected: '%s'.", contract.Name, expectedFileDecls[0].declName)
 		}
-		_, found := env.Get(tt.expectedSymbolName)
-		if !found {
-			t.Fatalf("Symbol: '%s' not found.", tt.expectedSymbolName)
+
+		// Retrieve the environment specific to this contract
+		err, contractEnv := env.GetInnerEnvOfSymbol(contract)
+		if err != nil {
+			t.Fatalf("Cannot access contract's env: %s", err)
+		}
+		println("Current file env: ", env)
+		println("Contract env: ", contractEnv)
+
+		if contractEnv == nil {
+			t.Fatalf("Environment for contract '%s' is nil.", contract.Name)
+		}
+
+		// Check for declarations within the contract environment
+		for _, decl := range expectedContractDecls {
+			_, found := contractEnv.Get(decl.declName)
+			if !found {
+				t.Fatalf("Symbol: '%s' not found in contract '%s'.", decl.declName, contract.Name)
+			}
 		}
 	}
+
 }
 
 func checkParserErrors(t *testing.T, a *Analyzer) {

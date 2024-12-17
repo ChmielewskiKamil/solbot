@@ -95,9 +95,18 @@ func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
 			a.discoverSymbols(decl, env)
 		}
 	case *ast.ContractDeclaration:
+		// Populate file's env with contract's declaration
 		a.populateContractDeclaration(n, env)
+
+		// Create contract specific env with file's env as outer.
+		contractEnv := symbols.NewEnclosedEnvironment(env)
+		for _, decl := range n.Body.Declarations {
+			a.discoverSymbols(decl, contractEnv)
+		}
 	case *ast.FunctionDeclaration:
 		a.populateFunctionDeclaration(n, env)
+	case *ast.StateVariableDeclaration:
+		a.populateStateVariableDeclaration(n, env)
 	}
 }
 
@@ -106,7 +115,7 @@ func (a *Analyzer) populateContractDeclaration(
 	baseSymbol := symbols.BaseSymbol{
 		Name:       node.Name.Value,
 		SourceFile: a.currentFile.SourceFile,
-		Offset:     node.Pos,
+		Offset:     node.Name.Pos,
 		AstNode:    node,
 	}
 
@@ -122,15 +131,32 @@ func (a *Analyzer) populateFunctionDeclaration(
 	baseSymbol := symbols.BaseSymbol{
 		Name:       node.Name.Value,
 		SourceFile: a.currentFile.SourceFile,
-		Offset:     node.Pos,
+		Offset:     node.Name.Pos,
 		AstNode:    node,
 	}
 
-	fnSymbol := &symbols.FunctionDeclaration{
+	fnSymbol := &symbols.Function{
 		BaseSymbol: baseSymbol,
 	}
 
 	env.Set(node.Name.Value, fnSymbol)
+}
+
+func (a *Analyzer) populateStateVariableDeclaration(
+	node *ast.StateVariableDeclaration, env *symbols.Environment) {
+	baseSymbol := symbols.BaseSymbol{
+		Name:       node.Name.Value,
+		SourceFile: a.currentFile.SourceFile,
+		Offset:     node.Name.Pos,
+		AstNode:    node,
+	}
+
+	stateVarSymbol := &symbols.StateVariable{
+		BaseSymbol: baseSymbol,
+	}
+
+	println("Adding state var to env: ", env)
+	env.Set(node.Name.Value, stateVarSymbol)
 }
 
 ////////////////////////////////////////////////////////////////////

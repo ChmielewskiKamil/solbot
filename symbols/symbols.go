@@ -46,13 +46,17 @@ type Contract struct {
 	BaseSymbol
 }
 
-type FunctionDeclaration struct {
+type Function struct {
 	BaseSymbol
 	Parameters []*Param
 	Results    []*Param
 	Visibility ast.Visibility
 	Mutability ast.Mutability
 	Virtual    bool
+}
+
+type StateVariable struct {
+	BaseSymbol
 }
 
 type Param struct {
