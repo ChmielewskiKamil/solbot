@@ -134,10 +134,20 @@ func (p *Parser) parseSourceUnitDeclaration() ast.Declaration {
 	default:
 		// TODO: Once this function is fully implemented, the default case
 		// should only be hit on errors. Add the parses error then.
-		// p.errors.Add(p.currTkn.Pos, "Unhandled declaration type in the SourceUnit: "+p.currTkn.Literal)
+		p.errors.Add(p.currTkn.Pos, "Unhandled declaration type in the SourceUnit: "+p.currTkn.Literal)
 		return nil
 
-		// pragma
+	case tk == token.COMMENT_LITERAL:
+		// TODO Parse comments; skip for now
+		return nil
+
+	case tk == token.PRAGMA:
+		// TODO parse pragma; skip for now
+		for !p.currTknIs(token.SEMICOLON) {
+			p.nextToken()
+		}
+		return nil
+
 		// import-directive
 		// using-directive
 
@@ -249,10 +259,17 @@ func (p *Parser) parseContractBody() *ast.ContractBody {
 		default:
 			// TODO Once this function is fully implemented, throw parses errors
 			// when default case is hit.
-			// p.errors.Add(p.currTkn.Pos, "Unhandled declaration in contract's body: "+p.currTkn.Literal)
+			p.errors.Add(p.currTkn.Pos, "Unhandled declaration in contract's body: "+p.currTkn.Literal)
+			p.nextToken()
+		case tk == token.COMMENT_LITERAL:
+			// TODO Parse comments
 			p.nextToken()
 
-		// case tk == token.CONSTRUCTOR: // Constructor definition
+		case tk == token.CONSTRUCTOR: // Constructor definition
+			for !p.currTknIs(token.RBRACE) {
+				p.nextToken()
+			}
+			p.nextToken() // Move past RBRACE
 
 		case tk == token.FUNCTION: // Function definition
 			decls = append(decls, p.parseFunctionDeclaration())
