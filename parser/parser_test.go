@@ -186,9 +186,13 @@ func Test_ParseContractDeclaration(t *testing.T) {
 	src := `
     contract MyContract is BaseContract {
         uint256 public myVar;
+
         function myFunction() public view returns (uint256) {
+            uint256 balance;
             return myVar;
         }
+
+        function test() public {}
     }
     `
 
@@ -224,8 +228,8 @@ func Test_ParseContractDeclaration(t *testing.T) {
 		t.Fatalf("Expected ContractBody, got nil")
 	}
 
-	if len(body.Declarations) != 2 {
-		t.Fatalf("Expected 2 declarations in the contract body, got %d", len(body.Declarations))
+	if len(body.Declarations) != 3 {
+		t.Fatalf("Expected 3 declarations in the contract body, got %d", len(body.Declarations))
 	}
 
 	// Verify state variable
