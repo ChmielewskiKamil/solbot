@@ -205,7 +205,7 @@ func (x *ElementaryTypeExpression) String() string {
 // Type nodes are constrains on expressions. They define the kinds of values
 // that expressions can have. For example, ElementaryType constrains expressions
 // to have values of a particular type e.g. "address", "uint256", "bool". In
-// Solidity we have Five main types: elementary, function, user-defined, mapping
+// Solidity there are Five main types: elementary, function, user-defined, mapping
 // and array types.
 
 // In Solidity grammar called "ElementaryTypeName".
@@ -241,9 +241,9 @@ type FunctionType struct {
 	Visibility Visibility // visibility specifier e.g. public, private, internal, external
 }
 
-// @TODO: Implement user-defined type
-// @TODO: Implement mapping type
-// @TODO: Implement array types
+// TODO: Implement user-defined type
+// TODO: Implement mapping type
+// TODO: Implement array types
 
 // Param is not a type and not an expression, but we place it here since it is
 // closely related to types.
