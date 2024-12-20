@@ -6,6 +6,10 @@ import (
 	"solbot/token"
 )
 
+// Symbol represents any identifiable entity in the Solidity source code, such as contracts,
+// functions, or variables. The purpose of this interface is to standardize access to essential
+// metadata, like the location of the symbol in the source file. This makes it easier to generalize
+// operations across different symbol types during analysis.
 type Symbol interface {
 	Location() string // Prints the symbol's location in the format: path/from/project/root/file.sol:Line:Column
 }
@@ -36,10 +40,10 @@ func (bs *BaseSymbol) Location() string {
 // References are resolved in the second phase of the analysis. They can be
 // analyzed to undersand where a symbol is used and how.
 type Reference struct {
-	SourceFile *token.SourceFile  // Pointer to the source file were symbol reference was found.
-	Offset     token.Pos          // Offset to the place where symbol was referenced in the source file.
-	Usage      ReferenceUsageType // How the reference was used: "call", "read", "write".
-	AstNode    *ast.Node          // Pointer to ast node.
+	SourceFile *token.SourceFile // Pointer to the source file were symbol reference was found.
+	Offset     token.Pos         // Offset to the place where symbol was referenced in the source file.
+	Context    ReferenceContext  // Info about usage and scope e.g. state var is written to in function foo()
+	AstNode    *ast.Node         // Pointer to ast node.
 }
 
 type Contract struct {
@@ -65,6 +69,12 @@ type Param struct {
 	DataLocation ast.DataLocation
 }
 
+type ReferenceContext struct {
+	ScopeName string
+	ScopeType ReferenceScopeType
+	Usage     ReferenceUsageType // How the reference was used: "call", "read", "write".
+}
+
 type ReferenceUsageType int
 
 const (
@@ -73,3 +83,38 @@ const (
 	WRITE
 	CALL
 )
+
+func (u ReferenceUsageType) String() string {
+	switch u {
+	case READ:
+		return "READ"
+	case WRITE:
+		return "WRITE"
+	case CALL:
+		return "CALL"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+type ReferenceScopeType int
+
+const (
+	_ ReferenceScopeType = iota
+	CONTRACT
+	FUNCTION
+	CONSTRUCTOR
+)
+
+func (s ReferenceScopeType) String() string {
+	switch s {
+	case CONTRACT:
+		return "CONTRACT"
+	case FUNCTION:
+		return "FUNCTION"
+	case CONSTRUCTOR:
+		return "CONSTRUCTOR"
+	default:
+		return "UNKNOWN"
+	}
+}
