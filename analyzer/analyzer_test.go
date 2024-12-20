@@ -55,8 +55,6 @@ func Test_DiscoverSymbols_GetSymbolsByName(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Cannot access contract's env: %s", err)
 		}
-		println("Current file env: ", env)
-		println("Contract env: ", contractEnv)
 
 		if contractEnv == nil {
 			t.Fatalf("Environment for contract '%s' is nil.", contract.Name)

@@ -155,7 +155,6 @@ func (a *Analyzer) populateStateVariableDeclaration(
 		BaseSymbol: baseSymbol,
 	}
 
-	println("Adding state var to env: ", env)
 	env.Set(node.Name.Value, stateVarSymbol)
 }
 
