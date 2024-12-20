@@ -31,6 +31,11 @@ func (env *Environment) Set(ident string, symbol Symbol) {
 	env.perSymbolEnv[symbol] = env
 }
 
+// Get looks up a symbol in the env provided the identifier. It returns an array
+// of symbols since during the symbol discovery (phase 1) there could have been
+// many symbols with the same name/signature (e.g. fn overrides) which must be
+// resolved in the resolution phase (phase 2). Get returns false if the symbol
+// is not found.
 func (env *Environment) Get(ident string) ([]Symbol, bool) {
 	// check current env
 	if symbols, ok := env.store[ident]; ok {
