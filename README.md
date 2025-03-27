@@ -29,3 +29,4 @@
 | `couldbepure` | Functions that do not read or modify state should be declared as `pure` | |
 | `unnecessarysetroleadmin` | When using OZ's `AccessControl` there is no need to set `DEFAULT_ADMIN_ROLE` as admin for other roles | |
 | `grantrolezeroaddress` | The grant role functions from OZ's `AccessControl` don't check zero address | |
+| `upgradepattern` | If you don't inherit `UUPSUpgradeable`, the contract can't be deployed as UUPS proxy | |
