@@ -107,6 +107,9 @@ func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
 			a.discoverSymbols(decl, contractEnv)
 		}
 	case *ast.FunctionDeclaration:
+		// TODO: The comment below might no longer be accurate given the fact
+		// that the definition resolution phase has been removed.
+		//
 		// Contract's env is used as opposed to function's env because at the
 		// discovery phase we only care about fn signature and we don't analyze
 		// function's body in the context of function's parameters.

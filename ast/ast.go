@@ -262,6 +262,20 @@ type ParamList struct {
 	Closing token.Pos // position of the closing parenthesis if any
 }
 
+type EventParamList struct {
+	Opening token.Pos     // position of the opening parenthesis if any
+	List    []*EventParam // list of fields; or nil
+	Closing token.Pos     // position of the closing parenthesis if any
+}
+
+// EventParam is implemented as a separate struct from Param since it does not have
+// the data location but has the option to be indexed.
+type EventParam struct {
+	Name      *Identifier // name of the event param
+	Type      Type        // type of the event param
+	IsIndexed bool        // whether the event param is indexed; true if it is indexed, false otherwise (default)
+}
+
 // @TODO: Implement Start(), End() and String() for FunctionType,
 // Param and ParamList
 
@@ -458,7 +472,6 @@ func (s *IfStatement) String() string {
 
 // @TODO: Add Struct declaration
 // @TODO: Add Enum declaration
-// @TODO: Add Event declaration
 // @TODO: Add Error declaration
 // @TODO: Add Using For Directive declaration
 // @TODO: Add User Defined Value Type declaration
@@ -519,6 +532,13 @@ type StateVariableDeclaration struct {
 	Value      Expression  // initial value or nil
 	Visibility Visibility  // visibility specifier: public, private, internal
 	Mutability Mutability  // mutability specifier: constant, immutable, transient
+}
+
+type EventDeclaration struct {
+	Pos         token.Pos       // position of the "event" keyword
+	Name        *Identifier     // event name
+	Params      *EventParamList // list of event parameters
+	IsAnonymous bool            // whether the event is anonymous; true if anonymous, false if not (default)
 }
 
 // Start() and End() implementations for Declaration type Nodes
