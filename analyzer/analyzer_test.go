@@ -5,16 +5,17 @@ import (
 	"testing"
 )
 
-func Test_DiscoverSymbols_GetSymbolsByName(t *testing.T) {
+func Test_DiscoverSymbols_getSymbolsByType(t *testing.T) {
 	testContractPath := "testdata/foundry/src/002_SimpleCounter.sol"
 	analyzer := Analyzer{}
 	analyzer.Init(testContractPath)
 	checkParserErrors(t, &analyzer)
+	checkAnalyzerErrors(t, &analyzer)
 
 	analyzer.AnalyzeCurrentFile()
 
 	env := analyzer.GetCurrentFileEnv()
-	println("Current file env: ", env)
+
 	if env == nil {
 		t.Fatalf("Currently analyzed file's env is nil.")
 	}
@@ -68,7 +69,6 @@ func Test_DiscoverSymbols_GetSymbolsByName(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 func checkParserErrors(t *testing.T, a *Analyzer) {
@@ -80,6 +80,19 @@ func checkParserErrors(t *testing.T, a *Analyzer) {
 	t.Errorf("Parser has %d errors", len(errors))
 	for _, err := range errors {
 		t.Errorf("Parser error: %s", err.Msg)
+	}
+	t.FailNow()
+}
+
+func checkAnalyzerErrors(t *testing.T, a *Analyzer) {
+	errors := a.Errors()
+	if len(errors) == 0 {
+		return
+	}
+
+	t.Errorf("Analyzer has %d errors", len(errors))
+	for _, err := range errors {
+		t.Errorf("Analyzer error: %s At location: %s", err.Msg, err.Loc)
 	}
 	t.FailNow()
 }

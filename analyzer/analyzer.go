@@ -24,6 +24,8 @@ type Analyzer struct {
 	// All findings found during the analysis.
 	findings []reporter.Finding
 
+	analysisErrors ErrorList
+
 	currentFile    *ast.File            // The currently analysed file; returned from parser.ParseFile.
 	currentFileEnv *symbols.Environment // The environment of the currently analyred file.
 	parser         *parser.Parser       // Parser is used to parse newly encountered files.
@@ -31,6 +33,7 @@ type Analyzer struct {
 
 func (a *Analyzer) Init(filePathToAnalyze string) error {
 	a.parser = &parser.Parser{}
+	a.analysisErrors = ErrorList{}
 
 	sourceFile, err := token.NewSourceFile(filePathToAnalyze, "")
 	if err != nil {
@@ -59,9 +62,9 @@ func (a *Analyzer) AnalyzeFile(file *ast.File) {
 	// the symbols are defined later in a file or somewhere else.
 	a.discoverSymbols(file, fileEnv)
 
-	// Phase 2: Populate all definitions and references. Resolve overrides and
-	// inheritance structure.
-	a.resolveDefinitions(file, fileEnv)
+	// Phase 2: Populate all references. Since all declarations in all scopes
+	// should be known at this time, connect them to the place they are used.
+	a.resolveReferences(file, fileEnv)
 
 	// Phase 3: The environment is populated with context at this point.
 	// Diagnose issues with the code. Run detectors.
@@ -104,6 +107,9 @@ func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
 			a.discoverSymbols(decl, contractEnv)
 		}
 	case *ast.FunctionDeclaration:
+		// Contract's env is used as opposed to function's env because at the
+		// discovery phase we only care about fn signature and we don't analyze
+		// function's body in the context of function's parameters.
 		a.populateFunctionDeclaration(n, env)
 	case *ast.StateVariableDeclaration:
 		a.populateStateVariableDeclaration(n, env)
@@ -162,7 +168,11 @@ func (a *Analyzer) populateStateVariableDeclaration(
 //                            PHASE 2			                  //
 ////////////////////////////////////////////////////////////////////
 
-func (a *Analyzer) resolveDefinitions(node ast.Node, env *symbols.Environment) {}
+func (a *Analyzer) resolveReferences(node ast.Node, env *symbols.Environment) {}
+
+////////////////////////////////////////////////////////////////////
+//                            PHASE 3			                  //
+////////////////////////////////////////////////////////////////////
 
 func (a *Analyzer) detectIssues(node ast.Node, env *symbols.Environment) []reporter.Finding {
 	var findings []reporter.Finding
@@ -177,4 +187,29 @@ func (a *Analyzer) detectIssues(node ast.Node, env *symbols.Environment) []repor
 	// }
 
 	return findings
+}
+
+////////////////////////////////////////////////////////////////////
+//                            Helpers			                  //
+////////////////////////////////////////////////////////////////////
+
+func (a *Analyzer) GetNodeLocation(node ast.Node, pos token.Pos) string {
+	if node == nil {
+		return "Unknown location: nil node"
+	}
+
+	sourceFile := a.currentFile.SourceFile
+	if sourceFile == nil {
+		return fmt.Sprintf("Unknown location for node at position %d", pos)
+	}
+
+	line, column := sourceFile.GetLineAndColumn(pos)
+
+	return fmt.Sprintf("%s:%d:%d", sourceFile.RelativePathFromProjectRoot(), line, column)
+}
+
+// Errors returns the combined list of errors encountered during the analysis.
+// It includes errors from all phases.
+func (a *Analyzer) Errors() ErrorList {
+	return a.analysisErrors
 }

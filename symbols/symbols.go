@@ -59,14 +59,14 @@ type Function struct {
 	Virtual    bool
 }
 
-type StateVariable struct {
-	BaseSymbol
-}
-
 type Param struct {
 	BaseSymbol
 	// Type
 	DataLocation ast.DataLocation
+}
+
+type StateVariable struct {
+	BaseSymbol
 }
 
 type ReferenceContext struct {
