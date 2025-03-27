@@ -512,7 +512,6 @@ func (p *Parser) parseEventDeclaration() *ast.EventDeclaration {
 	params.Opening = p.currTkn.Pos
 
 	for !p.peekTknIs(token.RPAREN) {
-		// TODO: Implement Event Parameter parsing
 		eventParam := &ast.EventParam{}
 
 		p.nextToken() // move past opening parenthesis
