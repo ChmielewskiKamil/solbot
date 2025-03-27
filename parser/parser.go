@@ -192,6 +192,7 @@ func (p *Parser) parseContractDeclaration() *ast.ContractDeclaration {
 	// Parses is on the 'Contract' in both cases now.
 
 	if !p.expectPeek(token.IDENTIFIER) {
+		// TODO: See if this line must be kept. Most likely not.
 		p.errors.Add(p.currTkn.Pos, "Expected an identifier after Contract keyword. Got: "+p.peekTkn.Literal)
 		// Move to get out of error state
 		p.nextToken()
@@ -286,7 +287,10 @@ func (p *Parser) parseContractBody() *ast.ContractBody {
 			decls = append(decls, p.parseStateVariableDeclaration())
 			p.nextToken() // Move past semicolon
 
-			// event-definition
+		case tk == token.EVENT: // event-definition
+			decls = append(decls, p.parseEventDeclaration())
+			p.nextToken() // Move past semicolon
+
 			// error-definition
 			// using-directive
 
@@ -481,6 +485,88 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 			return decl
 		}
 	}
+}
+
+func (p *Parser) parseEventDeclaration() *ast.EventDeclaration {
+	if p.trace {
+		defer un(trace("parseEventDeclaration"))
+	}
+	eventDecl := &ast.EventDeclaration{
+		Pos: p.currTkn.Pos, // position of the "event" keyword
+	}
+
+	if !p.expectPeek(token.IDENTIFIER) { // if all good, move to identifier
+		return nil
+	}
+
+	eventDecl.Name = &ast.Identifier{
+		Pos:   p.currTkn.Pos,
+		Value: p.currTkn.Literal,
+	}
+
+	if !p.expectPeek(token.LPAREN) { // if all good, move to opening parenthesis
+		return nil
+	}
+
+	params := &ast.EventParamList{}
+	params.Opening = p.currTkn.Pos
+
+	for !p.peekTknIs(token.RPAREN) {
+		// TODO: Implement Event Parameter parsing
+		eventParam := &ast.EventParam{}
+
+		p.nextToken() // move past opening parenthesis
+		if !token.IsElementaryType(p.currTkn.Type) {
+			p.errors.Add(p.currTkn.Pos, "Event param: expected elementary type after opening parenthesis, got: "+p.currTkn.Literal)
+			return nil
+		}
+
+		eventParam.Type = &ast.ElementaryType{
+			Pos: p.currTkn.Pos,
+			Kind: token.Token{
+				Type:    p.currTkn.Type,
+				Literal: p.currTkn.Literal,
+				Pos:     p.currTkn.Pos,
+			},
+		}
+
+		// Indexed is an optional keyword
+		if p.peekTknIs(token.INDEXED) {
+			p.nextToken()
+			eventParam.IsIndexed = true
+		}
+
+		// Param name is optional
+		if p.peekTknIs(token.IDENTIFIER) {
+			p.nextToken()
+			eventParam.Name = &ast.Identifier{
+				Pos:   p.currTkn.Pos,
+				Value: p.currTkn.Literal,
+			}
+		}
+
+		params.List = append(params.List, eventParam)
+
+		if p.peekTknIs(token.COMMA) {
+			p.nextToken() // Move to next param
+		}
+	}
+
+	p.nextToken() // Move to closing parenthesis.
+	params.Closing = p.currTkn.Pos
+
+	eventDecl.Params = params
+
+	if p.peekTknIs(token.ANONYMOUS) {
+		p.nextToken() // Move to anonymous keyword
+		eventDecl.IsAnonymous = true
+	}
+
+	if !p.expectPeek(token.SEMICOLON) { // if all good, move to semicolon
+		return nil
+	}
+
+	return eventDecl
 }
 
 func (p *Parser) parseStatement() ast.Statement {

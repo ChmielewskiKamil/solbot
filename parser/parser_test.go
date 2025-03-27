@@ -503,6 +503,126 @@ func Test_ParseParameterList(t *testing.T) {
 	}
 }
 
+func Test_ParseEventDeclaration(t *testing.T) {
+	src := `contract Test {
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address spender, uint256 amount);
+    event Log(string message) anonymous;
+    event ComplexEvent(uint256 indexed id, bool flag, bytes32 data);
+    }
+    `
+
+	file := test_helper_parseSource(t, src, false)
+
+	if len(file.Declarations) != 1 {
+		t.Fatalf("Expected 1 declaration, got %d", len(file.Declarations))
+	}
+
+	decl := file.Declarations[0]
+	contract, ok := decl.(*ast.ContractDeclaration)
+	if !ok {
+		t.Fatalf("Expected contract declaration, got: %T", decl)
+	}
+
+	tests := []struct {
+		expectedName   string
+		isAnonymous    bool
+		expectedParams []*struct {
+			name      string
+			typeToken token.TokenType
+			isIndexed bool
+		}
+	}{
+		{
+			expectedName: "Transfer",
+			isAnonymous:  false,
+			expectedParams: []*struct {
+				name      string
+				typeToken token.TokenType
+				isIndexed bool
+			}{
+				{"from", token.ADDRESS, true},
+				{"to", token.ADDRESS, true},
+				{"value", token.UINT_256, false},
+			},
+		},
+		{
+			expectedName: "Approval",
+			isAnonymous:  false,
+			expectedParams: []*struct {
+				name      string
+				typeToken token.TokenType
+				isIndexed bool
+			}{
+				{"owner", token.ADDRESS, true},
+				{"spender", token.ADDRESS, false},
+				{"amount", token.UINT_256, false},
+			},
+		},
+		{
+			expectedName: "Log",
+			isAnonymous:  true,
+			expectedParams: []*struct {
+				name      string
+				typeToken token.TokenType
+				isIndexed bool
+			}{
+				{"message", token.STRING, false},
+			},
+		},
+		{
+			expectedName: "ComplexEvent",
+			isAnonymous:  false,
+			expectedParams: []*struct {
+				name      string
+				typeToken token.TokenType
+				isIndexed bool
+			}{
+				{"id", token.UINT_256, true},
+				{"flag", token.BOOL, false},
+				{"data", token.BYTES_32, false},
+			},
+		},
+	}
+
+	for i, tt := range tests {
+		eventDecl, ok := contract.Body.Declarations[i].(*ast.EventDeclaration)
+		if !ok {
+			t.Errorf("Test %d: Expected EventDeclaration, got %T", i, contract.Body.Declarations[i])
+			continue
+		}
+
+		// Check event name
+		if eventDecl.Name.String() != tt.expectedName {
+			t.Errorf("Test %d: Expected name %s, got %s", i, tt.expectedName, eventDecl.Name.String())
+		}
+
+		// Check anonymity
+		if eventDecl.IsAnonymous != tt.isAnonymous {
+			t.Errorf("Test %d: Expected isAnonymous %v, got %v", i, tt.isAnonymous, eventDecl.IsAnonymous)
+		}
+
+		// Check parameters
+		if len(eventDecl.Params.List) != len(tt.expectedParams) {
+			t.Errorf("Test %d: Expected %d parameters, got %d", i, len(tt.expectedParams), len(eventDecl.Params.List))
+			continue
+		}
+
+		for j, paramTest := range tt.expectedParams {
+			param := eventDecl.Params.List[j]
+			if param.Name.String() != paramTest.name {
+				t.Errorf("Test %d, Param %d: Expected name %s, got %s", i, j, paramTest.name, param.Name.String())
+			}
+			if param.Type.(*ast.ElementaryType).Kind.Type != paramTest.typeToken {
+				t.Errorf("Test %d, Param %d: Expected type %v, got %v", i, j, paramTest.typeToken, param.Type.(*ast.ElementaryType).Kind.Type)
+			}
+			if param.IsIndexed != paramTest.isIndexed {
+				t.Errorf("Test %d, Param %d: Expected isIndexed %v, got %v", i, j, paramTest.isIndexed, param.IsIndexed)
+			}
+		}
+	}
+}
+
 func testParseElementaryType(t *testing.T, decl ast.Declaration,
 	expectedType token.TokenType, expectedMutability ast.Mutability,
 	expectedVisibility ast.Visibility, expectedIdentifier string,

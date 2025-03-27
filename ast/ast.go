@@ -550,6 +550,11 @@ func (d *StateVariableDeclaration) Start() token.Pos { return d.Type.Start() }
 func (d *StateVariableDeclaration) End() token.Pos   { return d.Value.End() }
 func (d *FunctionDeclaration) Start() token.Pos      { return d.Name.Start() }
 func (d *FunctionDeclaration) End() token.Pos        { return d.Body.End() }
+func (d *EventDeclaration) Start() token.Pos         { return d.Pos }
+
+// TODO: This is incorrect for anonymous events. They have the anonymous keyword
+// after the params.
+func (d *EventDeclaration) End() token.Pos { return d.Params.Closing }
 
 // declarationNode() implementations to ensure that only declaration nodes can
 // be assigned to a Declaration.
@@ -557,6 +562,7 @@ func (d *FunctionDeclaration) End() token.Pos        { return d.Body.End() }
 func (*ContractBase) declarationNode()             {}
 func (*StateVariableDeclaration) declarationNode() {}
 func (*FunctionDeclaration) declarationNode()      {}
+func (*EventDeclaration) declarationNode()         {}
 
 // String() implementations for Declarations
 func (d *ContractDeclaration) String() string {
@@ -597,6 +603,18 @@ func (d *FunctionDeclaration) String() string {
 			out.WriteString(stmt.String())
 		}
 	}
+
+	return out.String()
+}
+
+func (d *EventDeclaration) String() string {
+	var out bytes.Buffer
+	out.WriteString("event ")
+	out.WriteString(d.Name.String())
+
+	// TODO: Finish the String() method for event declaration.
+
+	out.WriteString(";")
 
 	return out.String()
 }
