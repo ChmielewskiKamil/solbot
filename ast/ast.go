@@ -355,6 +355,12 @@ type (
 		Consequence Statement  // consequence happens if the condition is true; or nil
 		Alternative Statement  // alternative happens if the condition is false; or nil
 	}
+
+	EmitStatement struct {
+		Pos        token.Pos    // position of the "emit" keyword
+		Expression Expression   // expression to evaluate; it must refer to an event.
+		Args       []Expression // call arguments list
+	}
 )
 
 // Start() and End() implementations for Statement type Nodes
@@ -388,6 +394,8 @@ func (s *IfStatement) End() token.Pos {
 
 	return endPos
 }
+func (s *EmitStatement) Start() token.Pos { return s.Pos }
+func (s *EmitStatement) End() token.Pos   { return s.Args[len(s.Args)-1].End() }
 
 // statementNode() ensures that only statement nodes can be assigned to a Statement.
 func (*BlockStatement) statementNode()               {}
@@ -396,6 +404,7 @@ func (*VariableDeclarationStatement) statementNode() {}
 func (*ReturnStatement) statementNode()              {}
 func (*ExpressionStatement) statementNode()          {}
 func (*IfStatement) statementNode()                  {}
+func (*EmitStatement) statementNode()                {}
 
 // String() implementations for Statements
 
@@ -464,6 +473,20 @@ func (s *IfStatement) String() string {
 		out.WriteString("else ")
 		out.WriteString(s.Alternative.String())
 	}
+
+	return out.String()
+}
+
+func (s *EmitStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("emit ")
+	out.WriteString(s.Expression.String())
+	out.WriteString("(")
+	for _, arg := range s.Args {
+		out.WriteString(arg.String())
+	}
+	out.WriteString(")")
+	out.WriteString(";")
 
 	return out.String()
 }

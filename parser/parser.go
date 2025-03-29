@@ -583,6 +583,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseReturnStatement()
 	case tkType == token.IF:
 		return p.parseIfStatement()
+	case tkType == token.EMIT:
+		return p.parseEmitStatement()
 	}
 }
 
@@ -790,6 +792,20 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 	}
 
 	return ifStmt
+}
+
+func (p *Parser) parseEmitStatement() *ast.EmitStatement {
+	if p.trace {
+		defer un(trace("parseIfStatement"))
+	}
+
+	// Emit expression is of the following format:
+	// emit <<expression>> (call-argument-list) ;
+	emitStmt := &ast.EmitStatement{
+		Pos: p.currTkn.Pos, // emit keyword
+	}
+
+	return emitStmt
 }
 
 // expectPeek checks if the next token is of the expected type.
