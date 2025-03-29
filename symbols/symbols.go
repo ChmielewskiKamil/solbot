@@ -37,6 +37,47 @@ func (bs *BaseSymbol) Location() string {
 	return fmt.Sprintf("Missing location of symbol: %s. No source file info.", bs.Name)
 }
 
+type (
+	Contract struct {
+		BaseSymbol
+	}
+
+	Function struct {
+		BaseSymbol
+		Parameters []*Param
+		Results    []*Param
+		Visibility ast.Visibility
+		Mutability ast.Mutability
+		Virtual    bool
+	}
+
+	Param struct {
+		BaseSymbol
+		// TODO: What about the type?
+		DataLocation ast.DataLocation
+	}
+
+	StateVariable struct {
+		BaseSymbol
+	}
+
+	Event struct {
+		BaseSymbol
+		Parameters  []*EventParam
+		IsAnonymous bool
+	}
+
+	EventParam struct {
+		BaseSymbol
+		// TODO: What about the type?
+		IsIndexed bool
+	}
+)
+
+////////////////////////////////////////////////////////////////////
+//                          References		                      //
+////////////////////////////////////////////////////////////////////
+
 // References are resolved in the second phase of the analysis. They can be
 // analyzed to undersand where a symbol is used and how.
 type Reference struct {
@@ -44,29 +85,6 @@ type Reference struct {
 	Offset     token.Pos         // Offset to the place where symbol was referenced in the source file.
 	Context    ReferenceContext  // Info about usage and scope e.g. state var is written to in function foo()
 	AstNode    *ast.Node         // Pointer to ast node.
-}
-
-type Contract struct {
-	BaseSymbol
-}
-
-type Function struct {
-	BaseSymbol
-	Parameters []*Param
-	Results    []*Param
-	Visibility ast.Visibility
-	Mutability ast.Mutability
-	Virtual    bool
-}
-
-type Param struct {
-	BaseSymbol
-	// Type
-	DataLocation ast.DataLocation
-}
-
-type StateVariable struct {
-	BaseSymbol
 }
 
 type ReferenceContext struct {

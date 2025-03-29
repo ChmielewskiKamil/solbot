@@ -165,7 +165,8 @@ func (p *Parser) parseSourceUnitDeclaration() ast.Declaration {
 		// enum-definition
 		// user-defined-value-type-definition
 		// error-definition
-		// event-definition
+	case tk == token.EVENT: // event-definition
+		return p.parseEventDeclaration()
 	}
 }
 

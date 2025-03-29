@@ -55,7 +55,8 @@ func (env *Environment) Get(ident string) ([]Symbol, bool) {
 // GetInnerEnvOfSymbol returns the inner environment of the queried symbol.
 // If there is no such environment it returns an error. Can be used like this:
 //
-// 1. Get all symbols of contract type in the most outer env.
+// 1. Get all symbols of contract type in the most outer env (
+// with GetAllSymbolsByType function)
 //
 // 2. Use this function (GetInnerEnvOfSymbol) to get access to env of
 // particular contract.
