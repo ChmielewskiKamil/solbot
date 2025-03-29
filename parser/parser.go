@@ -796,14 +796,25 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 
 func (p *Parser) parseEmitStatement() *ast.EmitStatement {
 	if p.trace {
-		defer un(trace("parseIfStatement"))
+		defer un(trace("parseEmitStatement"))
 	}
 
 	// Emit expression is of the following format:
 	// emit <<expression>> (call-argument-list) ;
 	emitStmt := &ast.EmitStatement{
-		Pos: p.currTkn.Pos, // emit keyword
+		Pos: p.currTkn.Pos, // Parser is sitting on the emit keyword
 	}
+
+	p.nextToken() // Move past the emit keyword
+
+	// Parse the expression that the parser is sitting on. It is an event name
+	// along its expected call argument list. Parse expression will correctly
+	// parse both.
+	// TODO: Will this actually work correctly? Should the event work like
+	// call expression?
+	emitStmt.Expression = p.parseExpression(LOWEST)
+
+	p.nextToken() // Move past semicolon
 
 	return emitStmt
 }

@@ -276,24 +276,33 @@ type EventParam struct {
 	IsIndexed bool        // whether the event param is indexed; true if it is indexed, false otherwise (default)
 }
 
-// @TODO: Implement Start(), End() and String() for FunctionType,
-// Param and ParamList
+// TODO: Implement Start(), End() and String() for FunctionType,
 
 // Start() and End() implementations for Expression type Nodes
 
-func (x *ElementaryType) Start() token.Pos { return x.Pos }
-func (x *ElementaryType) End() token.Pos   { return token.Pos(int(x.Pos) + int(x.End())) }
+func (t *ElementaryType) Start() token.Pos { return t.Pos }
+func (t *ElementaryType) End() token.Pos   { return token.Pos(int(t.Pos) + int(t.End())) }
+func (t *EventParam) Start() token.Pos     { return t.Type.Start() }
+func (t *EventParam) End() token.Pos       { return t.Name.End() }
 
-// expressionNode() implementations to ensure that only expressions and types
-// can be assigned to an Expression. This is useful if by mistake we try to use
-// a Statement in a place where an Expression should be used instead.
+// typeNode() implementations
 
 func (*ElementaryType) typeNode() {}
+func (*EventParam) typeNode()     {}
 
 // String() implementations for Types
-func (x *ElementaryType) String() string {
+
+func (t *ElementaryType) String() string {
 	var out bytes.Buffer
-	out.WriteString(x.Kind.Literal)
+	out.WriteString(t.Kind.Literal)
+	return out.String()
+}
+
+func (t *EventParam) String() string {
+	var out bytes.Buffer
+	out.WriteString(t.Type.String())
+	out.WriteString(" ")
+	out.WriteString(t.Name.String())
 	return out.String()
 }
 
@@ -357,9 +366,8 @@ type (
 	}
 
 	EmitStatement struct {
-		Pos        token.Pos    // position of the "emit" keyword
-		Expression Expression   // expression to evaluate; it must refer to an event.
-		Args       []Expression // call arguments list
+		Pos        token.Pos  // position of the "emit" keyword
+		Expression Expression // expression to evaluate; it must refer to an event.
 	}
 )
 
@@ -395,7 +403,7 @@ func (s *IfStatement) End() token.Pos {
 	return endPos
 }
 func (s *EmitStatement) Start() token.Pos { return s.Pos }
-func (s *EmitStatement) End() token.Pos   { return s.Args[len(s.Args)-1].End() }
+func (s *EmitStatement) End() token.Pos   { return s.Expression.End() }
 
 // statementNode() ensures that only statement nodes can be assigned to a Statement.
 func (*BlockStatement) statementNode()               {}
@@ -481,11 +489,6 @@ func (s *EmitStatement) String() string {
 	var out bytes.Buffer
 	out.WriteString("emit ")
 	out.WriteString(s.Expression.String())
-	out.WriteString("(")
-	for _, arg := range s.Args {
-		out.WriteString(arg.String())
-	}
-	out.WriteString(")")
 	out.WriteString(";")
 
 	return out.String()

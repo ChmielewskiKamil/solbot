@@ -59,7 +59,7 @@ func (a *Analyzer) AnalyzeFile(file *ast.File) {
 	a.currentFileEnv = fileEnv
 
 	// Phase 1: Get all declarations first to avoid unknown symbol errors if
-	// the symbols are defined later in a file or somewhere else.
+	// the symbols are defined later in a file or somewhere else (inheritance).
 	a.discoverSymbols(file, fileEnv)
 
 	// Phase 2: Populate all references. Since all declarations in all scopes
@@ -116,6 +116,9 @@ func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
 		a.populateFunctionDeclaration(n, env)
 	case *ast.StateVariableDeclaration:
 		a.populateStateVariableDeclaration(n, env)
+	case *ast.EventDeclaration:
+		// Event declaration can be present in the Contract as well as outside
+		a.populateEventDeclaration(n, env)
 	}
 }
 
@@ -165,6 +168,39 @@ func (a *Analyzer) populateStateVariableDeclaration(
 	}
 
 	env.Set(node.Name.Value, stateVarSymbol)
+}
+
+func (a *Analyzer) populateEventDeclaration(
+	node *ast.EventDeclaration, env *symbols.Environment) {
+	baseSymbol := symbols.BaseSymbol{
+		Name:       node.Name.Value,
+		SourceFile: a.currentFile.SourceFile,
+		Offset:     node.Name.Pos,
+		AstNode:    node,
+	}
+
+	eventSymbol := &symbols.Event{
+		BaseSymbol:  baseSymbol,
+		IsAnonymous: node.IsAnonymous,
+	}
+
+	for _, param := range node.Params.List {
+		if param != nil {
+			eventParamSymbol := &symbols.EventParam{
+				BaseSymbol: symbols.BaseSymbol{
+					Name:       param.Name.Value,
+					SourceFile: a.currentFile.SourceFile,
+					Offset:     param.Name.Pos,
+					AstNode:    param,
+				},
+				IsIndexed: param.IsIndexed,
+			}
+			eventSymbol.Parameters = append(eventSymbol.Parameters, eventParamSymbol)
+		}
+	}
+
+	env.Set(node.Name.Value, eventSymbol)
+
 }
 
 ////////////////////////////////////////////////////////////////////
