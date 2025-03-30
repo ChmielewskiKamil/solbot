@@ -3,19 +3,22 @@ package symbols
 import "fmt"
 
 type Environment struct {
-	store map[string][]Symbol // Mapping between symbol's name and a struct holding all info about that symbol.
-	outer *Environment        // Access to outer env for symbol lookups. Can be nil.
-	inner *Environment        // Access to inner envs such as contract env which contains functions which themselves have inner envs. Can be nil.
+	store     map[string][]Symbol // Mapping between symbol's name and a struct holding all info about that symbol.
+	outer     *Environment        // Access to outer env for symbol lookups. Can be nil.
+	inner     *Environment        // Access to inner envs such as contract env which contains functions which themselves have inner envs. Can be nil.
+	scopeName string              // Name of the env scope; FileName.sol for files; contract name for contracts etc.
+	scopeType ReferenceScopeType  // Type of the scope to be used for references
 }
 
-func NewEnvironment() *Environment {
+func NewEnvironment(scopeName string, scopeType ReferenceScopeType) *Environment {
 	s := make(map[string][]Symbol)
 	return &Environment{store: s, outer: nil}
 }
 
-func NewEnclosedEnvironment(outer *Environment) *Environment {
+func NewEnclosedEnvironment(outer *Environment,
+	scopeName string, scopeType ReferenceScopeType) *Environment {
 	// The new inner scope
-	env := NewEnvironment()
+	env := NewEnvironment(scopeName, scopeType)
 	// Outer of the inner scope
 	env.outer = outer
 	// Set the new env as inner of the old one
@@ -53,6 +56,14 @@ func (env *Environment) Get(ident string) ([]Symbol, bool) {
 	}
 
 	return nil, false
+}
+
+func (env *Environment) GetCurrentScopeName() string {
+	return env.scopeName
+}
+
+func (env *Environment) GetCurrentScopeType() ReferenceScopeType {
+	return env.scopeType
 }
 
 func GetInnerEnv(s Symbol) (*Environment, error) {

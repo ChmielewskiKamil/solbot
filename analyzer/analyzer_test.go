@@ -131,6 +131,76 @@ func Test_ResolveReferences(t *testing.T) {
 	if len(contractEvents) != 2 {
 		t.Fatalf("Expected 2 file scope events, got: %d", len(contractEvents))
 	}
+
+	events := []*symbols.Event{}
+	events = append(events, fileEvents...)
+	events = append(events, contractEvents...)
+
+	if len(events) != 4 {
+		t.Fatalf("Expected 4 events in total, got %d", len(events))
+	}
+
+	expectedReferences := []struct {
+		ref *symbols.Reference
+	}{
+		{
+			&symbols.Reference{
+				Context: symbols.ReferenceContext{
+					ScopeName: "decrement",
+					ScopeType: 3, // Used in a function
+					Usage:     4, // Event emission
+				},
+			},
+		},
+		{nil},
+		{
+			&symbols.Reference{
+				Context: symbols.ReferenceContext{
+					ScopeName: "increment",
+					ScopeType: 3, // Used in a function
+					Usage:     4, // Event emission
+				},
+			},
+		},
+		{
+			&symbols.Reference{
+				Context: symbols.ReferenceContext{
+					ScopeName: "",
+					ScopeType: 0,
+					Usage:     0,
+				},
+			},
+		},
+	}
+
+	for idx, event := range events {
+		if event.References != nil {
+			gotScopeName := event.References[0].Context.ScopeName
+			expectedScopeName := expectedReferences[idx].ref.Context.ScopeName
+			if gotScopeName != expectedScopeName {
+				t.Fatalf("Event '%s' got incorrect reference scope NAME. Got: %s, expected: %s.",
+					event.Name, gotScopeName, expectedScopeName)
+			}
+
+			gotScopeType := event.References[0].Context.ScopeType.String()
+			expectedScopeType := expectedReferences[idx].ref.Context.ScopeType.String()
+			if gotScopeType != expectedScopeType {
+				t.Fatalf("Event '%s' got incorrect reference scope TYPE. Got: %s, expected: %s.",
+					event.Name, gotScopeType, expectedScopeType)
+			}
+
+			gotUsage := event.References[0].Context.Usage.String()
+			expectedUsage := expectedReferences[idx].ref.Context.Usage.String()
+			if gotUsage != expectedUsage {
+				t.Fatalf("Event '%s' got incorrect reference scope USAGE. Got: %s, expected: %s.",
+					event.Name, gotUsage, expectedUsage)
+			}
+		} else {
+			if expectedReferences[idx].ref != nil {
+				t.Fatalf("Event '%s' does not have a reference, while one was expected", event.Name)
+			}
+		}
+	}
 }
 
 func checkParserErrors(t *testing.T, a *Analyzer) {

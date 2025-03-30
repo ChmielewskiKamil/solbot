@@ -82,9 +82,9 @@ type (
 	}
 
 	CallExpression struct {
-		Pos      token.Pos    // Position of the identifier being called
-		Function Expression   // Function being called
-		Args     []Expression // Comma-separated list of arguments
+		Pos   token.Pos    // Position of the identifier being called
+		Ident Expression   // Identifier that is being called; function name for functions, event name for events.
+		Args  []Expression // Comma-separated list of arguments
 	}
 
 	ElementaryTypeExpression struct {
@@ -179,7 +179,7 @@ func (x *InfixExpression) String() string {
 }
 func (x *CallExpression) String() string {
 	var out bytes.Buffer
-	out.WriteString(x.Function.String())
+	out.WriteString(x.Ident.String())
 	out.WriteString("(")
 	for i, arg := range x.Args {
 		if i > 0 {

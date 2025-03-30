@@ -318,8 +318,8 @@ func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
 	}
 
 	callExp := &ast.CallExpression{
-		Pos:      fn.Start(), // TODO: fn is not passed as ref, will this work?
-		Function: fn,
+		Pos:   fn.Start(), // TODO: fn is not passed as ref, will this work?
+		Ident: fn,
 	}
 
 	callExp.Args = p.parseCallArguments()

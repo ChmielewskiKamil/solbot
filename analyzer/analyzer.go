@@ -55,7 +55,7 @@ func (a *Analyzer) AnalyzeCurrentFile() {
 }
 
 func (a *Analyzer) AnalyzeFile(file *ast.File) {
-	fileEnv := symbols.NewEnvironment()
+	fileEnv := symbols.NewEnvironment(file.Name, symbols.FILE)
 	a.currentFileEnv = fileEnv
 
 	// Phase 1: Get all declarations first to avoid unknown symbol errors if
@@ -91,18 +91,18 @@ func (a *Analyzer) GetParserErrors() parser.ErrorList {
 //                            PHASE 1			                  //
 ////////////////////////////////////////////////////////////////////
 
-func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
+func (a *Analyzer) discoverSymbols(node ast.Node, outer *symbols.Environment) {
 	switch n := node.(type) {
 	case *ast.File:
 		for _, decl := range n.Declarations {
-			a.discoverSymbols(decl, env)
+			a.discoverSymbols(decl, outer)
 		}
 	case *ast.ContractDeclaration:
 		// Populate file's env with contract's declaration
-		contractSymbol := a.populateContractDeclaration(n, env)
+		contractSymbol := a.discoverContractDeclaration(n, outer)
 
 		// Create contract specific env with file's env as outer.
-		contractEnv := symbols.NewEnclosedEnvironment(env)
+		contractEnv := symbols.NewEnclosedEnvironment(outer, contractSymbol.Name, symbols.CONTRACT)
 
 		contractSymbol.SetInnerEnv(contractEnv)
 
@@ -110,22 +110,26 @@ func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
 			a.discoverSymbols(decl, contractEnv)
 		}
 	case *ast.FunctionDeclaration:
-		// TODO: The comment below might no longer be accurate given the fact
-		// that the definition resolution phase has been removed.
-		//
-		// Contract's env is used as opposed to function's env because at the
-		// discovery phase we only care about fn signature and we don't analyze
-		// function's body in the context of function's parameters.
-		a.populateFunctionDeclaration(n, env)
+		// Add the function declaration to the current env (most often its the
+		// contract's env). Function body can be discovered in the context of
+		// function's inner ENV.
+		functionSymbol := a.discoverFunctionDeclaration(n, outer)
+		functionEnv := symbols.NewEnclosedEnvironment(outer, functionSymbol.Name, symbols.FUNCTION)
+
+		functionSymbol.SetInnerEnv(functionEnv)
+
+		// Statements in the function's body can be analyzed in the context of
+		// the function's inner env.
+		a.discoverSymbols(n.Body, functionEnv)
 	case *ast.StateVariableDeclaration:
-		a.populateStateVariableDeclaration(n, env)
+		a.discoverStateVariableDeclaration(n, outer)
 	case *ast.EventDeclaration:
 		// Event declaration can be present in the Contract as well as outside
-		a.populateEventDeclaration(n, env)
+		a.discoverEventDeclaration(n, outer)
 	}
 }
 
-func (a *Analyzer) populateContractDeclaration(
+func (a *Analyzer) discoverContractDeclaration(
 	node *ast.ContractDeclaration, env *symbols.Environment) *symbols.Contract {
 	baseSymbol := symbols.BaseSymbol{
 		Name:       node.Name.Value,
@@ -143,8 +147,8 @@ func (a *Analyzer) populateContractDeclaration(
 	return contractSymbol
 }
 
-func (a *Analyzer) populateFunctionDeclaration(
-	node *ast.FunctionDeclaration, env *symbols.Environment) {
+func (a *Analyzer) discoverFunctionDeclaration(
+	node *ast.FunctionDeclaration, env *symbols.Environment) *symbols.Function {
 	baseSymbol := symbols.BaseSymbol{
 		Name:       node.Name.Value,
 		SourceFile: a.currentFile.SourceFile,
@@ -154,12 +158,19 @@ func (a *Analyzer) populateFunctionDeclaration(
 
 	fnSymbol := &symbols.Function{
 		BaseSymbol: baseSymbol,
+		Visibility: node.Visibility,
+		Mutability: node.Mutability,
+		Virtual:    node.Virtual,
 	}
 
+	// TODO: Finish populating function symbol with: Parameters, Results
+
 	env.Set(node.Name.Value, fnSymbol)
+
+	return fnSymbol
 }
 
-func (a *Analyzer) populateStateVariableDeclaration(
+func (a *Analyzer) discoverStateVariableDeclaration(
 	node *ast.StateVariableDeclaration, env *symbols.Environment) {
 	baseSymbol := symbols.BaseSymbol{
 		Name:       node.Name.Value,
@@ -175,7 +186,7 @@ func (a *Analyzer) populateStateVariableDeclaration(
 	env.Set(node.Name.Value, stateVarSymbol)
 }
 
-func (a *Analyzer) populateEventDeclaration(
+func (a *Analyzer) discoverEventDeclaration(
 	node *ast.EventDeclaration, env *symbols.Environment) {
 	baseSymbol := symbols.BaseSymbol{
 		Name:       node.Name.Value,
@@ -219,33 +230,119 @@ func (a *Analyzer) resolveReferences(node ast.Node, env *symbols.Environment) {
 			a.resolveReferences(decl, env)
 		}
 	case *ast.ContractDeclaration:
-		// Find ENV and resolve in its context.
-		contractSymbol, found := env.Get(n.Name.Value)
-		if !found {
-			a.analysisErrors.Add(a.GetNodeLocation(n, n.Name.Pos),
-				"Reference resolution error: No symbol with this name found for contract '"+
-					n.Name.Value+"'.")
-		}
-
-		if len(contractSymbol) != 1 {
-			a.analysisErrors.Add(a.GetNodeLocation(n, n.Name.Pos),
-				"Reference resolution error: Found multiple symbols with the same name for contract '"+
-					n.Name.Value+"'.")
-		}
-
-		// Safe to access 0th element since we check the array length before.
-		contractEnv, err := symbols.GetInnerEnv(contractSymbol[0])
-		if err != nil {
-			a.analysisErrors.Add(
-				a.GetNodeLocation(n, n.Name.Pos),
-				"Reference resolution error: "+err.Error(),
-			)
-		}
-
-		for _, decl := range n.Body.Declarations {
-			a.resolveReferences(decl, contractEnv)
-		}
+		a.resolveContractDeclaration(n, env)
+	case *ast.FunctionDeclaration:
+		a.resolveFunctionDeclaration(n, env)
+	case *ast.BlockStatement:
+		a.resolveBlockStatement(n, env)
 	}
+}
+
+func (a *Analyzer) resolveContractDeclaration(contractNode *ast.ContractDeclaration, env *symbols.Environment) {
+	// Find ENV and resolve in its context.
+	contractSymbol, found := env.Get(contractNode.Name.Value)
+	if !found {
+		a.analysisErrors.Add(a.GetNodeLocation(contractNode, contractNode.Name.Pos),
+			"Reference resolution error: No symbol with this name found for contract '"+
+				contractNode.Name.Value+"'.")
+	}
+
+	// Each contract should have a unique name. If there are more, there is
+	// an issue.
+	if len(contractSymbol) != 1 {
+		a.analysisErrors.Add(a.GetNodeLocation(contractNode, contractNode.Name.Pos),
+			"Reference resolution error: Found multiple symbols with the same name for contract '"+
+				contractNode.Name.Value+"'.")
+	}
+
+	// Safe to access 0th element since we check the array length before.
+	contractEnv, err := symbols.GetInnerEnv(contractSymbol[0])
+	if err != nil {
+		a.analysisErrors.Add(
+			a.GetNodeLocation(contractNode, contractNode.Name.Pos),
+			"Reference resolution error: "+err.Error(),
+		)
+	}
+
+	for _, decl := range contractNode.Body.Declarations {
+		a.resolveReferences(decl, contractEnv)
+	}
+}
+
+func (a *Analyzer) resolveFunctionDeclaration(fnNode *ast.FunctionDeclaration, env *symbols.Environment) {
+	functionSymbol, found := env.Get(fnNode.Name.Value)
+	if !found {
+		a.analysisErrors.Add(a.GetNodeLocation(fnNode, fnNode.Name.Pos),
+			"Reference resolution error: No symbol with this name found for function '"+
+				fnNode.Name.Value+"'.")
+	}
+
+	functionEnv, err := symbols.GetInnerEnv(functionSymbol[0])
+	if err != nil {
+		a.analysisErrors.Add(
+			a.GetNodeLocation(fnNode, fnNode.Name.Pos),
+			"Reference resolution error: "+err.Error(),
+		)
+	}
+
+	a.resolveReferences(fnNode.Body, functionEnv)
+}
+
+func (a *Analyzer) resolveBlockStatement(blockNode *ast.BlockStatement, env *symbols.Environment) {
+	for _, statement := range blockNode.Statements {
+		a.resolveStatement(statement, env)
+	}
+}
+
+func (a *Analyzer) resolveStatement(statement ast.Statement, env *symbols.Environment) {
+	switch stmt := statement.(type) {
+	case *ast.EmitStatement:
+		a.resolveEmitStatement(stmt, env)
+	}
+}
+
+func (a *Analyzer) resolveEmitStatement(stmt *ast.EmitStatement, env *symbols.Environment) {
+	call, ok := stmt.Expression.(*ast.CallExpression)
+	if !ok {
+		a.analysisErrors.Add(a.GetNodeLocation(stmt, stmt.Pos),
+			"Reference resolution error: expected call expression in an emit statement.")
+	}
+
+	ident, ok := call.Ident.(*ast.Identifier)
+	if !ok {
+		a.analysisErrors.Add(a.GetNodeLocation(call, call.Pos),
+			"Reference resolution error: emit statement must refer to an event identifier.")
+	}
+
+	matchingSymbols, found := env.Get(ident.Value)
+	if !found {
+		a.analysisErrors.Add(a.GetNodeLocation(ident, ident.Start()),
+			"Reference resolution error: No symbol found for event '"+
+				ident.Value+"'.")
+	}
+
+	// TODO: Validate arguments match parameters.
+	// TODO: Handle the situations when many symbols match
+
+	eventSymbol, ok := matchingSymbols[0].(*symbols.Event)
+	if !ok {
+		a.analysisErrors.Add(a.GetNodeLocation(ident, ident.Start()),
+			"Reference resolution error: symbols found with name '"+
+				ident.Value+"' does not match the Event type.")
+	}
+
+	ref := &symbols.Reference{
+		SourceFile: a.currentFile.SourceFile,
+		Offset:     ident.Pos,
+		Context: symbols.ReferenceContext{
+			ScopeName: env.GetCurrentScopeName(),
+			ScopeType: env.GetCurrentScopeType(),
+			Usage:     symbols.EMIT,
+		},
+		AstNode: stmt,
+	}
+
+	eventSymbol.References = append(eventSymbol.References, ref)
 }
 
 ////////////////////////////////////////////////////////////////////

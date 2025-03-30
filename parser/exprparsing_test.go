@@ -303,7 +303,7 @@ func Test_ParseCallExpression(t *testing.T) {
 		t.Fatalf("Expected CallExpression, got %T", exprStmt.Expression)
 	}
 
-	test_Identifier(t, callExpr.Function, "foo")
+	test_Identifier(t, callExpr.Ident, "foo")
 
 	if len(callExpr.Args) != 3 {
 		t.Fatalf("Expected 3 arguments, got %d", len(callExpr.Args))

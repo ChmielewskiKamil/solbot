@@ -22,7 +22,7 @@ type BaseSymbol struct {
 	Name       string            // symbol name e.g. "Vault", "add", "balanceOf", "x", "Ownable"
 	SourceFile *token.SourceFile // Pointer to the source file were symbol was declared.
 	Offset     token.Pos         // Offset to the symbol name.
-	References []Reference       // Places where the symbol was used.
+	References []*Reference      // Places where the symbol was used.
 	AstNode    ast.Node          // Pointer to ast node.
 	innerEnv   *Environment      // Inner env of symbol or nil.
 	outerEnv   *Environment      // OuterEnv of symbol; the env where symbol is declared.
@@ -71,6 +71,7 @@ type (
 		Visibility ast.Visibility
 		Mutability ast.Mutability
 		Virtual    bool
+		Body       *ast.BlockStatement
 	}
 
 	Param struct {
@@ -106,7 +107,7 @@ type Reference struct {
 	SourceFile *token.SourceFile // Pointer to the source file were symbol reference was found.
 	Offset     token.Pos         // Offset to the place where symbol was referenced in the source file.
 	Context    ReferenceContext  // Info about usage and scope e.g. state var is written to in function foo()
-	AstNode    *ast.Node         // Pointer to ast node.
+	AstNode    ast.Node          // Pointer to ast node.
 }
 
 type ReferenceContext struct {
@@ -122,6 +123,7 @@ const (
 	READ
 	WRITE
 	CALL
+	EMIT
 )
 
 func (u ReferenceUsageType) String() string {
@@ -132,6 +134,8 @@ func (u ReferenceUsageType) String() string {
 		return "WRITE"
 	case CALL:
 		return "CALL"
+	case EMIT:
+		return "EMIT"
 	default:
 		return "UNKNOWN"
 	}
@@ -141,6 +145,7 @@ type ReferenceScopeType int
 
 const (
 	_ ReferenceScopeType = iota
+	FILE
 	CONTRACT
 	FUNCTION
 	CONSTRUCTOR
@@ -148,6 +153,8 @@ const (
 
 func (s ReferenceScopeType) String() string {
 	switch s {
+	case FILE:
+		return "FILE"
 	case CONTRACT:
 		return "CONTRACT"
 	case FUNCTION:
