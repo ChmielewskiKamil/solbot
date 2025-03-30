@@ -2,9 +2,11 @@
 pragma solidity ^0.8.0;
 
 event OutsideOfContract(uint256 number);
+event OutsideOfContractUnused(uint256 number);
 
 contract Counter {
     event InsideOfContract(uint256 number);
+    event InsideOfContractUnused(uint256 number);
     uint256 public count;
 
     // Comment?
@@ -19,6 +21,7 @@ contract Counter {
 
     function decrement() public {
         count -= 1;
+        emit OutsideOfContract(count);
     }
 
     // Function to reset the counter to zero
