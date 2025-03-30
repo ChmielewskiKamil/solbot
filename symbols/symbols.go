@@ -11,7 +11,11 @@ import (
 // metadata, like the location of the symbol in the source file. This makes it easier to generalize
 // operations across different symbol types during analysis.
 type Symbol interface {
-	Location() string // Prints the symbol's location in the format: path/from/project/root/file.sol:Line:Column
+	Location() string          // Prints the symbol's location in the format: path/from/project/root/file.sol:Line:Column
+	GetInnerEnv() *Environment // Gets the inner env of symbol. WARNING: It can be nil if symbol does not have inner env.
+	GetOuterEnv() *Environment // Gets the outer env of symbol. This is the env where symbol is declared.
+	SetInnerEnv(*Environment)  // Sets inner env of symbol.
+	SetOuterEnv(*Environment)  // Sets outer env of symbol.
 }
 
 type BaseSymbol struct {
@@ -20,6 +24,8 @@ type BaseSymbol struct {
 	Offset     token.Pos         // Offset to the symbol name.
 	References []Reference       // Places where the symbol was used.
 	AstNode    ast.Node          // Pointer to ast node.
+	innerEnv   *Environment      // Inner env of symbol or nil.
+	outerEnv   *Environment      // OuterEnv of symbol; the env where symbol is declared.
 }
 
 func (bs *BaseSymbol) Location() string {
@@ -35,6 +41,22 @@ func (bs *BaseSymbol) Location() string {
 	}
 
 	return fmt.Sprintf("Missing location of symbol: %s. No source file info.", bs.Name)
+}
+
+func (bs *BaseSymbol) SetInnerEnv(env *Environment) {
+	bs.innerEnv = env
+}
+
+func (bs *BaseSymbol) GetInnerEnv() *Environment {
+	return bs.innerEnv
+}
+
+func (bs *BaseSymbol) SetOuterEnv(env *Environment) {
+	bs.outerEnv = env
+}
+
+func (bs *BaseSymbol) GetOuterEnv() *Environment {
+	return bs.outerEnv
 }
 
 type (

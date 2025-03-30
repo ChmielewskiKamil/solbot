@@ -3,16 +3,14 @@ package symbols
 import "fmt"
 
 type Environment struct {
-	store        map[string][]Symbol     // Mapping between symbol's name and a struct holding all info about that symbol.
-	outer        *Environment            // Access to outer env for symbol lookups.
-	inner        *Environment            // Access to inner envs such as contract env which contains functions which themselves have inner envs.
-	perSymbolEnv map[Symbol]*Environment // With access to symbol's env, lookups like this are possible: for each contract in a file, find all public state vars.
+	store map[string][]Symbol // Mapping between symbol's name and a struct holding all info about that symbol.
+	outer *Environment        // Access to outer env for symbol lookups. Can be nil.
+	inner *Environment        // Access to inner envs such as contract env which contains functions which themselves have inner envs. Can be nil.
 }
 
 func NewEnvironment() *Environment {
 	s := make(map[string][]Symbol)
-	e := make(map[Symbol]*Environment)
-	return &Environment{store: s, outer: nil, perSymbolEnv: e}
+	return &Environment{store: s, outer: nil}
 }
 
 func NewEnclosedEnvironment(outer *Environment) *Environment {
@@ -28,7 +26,7 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 
 func (env *Environment) Set(ident string, symbol Symbol) {
 	env.store[ident] = append(env.store[ident], symbol)
-	env.perSymbolEnv[symbol] = env
+	symbol.SetOuterEnv(env)
 }
 
 // TODO: The comment below might no longer be correct. There is no resolution
@@ -57,30 +55,26 @@ func (env *Environment) Get(ident string) ([]Symbol, bool) {
 	return nil, false
 }
 
-// GetInnerEnvOfSymbol returns the inner environment of the queried symbol.
-// If there is no such environment it returns an error. Can be used like this:
-//
-// 1. Get all symbols of contract type in the most outer env by calling the
-// GetAllSymbolsByType(...) function.
-//
-// 2. Use the GetInnerEnvOfSymbol(...) to get access to the env of a particular
-// contract.
-//
-// 3. With this you can access for example all functions or state variables.
-func (env *Environment) GetInnerEnvOfSymbol(s Symbol) (error, *Environment) {
-	e := env.perSymbolEnv[s]
+func GetInnerEnv(s Symbol) (*Environment, error) {
+	e := s.GetInnerEnv()
 	if e == nil {
-		return fmt.Errorf("The symbol's env is nil. Symbol is located at: %s", s.Location()), nil
+		return nil, fmt.Errorf("The symbol does not have INNER env set (it's nil). Symbol is located at: %s", s.Location())
 	}
 
-	if e.inner == nil {
-		return fmt.Errorf("The symbol's inner env is nil. Symbol is located at: %s", s.Location()), nil
+	return e, nil
+}
+
+func GetOuterEnv(s Symbol) (*Environment, error) {
+	e := s.GetOuterEnv()
+	if e == nil {
+		return nil, fmt.Errorf("The symbol does not have OUTER env set (it's nil). Symbol is located at: %s", s.Location())
 	}
 
-	return nil, e.inner
+	return e, nil
 }
 
 // Returns an array of all the symbols with a specific symbol type from an environment.
+// This can return 0 elements if nothing was found. WARNING: check returned array's length.
 func GetAllSymbolsByType[T any](env *Environment) []T {
 	var results []T
 

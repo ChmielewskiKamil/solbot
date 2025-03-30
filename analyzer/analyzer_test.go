@@ -11,9 +11,10 @@ func Test_DiscoverSymbols_getSymbolsByType(t *testing.T) {
 	analyzer := Analyzer{}
 	analyzer.Init(testContractPath)
 	checkParserErrors(t, &analyzer)
-	checkAnalyzerErrors(t, &analyzer)
 
 	analyzer.AnalyzeCurrentFile()
+
+	checkAnalyzerErrors(t, &analyzer)
 
 	env := analyzer.GetCurrentFileEnv()
 
@@ -26,6 +27,7 @@ func Test_DiscoverSymbols_getSymbolsByType(t *testing.T) {
 		symbolType symbols.Symbol
 	}{
 		{"OutsideOfContract", &symbols.Event{}},
+		{"OutsideOfContractUnused", &symbols.Event{}},
 		{"Counter", &symbols.Contract{}},
 	}
 
@@ -47,25 +49,26 @@ func Test_DiscoverSymbols_getSymbolsByType(t *testing.T) {
 		symbolType symbols.Symbol
 	}{
 		{"InsideOfContract", &symbols.Event{}},
+		{"InsideOfContractUnused", &symbols.Event{}},
 		{"count", &symbols.StateVariable{}},
 		{"increment", &symbols.Function{}},
 		{"decrement", &symbols.Function{}},
 		{"reset", &symbols.Function{}},
 	}
 
-	// Iterate through all contracts discovered in the file
+	// Iterate through all contracts discovered in the file.
 	contracts := symbols.GetAllSymbolsByType[*symbols.Contract](env)
 	if len(contracts) != 1 {
 		t.Fatalf("Expected %d contracts, but found %d.", 1, len(contracts))
 	}
 
 	for _, contract := range contracts {
-		if contract.Name != expectedFileDecls[1].declName {
+		if contract.Name != expectedFileDecls[2].declName {
 			t.Fatalf("Unexpected contract name: '%s'. Expected: '%s'.", contract.Name, expectedFileDecls[0].declName)
 		}
 
 		// Retrieve the environment specific to this contract
-		err, contractEnv := env.GetInnerEnvOfSymbol(contract)
+		contractEnv, err := symbols.GetInnerEnv(contract)
 		if err != nil {
 			t.Fatalf("Cannot access contract's env: %s", err)
 		}
@@ -86,6 +89,47 @@ func Test_DiscoverSymbols_getSymbolsByType(t *testing.T) {
 				t.Fatalf("Symbol '%s' has unexpected type. Got: %T, Expected: %T", decl.declName, sym[0], decl.symbolType)
 			}
 		}
+	}
+}
+
+func Test_ResolveReferences(t *testing.T) {
+	testContractPath := "testdata/foundry/src/003_SimpleCounter_WithEvents.sol"
+	analyzer := Analyzer{}
+	analyzer.Init(testContractPath)
+	checkParserErrors(t, &analyzer)
+
+	analyzer.AnalyzeCurrentFile()
+
+	checkAnalyzerErrors(t, &analyzer)
+
+	fileEnv := analyzer.GetCurrentFileEnv()
+
+	if fileEnv == nil {
+		t.Fatalf("Currently analyzed file's env is nil.")
+	}
+
+	// 1. In the file env get all events.
+	// 2. In the contract get all events.
+	// 3. Check the references: 2 of them should be filled, 2 should be empty
+
+	fileEvents := symbols.GetAllSymbolsByType[*symbols.Event](fileEnv)
+	if len(fileEvents) != 2 {
+		t.Fatalf("Expected 2 file scope events, got: %d", len(fileEvents))
+	}
+
+	contracts := symbols.GetAllSymbolsByType[*symbols.Contract](fileEnv)
+	if len(contracts) != 1 {
+		t.Fatalf("Expected 1 contract, but found %d.", len(contracts))
+	}
+
+	contractEnv, err := symbols.GetInnerEnv(contracts[0])
+	if err != nil {
+		t.Fatalf("Error getting inner env of symbol: %s", err)
+	}
+
+	contractEvents := symbols.GetAllSymbolsByType[*symbols.Event](contractEnv)
+	if len(contractEvents) != 2 {
+		t.Fatalf("Expected 2 file scope events, got: %d", len(contractEvents))
 	}
 }
 

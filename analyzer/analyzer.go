@@ -99,10 +99,13 @@ func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
 		}
 	case *ast.ContractDeclaration:
 		// Populate file's env with contract's declaration
-		a.populateContractDeclaration(n, env)
+		contractSymbol := a.populateContractDeclaration(n, env)
 
 		// Create contract specific env with file's env as outer.
 		contractEnv := symbols.NewEnclosedEnvironment(env)
+
+		contractSymbol.SetInnerEnv(contractEnv)
+
 		for _, decl := range n.Body.Declarations {
 			a.discoverSymbols(decl, contractEnv)
 		}
@@ -123,7 +126,7 @@ func (a *Analyzer) discoverSymbols(node ast.Node, env *symbols.Environment) {
 }
 
 func (a *Analyzer) populateContractDeclaration(
-	node *ast.ContractDeclaration, env *symbols.Environment) {
+	node *ast.ContractDeclaration, env *symbols.Environment) *symbols.Contract {
 	baseSymbol := symbols.BaseSymbol{
 		Name:       node.Name.Value,
 		SourceFile: a.currentFile.SourceFile,
@@ -136,6 +139,8 @@ func (a *Analyzer) populateContractDeclaration(
 	}
 
 	env.Set(node.Name.Value, contractSymbol)
+
+	return contractSymbol
 }
 
 func (a *Analyzer) populateFunctionDeclaration(
@@ -207,7 +212,41 @@ func (a *Analyzer) populateEventDeclaration(
 //                            PHASE 2			                  //
 ////////////////////////////////////////////////////////////////////
 
-func (a *Analyzer) resolveReferences(node ast.Node, env *symbols.Environment) {}
+func (a *Analyzer) resolveReferences(node ast.Node, env *symbols.Environment) {
+	switch n := node.(type) {
+	case *ast.File:
+		for _, decl := range n.Declarations {
+			a.resolveReferences(decl, env)
+		}
+	case *ast.ContractDeclaration:
+		// Find ENV and resolve in its context.
+		contractSymbol, found := env.Get(n.Name.Value)
+		if !found {
+			a.analysisErrors.Add(a.GetNodeLocation(n, n.Name.Pos),
+				"Reference resolution error: No symbol with this name found for contract '"+
+					n.Name.Value+"'.")
+		}
+
+		if len(contractSymbol) != 1 {
+			a.analysisErrors.Add(a.GetNodeLocation(n, n.Name.Pos),
+				"Reference resolution error: Found multiple symbols with the same name for contract '"+
+					n.Name.Value+"'.")
+		}
+
+		// Safe to access 0th element since we check the array length before.
+		contractEnv, err := symbols.GetInnerEnv(contractSymbol[0])
+		if err != nil {
+			a.analysisErrors.Add(
+				a.GetNodeLocation(n, n.Name.Pos),
+				"Reference resolution error: "+err.Error(),
+			)
+		}
+
+		for _, decl := range n.Body.Declarations {
+			a.resolveReferences(decl, contractEnv)
+		}
+	}
+}
 
 ////////////////////////////////////////////////////////////////////
 //                            PHASE 3			                  //
