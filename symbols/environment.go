@@ -31,6 +31,11 @@ func (env *Environment) Set(ident string, symbol Symbol) {
 	env.perSymbolEnv[symbol] = env
 }
 
+// TODO: The comment below might no longer be correct. There is no resolution
+// phase except for reference resolution. Each lookup must check that the returned
+// symbol from the array matches the expected type + param types in case of functions
+// with the same name and different accepted param types.
+//
 // Get looks up a symbol in the env provided the identifier. It returns an array
 // of symbols since during the symbol discovery (phase 1) there could have been
 // many symbols with the same name/signature (e.g. fn overrides) which must be
@@ -55,11 +60,11 @@ func (env *Environment) Get(ident string) ([]Symbol, bool) {
 // GetInnerEnvOfSymbol returns the inner environment of the queried symbol.
 // If there is no such environment it returns an error. Can be used like this:
 //
-// 1. Get all symbols of contract type in the most outer env (
-// with GetAllSymbolsByType function)
+// 1. Get all symbols of contract type in the most outer env by calling the
+// GetAllSymbolsByType(...) function.
 //
-// 2. Use this function (GetInnerEnvOfSymbol) to get access to env of
-// particular contract.
+// 2. Use the GetInnerEnvOfSymbol(...) to get access to the env of a particular
+// contract.
 //
 // 3. With this you can access for example all functions or state variables.
 func (env *Environment) GetInnerEnvOfSymbol(s Symbol) (error, *Environment) {
