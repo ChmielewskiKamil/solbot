@@ -15,7 +15,7 @@ type HoverResponse struct {
 }
 
 type HoverResult struct {
-	// @TODO: This should be changed to MarkupContent
+	// TODO: This should be changed to MarkupContent
 	Contents string `json:"contents"`
 }
 

@@ -24,10 +24,10 @@ type Location struct {
 
 func (f *Finding) CalculatePositions(file *token.SourceFile) {
 	for i := range f.Locations {
-		// @TODO: This resets reader's state, but it is inefficient.
+		// TODO: This resets reader's state, but it is inefficient.
 		reader := strings.NewReader(file.Content())
 		token.OffsetToPosition(reader, &f.Locations[i].Position)
-		// @TODO: Add file name to the position.
+		// TODO: Add file name to the position.
 		f.Locations[i].Position.Filename = file.Name()
 	}
 }

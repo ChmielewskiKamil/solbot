@@ -85,7 +85,7 @@ func (l *Lexer) errorf(format string, args ...interface{}) stateFn {
 	return nil
 }
 
-// @TODO: Implement HEX and UNICODE strings
+// TODO: Implement HEX and UNICODE strings
 func lexSourceUnit(l *Lexer) stateFn {
 	for {
 		switch char := l.readChar(); {
@@ -207,7 +207,7 @@ func lexNumber(l *Lexer) stateFn {
 
 	l.acceptRun(digits)
 
-	// @TODO: Fixed point numbers could go here. Solidity have them,
+	// TODO: Fixed point numbers could go here. Solidity have them,
 	// but you can't use them yet, soooo...
 
 	// Does it have an exponent at the end? For example: 100e10 or 1000000e-3.

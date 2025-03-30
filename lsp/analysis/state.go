@@ -24,7 +24,7 @@ func (s *State) UpdateDocument(uri, text string) {
 }
 
 func (s *State) Hover(id int, uri string, position lsp.Position) lsp.HoverResponse {
-	// @TODO: This should look up the type etc.
+	// TODO: This should look up the type etc.
 
 	_, ok := s.Documents[uri]
 	if !ok {

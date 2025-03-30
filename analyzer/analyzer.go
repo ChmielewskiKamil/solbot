@@ -190,17 +190,17 @@ func (a *Analyzer) populateEventDeclaration(
 				BaseSymbol: symbols.BaseSymbol{
 					Name:       param.Name.Value,
 					SourceFile: a.currentFile.SourceFile,
-					Offset:     param.Name.Pos,
-					AstNode:    param,
+					// TODO: Should an LSP point at the type of param as the
+					// location or at the name of the param?
+					Offset:  param.Name.Pos,
+					AstNode: param,
 				},
 				IsIndexed: param.IsIndexed,
 			}
 			eventSymbol.Parameters = append(eventSymbol.Parameters, eventParamSymbol)
 		}
 	}
-
 	env.Set(node.Name.Value, eventSymbol)
-
 }
 
 ////////////////////////////////////////////////////////////////////

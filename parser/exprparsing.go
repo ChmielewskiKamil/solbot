@@ -68,7 +68,7 @@ var precedences = map[token.TokenType]int{
 	token.ASSIGN_BIT_AND: TERNARY,
 	token.ASSIGN_SHL:     TERNARY,
 	token.ASSIGN_SAR:     TERNARY,
-	token.ASSIGN_SHR:     TERNARY, // @TODO: It is in language grammar, but not in the precedence cheatsheet, why?
+	token.ASSIGN_SHR:     TERNARY, // TODO: It is in language grammar, but not in the precedence cheatsheet, why?
 	token.ASSIGN_ADD:     TERNARY,
 	token.ASSIGN_SUB:     TERNARY,
 	token.ASSIGN_MUL:     TERNARY,
@@ -107,12 +107,12 @@ var precedences = map[token.TokenType]int{
 	// 2.
 	token.INC: PREFIX,
 	token.DEC: PREFIX,
-	// token.SUB: PREFIX, // @TODO: UNARY MINUS is problematic
+	// token.SUB: PREFIX, // TODO: UNARY MINUS is problematic
 	token.DELETE:  PREFIX,
 	token.NOT:     PREFIX,
 	token.BIT_NOT: PREFIX,
 	// 1.
-	// @TODO: The function calls, array subscripting, member access etc.
+	// TODO: The function calls, array subscripting, member access etc.
 	// is harder to implement.
 	token.LPAREN: HIGHEST,
 }

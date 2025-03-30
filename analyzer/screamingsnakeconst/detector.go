@@ -23,7 +23,7 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 	finding := reporter.Finding{}
 	matches := 0
 	switch n := node.(type) {
-	// @TODO: This is wrong in a sense that it currently checks for constant variable delcarations
+	// TODO: This is wrong in a sense that it currently checks for constant variable delcarations
 	// outside of contracts. This detector should be extended to handle contract level
 	// constant and immutable variables.
 	case *ast.File:
@@ -36,7 +36,7 @@ func (*Detector) Detect(node ast.Node) *reporter.Finding {
 							// e.g. the parser added the declarations but they are empty.
 							continue
 						}
-						// @TODO: Add immutable variables as well (but they can only be contract level)
+						// TODO: Add immutable variables as well (but they can only be contract level)
 						if v.Mutability == ast.Constant {
 							if !isScreamingSnakeCase(v.Name.Value) {
 								finding.Locations = append(

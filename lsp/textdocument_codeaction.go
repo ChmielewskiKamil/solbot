@@ -12,7 +12,7 @@ type CodeActionParams struct {
 }
 
 type CodeActionContext struct {
-	// @TODO: Add the diagnostics that are shown to the client right now.
+	// TODO: Add the diagnostics that are shown to the client right now.
 	// Diagnostics []Diagnostic `json:"diagnostics"`
 }
 

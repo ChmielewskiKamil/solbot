@@ -75,7 +75,7 @@ func Test_ParseStateVariableDeclaration(t *testing.T) {
 }
 
 func Test_ParseFunctionDeclaration(t *testing.T) {
-	// @TODO: When overriding the param identifier can be empty?
+	// TODO: When overriding the param identifier can be empty?
 	// e.g. function withdraw(uint256 assets, uint256) internal override ...
 	src := `
     function getBalance(address owner, uint256 amount) public view returns (uint256) {
@@ -299,7 +299,7 @@ func Test_ParseReturnStatement(t *testing.T) {
 			t.Fatalf("Expected return stmt to return something, got nil")
 		}
 
-		// @TODO: return address(0) is not tested because it is an elementary type.
+		// TODO: return address(0) is not tested because it is an elementary type.
 
 		test_LiteralExpression(t, retStmt.Result, tt.expectedValue)
 	}

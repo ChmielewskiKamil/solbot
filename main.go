@@ -99,7 +99,7 @@ func handleMessage(logger *log.Logger, writer io.Writer, state analysis.State, m
 
 		logger.Printf("Opened: %s\n", request.Params.TextDocument.URI)
 
-		// @TODO: Here we can start the static analysis
+		// TODO: Here we can start the static analysis
 
 		state.OpenDocument(request.Params.TextDocument.URI, request.Params.TextDocument.Text)
 	case "textDocument/didChange":

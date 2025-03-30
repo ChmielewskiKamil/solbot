@@ -285,7 +285,7 @@ const (
 	BOOL
 	FIXED
 	UFIXED
-	FIXED_MxN // @TODO: Handle fixed point numbers
+	FIXED_MxN // TODO: Handle fixed point numbers
 	UFIXED_MxN
 	elementary_type_end
 

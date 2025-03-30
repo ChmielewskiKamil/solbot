@@ -124,7 +124,7 @@ func (x *InfixExpression) End() token.Pos {
 func (x *CallExpression) Start() token.Pos { return x.Pos }
 func (x *CallExpression) End() token.Pos {
 	if len(x.Args) > 0 {
-		return x.Args[len(x.Args)-1].End() + 1 // @TODO: Shouldnt +2?
+		return x.Args[len(x.Args)-1].End() + 1 // TODO: Shouldnt +2?
 	}
 	return x.Pos + 2 // length of "()"
 }
@@ -336,7 +336,7 @@ type (
 		Value        Expression   // initial value or nil; optional (NOT FOR TUPLES)
 	}
 
-	// @TODO Implement VariableDeclarationTupleStatement
+	// TODO Implement VariableDeclarationTupleStatement
 
 	// Return statement is in a form of "return <<expression>>;", where
 	// the expression is optional. In languages like Go, the return statement can
@@ -496,16 +496,16 @@ func (s *EmitStatement) String() string {
 
 /*~*~*~*~*~*~*~*~*~*~*~*~ Declarations ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
-// @TODO: Add Struct declaration
-// @TODO: Add Enum declaration
-// @TODO: Add Error declaration
-// @TODO: Add Using For Directive declaration
-// @TODO: Add User Defined Value Type declaration
+// TODO: Add Struct declaration
+// TODO: Add Enum declaration
+// TODO: Add Error declaration
+// TODO: Add Using For Directive declaration
+// TODO: Add User Defined Value Type declaration
 
 // Pragma and import directives could go into the File struct, since
 // they are connected with a particular file.
-// @TODO?: Add Pragma Directive declaration
-// @TODO?: Add Import Directive declaration
+// TODO?: Add Pragma Directive declaration
+// TODO?: Add Import Directive declaration
 
 type ContractBase struct {
 	Pos  token.Pos     // position of the "contract/interface/library/abstract" keyword
@@ -536,9 +536,9 @@ type ContractBody struct {
 	RightBrace   token.Pos     // position of the right curly brace
 }
 
-// @TODO: Add modifier invocations *CallExpression
-// @TODO: Add override specifier
-// @TODO: Add documentation comments
+// TODO: Add modifier invocations *CallExpression
+// TODO: Add override specifier
+// TODO: Add documentation comments
 type FunctionDeclaration struct {
 	Pos        token.Pos       // position of the "function" keyword
 	Name       *Identifier     // function name
@@ -550,7 +550,7 @@ type FunctionDeclaration struct {
 	Body       *BlockStatement // function body inside curly braces
 }
 
-// @TODO: State variables can have override specifier as well.
+// TODO: State variables can have override specifier as well.
 // StateVariableDeclaration represents a state variable declared inside a contract.
 type StateVariableDeclaration struct {
 	Name       *Identifier // variable name
@@ -600,7 +600,7 @@ func (d *ContractDeclaration) String() string {
 }
 
 func (d *StateVariableDeclaration) String() string {
-	// @TODO: If visibility and mutability is not set, they will give empty
+	// TODO: If visibility and mutability is not set, they will give empty
 	// spaces but who cares
 	var out bytes.Buffer
 	out.WriteString(d.Type.String())
@@ -621,7 +621,7 @@ func (d *StateVariableDeclaration) String() string {
 	return out.String()
 }
 
-// @TODO: Implement String() for FunctionDeclaration
+// TODO: Implement String() for FunctionDeclaration
 func (d *FunctionDeclaration) String() string {
 	var out bytes.Buffer
 	if d.Body != nil {
@@ -662,7 +662,7 @@ func (f *File) Start() token.Pos {
 	return 0
 }
 
-// @TODO: What if there is a trailing comment at the end?
+// TODO: What if there is a trailing comment at the end?
 func (f *File) End() token.Pos {
 	if len(f.Declarations) > 0 {
 		return f.Declarations[len(f.Declarations)-1].End()
