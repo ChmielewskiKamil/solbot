@@ -12,7 +12,7 @@ type Environment struct {
 
 func NewEnvironment(scopeName string, scopeType ReferenceScopeType) *Environment {
 	s := make(map[string][]Symbol)
-	return &Environment{store: s, outer: nil}
+	return &Environment{store: s, outer: nil, scopeName: scopeName, scopeType: scopeType}
 }
 
 func NewEnclosedEnvironment(outer *Environment,

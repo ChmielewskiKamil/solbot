@@ -171,6 +171,7 @@ func Test_ResolveReferences(t *testing.T) {
 				},
 			},
 		},
+		{nil},
 	}
 
 	for idx, event := range events {
@@ -196,8 +197,8 @@ func Test_ResolveReferences(t *testing.T) {
 					event.Name, gotUsage, expectedUsage)
 			}
 		} else {
-			if expectedReferences[idx].ref != nil {
-				t.Fatalf("Event '%s' does not have a reference, while one was expected", event.Name)
+			if expectedReferences[idx].ref == nil && len(event.References) != 0 {
+				t.Fatalf("Event '%s' got unexpected reference. Expected none.", event.Name)
 			}
 		}
 	}

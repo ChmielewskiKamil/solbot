@@ -102,7 +102,7 @@ func (a *Analyzer) discoverSymbols(node ast.Node, outer *symbols.Environment) {
 		contractSymbol := a.discoverContractDeclaration(n, outer)
 
 		// Create contract specific env with file's env as outer.
-		contractEnv := symbols.NewEnclosedEnvironment(outer, contractSymbol.Name, symbols.CONTRACT)
+		contractEnv := symbols.NewEnclosedEnvironment(outer, n.Name.Value, symbols.CONTRACT)
 
 		contractSymbol.SetInnerEnv(contractEnv)
 
@@ -114,7 +114,7 @@ func (a *Analyzer) discoverSymbols(node ast.Node, outer *symbols.Environment) {
 		// contract's env). Function body can be discovered in the context of
 		// function's inner ENV.
 		functionSymbol := a.discoverFunctionDeclaration(n, outer)
-		functionEnv := symbols.NewEnclosedEnvironment(outer, functionSymbol.Name, symbols.FUNCTION)
+		functionEnv := symbols.NewEnclosedEnvironment(outer, n.Name.Value, symbols.FUNCTION)
 
 		functionSymbol.SetInnerEnv(functionEnv)
 
