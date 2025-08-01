@@ -4,4 +4,7 @@ solbot
 # LSP Debug Logs
 log.txt
 
+# Nix-shell project dependencies
+.go
+
 .DS_Store
