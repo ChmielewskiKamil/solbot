@@ -1,3 +1,19 @@
+// Package ast defines the types used to represent the Abstract Syntax Tree
+// of a Solidity source file.
+//
+// All nodes in the tree implement the Node interface, which provides methods
+// for retrieving the node's position in the source code. The positional
+// methods, Start() and End(), follow a half-open interval convention.
+//
+// The Start() position is the inclusive offset of the node's first character.
+// The End() position is the exclusive offset of the character immediately
+// following the node's last character. This means the range is [Start, End).
+//
+// For example, for the source text "var", the Start() position would point
+// to 'v' and the End() position would point to the character after 'r'.
+//
+// Adherence to this convention is critical for all node types. Any deviation
+// is considered a bug and should be reported.
 package ast
 
 import (
@@ -281,13 +297,26 @@ type EventParam struct {
 // Start() and End() implementations for Expression type Nodes
 
 func (t *ElementaryType) Start() token.Pos { return t.Pos }
-func (t *ElementaryType) End() token.Pos   { return token.Pos(int(t.Pos) + int(t.End())) }
-func (t *EventParam) Start() token.Pos     { return t.Type.Start() }
-func (t *EventParam) End() token.Pos       { return t.Name.End() }
+func (t *ElementaryType) End() token.Pos   { return token.Pos(int(t.Pos) + len(t.Kind.Literal)) }
+func (t *Param) Start() token.Pos          { return t.Type.Start() }
+func (t *Param) End() token.Pos {
+	if t.Name != nil {
+		return t.Name.End()
+	}
+	// TODO: What about the case when there is no name, but there IS the
+	// data location?
+	return t.Type.End()
+}
+func (t *ParamList) Start() token.Pos  { return t.Opening }
+func (t *ParamList) End() token.Pos    { return t.Closing + 1 }
+func (t *EventParam) Start() token.Pos { return t.Type.Start() }
+func (t *EventParam) End() token.Pos   { return t.Name.End() }
 
 // typeNode() implementations
 
 func (*ElementaryType) typeNode() {}
+func (*Param) typeNode()          {}
+func (*ParamList) typeNode()      {}
 func (*EventParam) typeNode()     {}
 
 // String() implementations for Types
@@ -295,6 +324,36 @@ func (*EventParam) typeNode()     {}
 func (t *ElementaryType) String() string {
 	var out bytes.Buffer
 	out.WriteString(t.Kind.Literal)
+	return out.String()
+}
+
+func (t *Param) String() string {
+	var out bytes.Buffer
+	out.WriteString(t.Type.String())
+
+	if t.DataLocation != NO_DATA_LOCATION {
+		out.WriteString(" ")
+		out.WriteString(t.DataLocation.String())
+	}
+	if t.Name != nil {
+		out.WriteString(" ")
+		out.WriteString(t.Name.String())
+	}
+	return out.String()
+}
+
+func (t *ParamList) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	for i, p := range t.List {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(p.String())
+	}
+	out.WriteString(")")
+
 	return out.String()
 }
 
