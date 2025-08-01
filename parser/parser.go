@@ -8,31 +8,16 @@ import (
 	"solbot/token"
 )
 
-type parser struct {
-	file   *token.SourceFile
-	l      lexer.Lexer
-	errors ErrorList
+////////////////////////////////////////////////////
+//////////////////// PUBLIC API ////////////////////
+////////////////////////////////////////////////////
 
-	// Tracing
-	trace bool
-
-	currTkn token.Token
-	peekTkn token.Token
-
-	// Pratt Parsing maps are used to parse expressions. They define the logic
-	// on how to parse a specific token based on its position.
-	prefixParseFns map[token.TokenType]prefixParseFn
-	infixParseFns  map[token.TokenType]infixParseFn
-}
-
-type Option func(*parser)
-
-func WithTracing() Option {
-	return func(p *parser) {
-		p.trace = true
-	}
-}
-
+// ParseFile parses the Solidity source code from src and returns the corresponding AST.
+// The filename parameter is used for context in error messages and position tracking.
+// Optional configuration, such as tracing, can be provided via the opts parameter.
+//
+// If parsing fails with syntax errors, the function returns a non-nil *ast.File
+// (which may be partially complete) and an error of type ErrorList.
 func ParseFile(filename string, src io.Reader, opts ...Option) (*ast.File, error) {
 	content, err := io.ReadAll(src)
 	if err != nil {
@@ -57,6 +42,35 @@ func ParseFile(filename string, src io.Reader, opts ...Option) (*ast.File, error
 	}
 
 	return file, nil
+}
+
+type Option func(*parser)
+
+func WithTracing() Option {
+	return func(p *parser) {
+		p.trace = true
+	}
+}
+
+////////////////////////////////////////////////////
+//////////////////// INTERNALS /////////////////////
+////////////////////////////////////////////////////
+
+type parser struct {
+	file   *token.SourceFile
+	l      lexer.Lexer
+	errors ErrorList
+
+	// Tracing
+	trace bool
+
+	currTkn token.Token
+	peekTkn token.Token
+
+	// Pratt Parsing maps are used to parse expressions. They define the logic
+	// on how to parse a specific token based on its position.
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 func newParser(file *token.SourceFile) *parser {
