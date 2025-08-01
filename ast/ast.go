@@ -586,16 +586,53 @@ func (d *EventDeclaration) End() token.Pos { return d.Params.Closing }
 // be assigned to a Declaration.
 
 func (*ContractBase) declarationNode()             {}
+func (*ContractBody) declarationNode()             {}
 func (*StateVariableDeclaration) declarationNode() {}
 func (*FunctionDeclaration) declarationNode()      {}
 func (*EventDeclaration) declarationNode()         {}
 
 // String() implementations for Declarations
-func (d *ContractDeclaration) String() string {
-	// TODO: Implement pretty print of contract declaration
-	var out bytes.Buffer
-	out.WriteString(d.Name.Value)
 
+func (d *ContractDeclaration) String() string {
+	var out bytes.Buffer
+
+	if d.Abstract {
+		out.WriteString("abstract ")
+	}
+
+	out.WriteString("contract ")
+	out.WriteString(d.Name.String())
+
+	// Handle inheritance
+	if len(d.Parents) > 0 {
+		out.WriteString(" is ")
+		for i, p := range d.Parents {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(p.String())
+		}
+	}
+
+	out.WriteString(" ")
+
+	if d.Body != nil {
+		out.WriteString(d.Body.String())
+	} else {
+		out.WriteString("{ }")
+	}
+
+	return out.String()
+}
+
+func (d *ContractBody) String() string {
+	// A simple string representation is fine for now.
+	var out bytes.Buffer
+	out.WriteString("{\n")
+	for _, decl := range d.Declarations {
+		out.WriteString("\t" + decl.String() + "\n")
+	}
+	out.WriteString("}")
 	return out.String()
 }
 
