@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+	"os"
 	"solbot/analyzer/screamingsnakeconst"
 	"solbot/ast"
 	"solbot/parser"
@@ -28,23 +29,21 @@ type Analyzer struct {
 
 	currentFile    *ast.File            // The currently analysed file; returned from parser.ParseFile.
 	currentFileEnv *symbols.Environment // The environment of the currently analyred file.
-	parser         *parser.Parser       // Parser is used to parse newly encountered files.
 }
 
 func (a *Analyzer) Init(filePathToAnalyze string) error {
-	a.parser = &parser.Parser{}
-	a.analysisErrors = ErrorList{}
-
-	sourceFile, err := token.NewSourceFile(filePathToAnalyze, "")
+	f, err := os.Open(filePathToAnalyze)
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not open the path to analyze %s: %w", filePathToAnalyze, err)
+	}
+	defer f.Close()
+
+	file, err := parser.ParseFile(filePathToAnalyze, f)
+	if err != nil {
+		return fmt.Errorf("Error while parsing the file %s: %w", filePathToAnalyze, err)
 	}
 
-	a.parser.Init(sourceFile)
-	file := a.parser.ParseFile()
-	if file == nil {
-		return fmt.Errorf("Could not parse file. Check parses errors.")
-	}
+	a.analysisErrors = ErrorList{}
 
 	a.currentFile = file
 	return nil
@@ -81,10 +80,6 @@ func (a *Analyzer) GetFindings() []reporter.Finding {
 
 func (a *Analyzer) GetCurrentFileEnv() *symbols.Environment {
 	return a.currentFileEnv
-}
-
-func (a *Analyzer) GetParserErrors() parser.ErrorList {
-	return a.parser.Errors()
 }
 
 ////////////////////////////////////////////////////////////////////

@@ -117,21 +117,21 @@ var precedences = map[token.TokenType]int{
 	token.LPAREN: HIGHEST,
 }
 
-func (p *Parser) peekPrecedence() int {
+func (p *parser) peekPrecedence() int {
 	if p, ok := precedences[p.peekTkn.Type]; ok {
 		return p
 	}
 	return LOWEST
 }
 
-func (p *Parser) currPrecedence() int {
+func (p *parser) currPrecedence() int {
 	if p, ok := precedences[p.currTkn.Type]; ok {
 		return p
 	}
 	return LOWEST
 }
 
-// Inside the Parser struct we have two maps, prefixParseFns and infixParseFns.
+// Inside the parser struct we have two maps, prefixParseFns and infixParseFns.
 // For each token type we can have two functions, one for parsing the prefix
 // operators and one for parsing the infix operators.
 type (
@@ -141,7 +141,7 @@ type (
 	infixParseFn func(ast.Expression) ast.Expression
 )
 
-func (p *Parser) parseExpression(precedence int) ast.Expression {
+func (p *parser) parseExpression(precedence int) ast.Expression {
 	if p.trace {
 		defer un(trace("parseExpression"))
 	}
@@ -168,12 +168,12 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	return leftExp
 }
 
-func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+func (p *parser) noPrefixParseFnError(t token.TokenType) {
 	msg := "no prefix parse function for '" + t.String() + "' found"
-	p.errors.Add(p.currTkn.Pos, msg)
+	p.addError(p.currTkn.Pos, msg)
 }
 
-func (p *Parser) parseIdentifier() ast.Expression {
+func (p *parser) parseIdentifier() ast.Expression {
 	if p.trace {
 		defer un(trace("parseIdentifier"))
 	}
@@ -182,7 +182,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	return ident
 }
 
-func (p *Parser) parseNumberLiteral() ast.Expression {
+func (p *parser) parseNumberLiteral() ast.Expression {
 	if p.trace {
 		defer un(trace("parseNumberLiteral"))
 	}
@@ -195,7 +195,7 @@ func (p *Parser) parseNumberLiteral() ast.Expression {
 
 	bigInt, ok := new(big.Int).SetString(p.currTkn.Literal, 0)
 	if !ok {
-		p.errors.Add(p.currTkn.Pos, "could not parse number literal")
+		p.addError(p.currTkn.Pos, "could not parse number literal")
 		return nil
 	}
 
@@ -204,7 +204,7 @@ func (p *Parser) parseNumberLiteral() ast.Expression {
 	return numLit
 }
 
-func (p *Parser) parseBooleanLiteral() ast.Expression {
+func (p *parser) parseBooleanLiteral() ast.Expression {
 	if p.trace {
 		defer un(trace("parseBooleanLiteral"))
 	}
@@ -216,7 +216,7 @@ func (p *Parser) parseBooleanLiteral() ast.Expression {
 	return bl
 }
 
-func (p *Parser) parsePrefixExpression() ast.Expression {
+func (p *parser) parsePrefixExpression() ast.Expression {
 	if p.trace {
 		defer un(trace("parsePrefixExpression"))
 	}
@@ -236,7 +236,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	return pe
 }
 
-func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+func (p *parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	if p.trace {
 		defer un(trace("parseInfixExpression"))
 	}
@@ -258,7 +258,7 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	return exp
 }
 
-func (p *Parser) parseGroupedExpression() ast.Expression {
+func (p *parser) parseGroupedExpression() ast.Expression {
 	if p.trace {
 		defer un(trace("parseGroupedExpression"))
 	}
@@ -276,7 +276,7 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	return exp
 }
 
-func (p *Parser) parseElementaryTypeExpression() ast.Expression {
+func (p *parser) parseElementaryTypeExpression() ast.Expression {
 	if p.trace {
 		defer un(trace("parseElementaryType"))
 	}
@@ -312,7 +312,7 @@ func (p *Parser) parseElementaryTypeExpression() ast.Expression {
 // parseCallExpression is called when LPAREN is encountered in an
 // infix position. That's why we have access to the function ident
 // and we can pass it as an argument to the function.
-func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
+func (p *parser) parseCallExpression(fn ast.Expression) ast.Expression {
 	if p.trace {
 		defer un(trace("parseCallExpression"))
 	}
@@ -326,7 +326,7 @@ func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
 	return callExp
 }
 
-func (p *Parser) parseCallArguments() []ast.Expression {
+func (p *parser) parseCallArguments() []ast.Expression {
 	if p.trace {
 		defer un(trace("parseCallArguments"))
 	}

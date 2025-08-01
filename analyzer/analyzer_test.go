@@ -10,7 +10,6 @@ func Test_DiscoverSymbols_getSymbolsByType(t *testing.T) {
 	testContractPath := "testdata/foundry/src/003_SimpleCounter_WithEvents.sol"
 	analyzer := Analyzer{}
 	analyzer.Init(testContractPath)
-	checkParserErrors(t, &analyzer)
 
 	analyzer.AnalyzeCurrentFile()
 
@@ -96,7 +95,6 @@ func Test_ResolveReferences(t *testing.T) {
 	testContractPath := "testdata/foundry/src/003_SimpleCounter_WithEvents.sol"
 	analyzer := Analyzer{}
 	analyzer.Init(testContractPath)
-	checkParserErrors(t, &analyzer)
 
 	analyzer.AnalyzeCurrentFile()
 
@@ -202,19 +200,6 @@ func Test_ResolveReferences(t *testing.T) {
 			}
 		}
 	}
-}
-
-func checkParserErrors(t *testing.T, a *Analyzer) {
-	errors := a.GetParserErrors()
-	if len(errors) == 0 {
-		return
-	}
-
-	t.Errorf("Parser has %d errors", len(errors))
-	for _, err := range errors {
-		t.Errorf("Parser error: %s", err.Msg)
-	}
-	t.FailNow()
 }
 
 func checkAnalyzerErrors(t *testing.T, a *Analyzer) {

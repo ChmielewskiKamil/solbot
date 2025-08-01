@@ -3,7 +3,7 @@ package parser
 import (
 	"math/big"
 	"solbot/ast"
-	"solbot/token"
+	"strings"
 	"testing"
 )
 
@@ -317,16 +317,20 @@ func Test_ParseCallExpression(t *testing.T) {
 /*~*~*~*~*~*~*~*~*~*~*~*~* Helper Functions ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 func test_helper_parseSource(t *testing.T, src string, tracing bool) *ast.File {
-	p := Parser{}
-	handle, _ := token.NewSourceFile("", src)
-	p.Init(handle)
+	var file *ast.File
+	var err error
 
 	if tracing {
-		p.ToggleTracing()
+		// Call ParseFile with the tracing option.
+		file, err = ParseFile("test_file.sol", strings.NewReader(src), WithTracing())
+	} else {
+		// Call it without the option.
+		file, err = ParseFile("test_file.sol", strings.NewReader(src))
 	}
 
-	file := p.ParseFile()
-	checkParserErrors(t, &p)
+	if err != nil {
+		t.Fatalf("ParseFile failed: %v", err)
+	}
 
 	if file == nil {
 		t.Fatalf("ParseFile() returned nil")

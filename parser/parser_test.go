@@ -673,16 +673,3 @@ func testParseElementaryType(t *testing.T, decl ast.Declaration,
 
 	return true
 }
-
-func checkParserErrors(t *testing.T, p *Parser) {
-	errors := p.errors
-	if len(errors) == 0 {
-		return
-	}
-
-	t.Errorf("Parser has %d errors", len(errors))
-	for _, err := range errors {
-		t.Errorf("Parser error: %s", err.Msg)
-	}
-	t.FailNow()
-}

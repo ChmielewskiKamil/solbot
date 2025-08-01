@@ -2,12 +2,13 @@ package parser
 
 import (
 	"fmt"
+	"io"
 	"solbot/ast"
 	"solbot/lexer"
 	"solbot/token"
 )
 
-type Parser struct {
+type parser struct {
 	file   *token.SourceFile
 	l      lexer.Lexer
 	errors ErrorList
@@ -24,10 +25,47 @@ type Parser struct {
 	infixParseFns  map[token.TokenType]infixParseFn
 }
 
-func (p *Parser) Init(file *token.SourceFile) {
-	p.l = *lexer.Lex(file)
-	p.errors = ErrorList{}
-	p.file = file
+type Option func(*parser)
+
+func WithTracing() Option {
+	return func(p *parser) {
+		p.trace = true
+	}
+}
+
+func ParseFile(filename string, src io.Reader, opts ...Option) (*ast.File, error) {
+	content, err := io.ReadAll(src)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read the file %s: %w", filename, err)
+	}
+
+	sourceFile, err := token.NewSourceFile(filename, string(content))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create new source file for %s: %w", filename, err)
+	}
+
+	p := newParser(sourceFile)
+
+	for _, opt := range opts {
+		opt(p)
+	}
+
+	file := p.parseFile()
+
+	if len(p.errors) > 0 {
+		return file, p.errors
+	}
+
+	return file, nil
+}
+
+func newParser(file *token.SourceFile) *parser {
+	p := &parser{
+		file:   file,
+		l:      *lexer.Lex(file),
+		errors: ErrorList{},
+	}
+
 	p.trace = false
 
 	// Read two tokens, so currTkn and peekTkn are both set
@@ -89,26 +127,28 @@ func (p *Parser) Init(file *token.SourceFile) {
 	p.registerInfix(token.ASSIGN_MOD, p.parseInfixExpression)
 
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
+
+	return p
 }
 
-func registerPrefixElementaryTypes(p *Parser) {
+func registerPrefixElementaryTypes(p *parser) {
 	for _, tkType := range token.GetElementaryTypes() {
 		p.registerPrefix(tkType, p.parseElementaryTypeExpression)
 	}
 }
 
-func (p *Parser) ToggleTracing() {
+func (p *parser) ToggleTracing() {
 	p.trace = !p.trace
 }
 
-func (p *Parser) nextToken() {
+func (p *parser) nextToken() {
 	p.currTkn = p.peekTkn
 	p.peekTkn = p.l.NextToken()
 }
 
-func (p *Parser) ParseFile() *ast.File {
+func (p *parser) parseFile() *ast.File {
 	if p.trace {
-		defer un(trace("ParseFile"))
+		defer un(trace("parseFile"))
 	}
 
 	file := &ast.File{}
@@ -126,7 +166,7 @@ func (p *Parser) ParseFile() *ast.File {
 	return file
 }
 
-func (p *Parser) parseSourceUnitDeclaration() ast.Declaration {
+func (p *parser) parseSourceUnitDeclaration() ast.Declaration {
 	// Cases below should match elements outlined in the
 	// 'rule source-unit' in Solidity Grammar.
 	// TODO: Implement remaining SourceUnit elements.
@@ -134,7 +174,7 @@ func (p *Parser) parseSourceUnitDeclaration() ast.Declaration {
 	default:
 		// TODO: Once this function is fully implemented, the default case
 		// should only be hit on errors. Add the parses error then.
-		p.errors.Add(p.currTkn.Pos, "Unhandled declaration type in the SourceUnit: "+p.currTkn.Literal)
+		p.addError(p.currTkn.Pos, "Unhandled declaration type in the SourceUnit: "+p.currTkn.Literal)
 		return nil
 
 	case tk == token.COMMENT_LITERAL:
@@ -170,7 +210,7 @@ func (p *Parser) parseSourceUnitDeclaration() ast.Declaration {
 	}
 }
 
-func (p *Parser) parseContractDeclaration() *ast.ContractDeclaration {
+func (p *parser) parseContractDeclaration() *ast.ContractDeclaration {
 	if p.trace {
 		defer un(trace("parseContractDeclaration"))
 	}
@@ -178,7 +218,7 @@ func (p *Parser) parseContractDeclaration() *ast.ContractDeclaration {
 	decl := &ast.ContractDeclaration{}
 	base := ast.ContractBase{}
 
-	// Parser is sitting either on the 'Contract' or 'Abstract' keyword.
+	// parser is sitting either on the 'Contract' or 'Abstract' keyword.
 
 	// If it is currently 'Abstract', the next will be 'Contract'
 	if p.peekTknIs(token.CONTRACT) {
@@ -194,7 +234,7 @@ func (p *Parser) parseContractDeclaration() *ast.ContractDeclaration {
 
 	if !p.expectPeek(token.IDENTIFIER) {
 		// TODO: See if this line must be kept. Most likely not.
-		p.errors.Add(p.currTkn.Pos, "Expected an identifier after Contract keyword. Got: "+p.peekTkn.Literal)
+		p.addError(p.currTkn.Pos, "Expected an identifier after Contract keyword. Got: "+p.peekTkn.Literal)
 		// Move to get out of error state
 		p.nextToken()
 	}
@@ -210,7 +250,7 @@ func (p *Parser) parseContractDeclaration() *ast.ContractDeclaration {
 
 		for {
 			if !p.expectPeek(token.IDENTIFIER) {
-				p.errors.Add(p.currTkn.Pos, "Expected an identifier after IS keyword. Got: "+p.peekTkn.Literal)
+				p.addError(p.currTkn.Pos, "Expected an identifier after IS keyword. Got: "+p.peekTkn.Literal)
 				break
 			}
 
@@ -239,12 +279,12 @@ func (p *Parser) parseContractDeclaration() *ast.ContractDeclaration {
 	return decl
 }
 
-func (p *Parser) parseContractBody() *ast.ContractBody {
+func (p *parser) parseContractBody() *ast.ContractBody {
 	if p.trace {
 		defer un(trace("parseContractBody"))
 	}
 
-	// Parser is sitting on the LBRACE
+	// parser is sitting on the LBRACE
 	body := &ast.ContractBody{
 		LeftBrace: p.currTkn.Pos,
 	}
@@ -261,7 +301,7 @@ func (p *Parser) parseContractBody() *ast.ContractBody {
 		default:
 			// TODO Once this function is fully implemented, throw parses errors
 			// when default case is hit.
-			p.errors.Add(p.currTkn.Pos, "Unhandled declaration in contract's body: "+p.currTkn.Literal)
+			p.addError(p.currTkn.Pos, "Unhandled declaration in contract's body: "+p.currTkn.Literal)
 			p.nextToken()
 		case tk == token.COMMENT_LITERAL:
 			// TODO Parse comments
@@ -304,7 +344,7 @@ func (p *Parser) parseContractBody() *ast.ContractBody {
 	}
 }
 
-func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
+func (p *parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 	if p.trace {
 		defer un(trace("parseFunctionDeclaration"))
 	}
@@ -351,7 +391,7 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 		// - arrays of other types
 		// - mappings (?)
 		if !token.IsElementaryType(p.peekTkn.Type) {
-			p.errors.Add(p.peekTkn.Pos, "Fn param: expected elementary type, got: "+p.peekTkn.Literal)
+			p.addError(p.peekTkn.Pos, "Fn param: expected elementary type, got: "+p.peekTkn.Literal)
 			return nil
 		}
 		p.nextToken() // Move to the type name.
@@ -415,7 +455,7 @@ func (p *Parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 	return decl
 }
 
-func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
+func (p *parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 	if p.trace {
 		defer un(trace("parseStateVariableDeclaration"))
 	}
@@ -448,7 +488,7 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 	for {
 		switch tkType := p.currTkn.Type; {
 		default:
-			p.errors.Add(p.currTkn.Pos, "Unexpected token: "+p.currTkn.Literal)
+			p.addError(p.currTkn.Pos, "Unexpected token: "+p.currTkn.Literal)
 		case tkType == token.IDENTIFIER:
 			decl.Name = &ast.Identifier{
 				Pos:   p.currTkn.Pos,
@@ -488,7 +528,7 @@ func (p *Parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {
 	}
 }
 
-func (p *Parser) parseEventDeclaration() *ast.EventDeclaration {
+func (p *parser) parseEventDeclaration() *ast.EventDeclaration {
 	if p.trace {
 		defer un(trace("parseEventDeclaration"))
 	}
@@ -517,7 +557,7 @@ func (p *Parser) parseEventDeclaration() *ast.EventDeclaration {
 
 		p.nextToken() // move past opening parenthesis
 		if !token.IsElementaryType(p.currTkn.Type) {
-			p.errors.Add(p.currTkn.Pos, "Event param: expected elementary type after opening parenthesis, got: "+p.currTkn.Literal)
+			p.addError(p.currTkn.Pos, "Event param: expected elementary type after opening parenthesis, got: "+p.currTkn.Literal)
 			return nil
 		}
 
@@ -569,7 +609,7 @@ func (p *Parser) parseEventDeclaration() *ast.EventDeclaration {
 	return eventDecl
 }
 
-func (p *Parser) parseStatement() ast.Statement {
+func (p *parser) parseStatement() ast.Statement {
 	switch tkType := p.currTkn.Type; {
 	default:
 		return p.parseExpressionStatement()
@@ -588,7 +628,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	}
 }
 
-func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+func (p *parser) parseBlockStatement() *ast.BlockStatement {
 	if p.trace {
 		defer un(trace("parseBlockStatement"))
 	}
@@ -628,7 +668,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 }
 
 // Almost the same as parseBlockStatement, but we don't allow nested unchecked
-func (p *Parser) parseUncheckedBlockStatement() *ast.UncheckedBlockStatement {
+func (p *parser) parseUncheckedBlockStatement() *ast.UncheckedBlockStatement {
 	if p.trace {
 		defer un(trace("parseUncheckedBlockStatement"))
 	}
@@ -648,7 +688,7 @@ func (p *Parser) parseUncheckedBlockStatement() *ast.UncheckedBlockStatement {
 			// loop will be the end of the current block.
 			p.nextToken()
 		case tkType == token.UNCHECKED:
-			p.errors.Add(p.currTkn.Pos, "Nested unchecked blocks are not allowed.")
+			p.addError(p.currTkn.Pos, "Nested unchecked blocks are not allowed.")
 			p.nextToken() // Consume the offending token and continue parsing
 			return nil
 		case tkType == token.RBRACE:
@@ -659,7 +699,7 @@ func (p *Parser) parseUncheckedBlockStatement() *ast.UncheckedBlockStatement {
 	}
 }
 
-func (p *Parser) parseVariableDeclarationStatement() *ast.VariableDeclarationStatement {
+func (p *parser) parseVariableDeclarationStatement() *ast.VariableDeclarationStatement {
 	if p.trace {
 		defer un(trace("parseVariableDeclarationStatement"))
 	}
@@ -716,7 +756,7 @@ func (p *Parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 	return vdStmt
 }
 
-func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+func (p *parser) parseReturnStatement() *ast.ReturnStatement {
 	if p.trace {
 		defer un(trace("parseReturnStatement()"))
 	}
@@ -736,7 +776,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return retStmt
 }
 
-func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+func (p *parser) parseExpressionStatement() *ast.ExpressionStatement {
 	if p.trace {
 		defer un(trace("parseExpressionStatement"))
 	}
@@ -754,7 +794,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return exprStmt
 }
 
-func (p *Parser) parseIfStatement() *ast.IfStatement {
+func (p *parser) parseIfStatement() *ast.IfStatement {
 	if p.trace {
 		defer un(trace("parseIfStatement"))
 	}
@@ -794,7 +834,7 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 	return ifStmt
 }
 
-func (p *Parser) parseEmitStatement() *ast.EmitStatement {
+func (p *parser) parseEmitStatement() *ast.EmitStatement {
 	if p.trace {
 		defer un(trace("parseEmitStatement"))
 	}
@@ -802,7 +842,7 @@ func (p *Parser) parseEmitStatement() *ast.EmitStatement {
 	// Emit expression is of the following format:
 	// emit <<expression>> (call-argument-list) ;
 	emitStmt := &ast.EmitStatement{
-		Pos: p.currTkn.Pos, // Parser is sitting on the emit keyword
+		Pos: p.currTkn.Pos, // parser is sitting on the emit keyword
 	}
 
 	p.nextToken() // Move past the emit keyword
@@ -821,7 +861,7 @@ func (p *Parser) parseEmitStatement() *ast.EmitStatement {
 
 // expectPeek checks if the next token is of the expected type.
 // If it is it advances the tokens.
-func (p *Parser) expectPeek(t token.TokenType) bool {
+func (p *parser) expectPeek(t token.TokenType) bool {
 	if p.peekTkn.Type == t {
 		p.nextToken()
 		return true
@@ -831,30 +871,30 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	}
 }
 
-func (p *Parser) peekError(t token.TokenType) {
+func (p *parser) peekError(t token.TokenType) {
 	msg := fmt.Sprintf("expected next token to be: %s, got: %s instead (at offset: %d)",
 		t.String(), p.peekTkn.Type.String(), p.peekTkn.Pos)
-	p.errors.Add(p.peekTkn.Pos, msg)
+	p.addError(p.peekTkn.Pos, msg)
 }
 
 // currTknIs checks if the current token is of the expected type.
-func (p *Parser) currTknIs(t token.TokenType) bool {
+func (p *parser) currTknIs(t token.TokenType) bool {
 	return p.currTkn.Type == t
 }
 
 // peekTknIs checks if the next token is of the expected type.
-func (p *Parser) peekTknIs(t token.TokenType) bool {
+func (p *parser) peekTknIs(t token.TokenType) bool {
 	return p.peekTkn.Type == t
 }
 
-func (p *Parser) registerPrefix(t token.TokenType, fn prefixParseFn) {
+func (p *parser) registerPrefix(t token.TokenType, fn prefixParseFn) {
 	p.prefixParseFns[t] = fn
 }
 
-func (p *Parser) registerInfix(t token.TokenType, fn infixParseFn) {
+func (p *parser) registerInfix(t token.TokenType, fn infixParseFn) {
 	p.infixParseFns[t] = fn
 }
 
-func (p *Parser) Errors() ErrorList {
+func (p *parser) Errors() ErrorList {
 	return p.errors
 }
