@@ -184,18 +184,18 @@ func (p *parser) parseSourceUnitDeclaration() ast.Declaration {
 	// Cases below should match elements outlined in the
 	// 'rule source-unit' in Solidity Grammar.
 	// TODO: Implement remaining SourceUnit elements.
-	switch tk := p.currTkn.Type; {
+	switch tk := p.currTkn.Type; tk {
 	default:
 		// TODO: Once this function is fully implemented, the default case
 		// should only be hit on errors. Add the parses error then.
 		p.addError(p.currTkn.Pos, "Unhandled declaration type in the SourceUnit: "+p.currTkn.Literal)
 		return nil
 
-	case tk == token.COMMENT_LITERAL:
+	case token.COMMENT_LITERAL:
 		// TODO Parse comments; skip for now
 		return nil
 
-	case tk == token.PRAGMA:
+	case token.PRAGMA:
 		// TODO parse pragma; skip for now
 		for !p.currTknIs(token.SEMICOLON) {
 			p.nextToken()
@@ -205,13 +205,13 @@ func (p *parser) parseSourceUnitDeclaration() ast.Declaration {
 		// import-directive
 		// using-directive
 
-	case tk == token.CONTRACT || tk == token.ABSTRACT: // contract-definition
+	case token.CONTRACT, token.ABSTRACT: // contract-definition
 		return p.parseContractDeclaration()
 
 		// interface-definition
 		// library-definition
 
-	case tk == token.FUNCTION: // function-definition
+	case token.FUNCTION: // function-definition
 		return p.parseFunctionDeclaration()
 
 		// constant-variable-declaration
@@ -219,7 +219,7 @@ func (p *parser) parseSourceUnitDeclaration() ast.Declaration {
 		// enum-definition
 		// user-defined-value-type-definition
 		// error-definition
-	case tk == token.EVENT: // event-definition
+	case token.EVENT: // event-definition
 		return p.parseEventDeclaration()
 	}
 }
