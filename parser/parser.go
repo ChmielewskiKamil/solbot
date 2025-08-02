@@ -2,10 +2,11 @@ package parser
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/ChmielewskiKamil/solbot/ast"
 	"github.com/ChmielewskiKamil/solbot/lexer"
 	"github.com/ChmielewskiKamil/solbot/token"
-	"io"
 )
 
 ////////////////////////////////////////////////////
@@ -652,7 +653,7 @@ func (p *parser) parseBlockStatement() *ast.BlockStatement {
 	p.nextToken()
 
 	for {
-		switch tkType := p.currTkn.Type; {
+		switch tkType := p.currTkn.Type; tkType {
 		default:
 			stmt := p.parseStatement()
 			if stmt != nil {
@@ -664,7 +665,7 @@ func (p *parser) parseBlockStatement() *ast.BlockStatement {
 			// by one token. This way the only encountered RBRACE in this for
 			// loop will be the end of the current block.
 			p.nextToken()
-		case tkType == token.UNCHECKED:
+		case token.UNCHECKED:
 			// Move to the LBRACE.
 			p.nextToken()
 			stmt := p.parseUncheckedBlockStatement()
@@ -673,7 +674,7 @@ func (p *parser) parseBlockStatement() *ast.BlockStatement {
 			}
 			// Block parsing ends on RBRACE, so advance to the next token.
 			p.nextToken()
-		case tkType == token.RBRACE:
+		case token.RBRACE:
 			// We have reached the end of the block.
 			blockStmt.RightBrace = p.currTkn.Pos
 			return blockStmt
