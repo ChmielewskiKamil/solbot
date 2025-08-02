@@ -1,10 +1,13 @@
-package parser
+package parser_test
 
 import (
-	"github.com/ChmielewskiKamil/solbot/ast"
-	"github.com/ChmielewskiKamil/solbot/token"
 	"math/big"
+	"strings"
 	"testing"
+
+	"github.com/ChmielewskiKamil/solbot/ast"
+	"github.com/ChmielewskiKamil/solbot/parser"
+	"github.com/ChmielewskiKamil/solbot/token"
 )
 
 func Test_ParseStateVariableDeclaration(t *testing.T) {
@@ -24,7 +27,6 @@ func Test_ParseStateVariableDeclaration(t *testing.T) {
     uint256 transient blob = 0;
     }
     `
-
 	file := test_helper_parseSource(t, src, false)
 
 	if len(file.Declarations) != 1 {
@@ -672,4 +674,107 @@ func testParseElementaryType(t *testing.T, decl ast.Declaration,
 	test_LiteralExpression(t, vd.Value, expectedValue)
 
 	return true
+}
+
+func TestParseDeclarations(t *testing.T) {
+	testCases := []struct {
+		name     string
+		source   string
+		validate func(t *testing.T, decls []ast.Declaration)
+	}{
+		{
+			name: "contract with state variables",
+			source: `
+		// Comment here should be ignored by parser.
+                contract Test {
+                    uint256 balance = 100;
+		    // Comment here should be ignored by parser.
+                    bool constant IS_OWNER = true;
+                }
+            `,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 declaration, got %d", len(decls))
+				}
+				contract, ok := decls[0].(*ast.ContractDeclaration)
+				if !ok {
+					t.Fatalf("Expected ContractDeclaration, got %T", decls[0])
+				}
+				if len(contract.Body.Declarations) != 2 {
+					t.Fatalf("Expected 2 state variables, got %d", len(contract.Body.Declarations))
+				}
+			},
+		},
+		{
+			name: "simple function declaration",
+			source: `
+                function getBalance() public view returns (uint256) {
+		    // Comment here should be ignored by parser.
+                    return 10;
+                }
+            `,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 declaration, got %d", len(decls))
+				}
+				fn, ok := decls[0].(*ast.FunctionDeclaration)
+				if !ok {
+					t.Fatalf("Expected FunctionDeclaration, got %T", decls[0])
+				}
+				if fn.Name.Value != "getBalance" {
+					t.Errorf("Expected function name 'getBalance', got '%s'", fn.Name.Value)
+				}
+			},
+		},
+		{
+			name: "Counter contract with comments",
+			source: `
+                contract Counter {
+                    uint256 public count;
+                    // Function to decrement count by 1
+                    function dec() public {
+                        // This function will fail if count = 0
+                        count -= 1;
+                    }
+                }
+            `,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 declaration, got %d", len(decls))
+				}
+				contract, ok := decls[0].(*ast.ContractDeclaration)
+				if !ok {
+					t.Fatalf("Expected ContractDeclaration, got %T", decls[0])
+				}
+				// The parser should find 2 declarations inside the contract:
+				// the state variable and the function. The comments are ignored.
+				if len(contract.Body.Declarations) != 2 {
+					t.Fatalf("Expected 2 declarations in contract body, got %d", len(contract.Body.Declarations))
+				}
+
+				fn, ok := contract.Body.Declarations[1].(*ast.FunctionDeclaration)
+				if !ok {
+					t.Fatalf("Expected second declaration to be a Function, got %T", contract.Body.Declarations[1])
+				}
+
+				if len(fn.Body.Statements) != 1 {
+					t.Fatalf("Expected 1 statement in function body, got %d", len(fn.Body.Statements))
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			file, err := parser.ParseFile("test.sol", strings.NewReader(tc.source))
+			if err != nil {
+				t.Fatalf("ParseFile failed: %v", err)
+			}
+			if file == nil {
+				t.Fatalf("ParseFile returned a nil file")
+			}
+
+			tc.validate(t, file.Declarations)
+		})
+	}
 }

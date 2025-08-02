@@ -665,6 +665,9 @@ func (p *parser) parseBlockStatement() *ast.BlockStatement {
 			// by one token. This way the only encountered RBRACE in this for
 			// loop will be the end of the current block.
 			p.nextToken()
+		case token.COMMENT_LITERAL:
+			p.nextToken()
+			continue
 		case token.UNCHECKED:
 			// Move to the LBRACE.
 			p.nextToken()
