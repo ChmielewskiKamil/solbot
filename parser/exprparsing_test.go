@@ -1,10 +1,12 @@
-package parser
+package parser_test
 
 import (
-	"github.com/ChmielewskiKamil/solbot/ast"
 	"math/big"
 	"strings"
 	"testing"
+
+	"github.com/ChmielewskiKamil/solbot/ast"
+	"github.com/ChmielewskiKamil/solbot/parser"
 )
 
 func Test_ParseIdentifierExpression(t *testing.T) {
@@ -322,10 +324,10 @@ func test_helper_parseSource(t *testing.T, src string, tracing bool) *ast.File {
 
 	if tracing {
 		// Call ParseFile with the tracing option.
-		file, err = ParseFile("test_file.sol", strings.NewReader(src), WithTracing())
+		file, err = parser.ParseFile("test_file.sol", strings.NewReader(src), parser.WithTracing())
 	} else {
 		// Call it without the option.
-		file, err = ParseFile("test_file.sol", strings.NewReader(src))
+		file, err = parser.ParseFile("test_file.sol", strings.NewReader(src))
 	}
 
 	if err != nil {
