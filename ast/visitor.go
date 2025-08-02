@@ -2,16 +2,11 @@ package ast
 
 // Visitor defines the interface for an AST visitor.
 // The Visit method is called for each node encountered by Walk.
-// If the result visitor w is not nil, Walk visits each of the children
-// of node with the visitor w, followed by a call of w.Visit(nil).
 type Visitor interface {
 	Visit(node Node) (w Visitor)
 }
 
-// Walk traverses an AST in depth-first order. It starts by calling
-// v.Visit(node); node must not be nil. If the visitor w returned by
-// v.Visit(node) is not nil, Walk is called recursively for each of the
-// non-nil children of node, followed by a call of w.Visit(nil).
+// Walk traverses an AST in depth-first order.
 func Walk(v Visitor, node Node) {
 	if v = v.Visit(node); v == nil {
 		return
@@ -32,6 +27,7 @@ func Walk(v Visitor, node Node) {
 				Walk(v, parent)
 			}
 		}
+
 		if n.Body != nil {
 			Walk(v, n.Body)
 		}
