@@ -3,8 +3,8 @@ package reporter
 import (
 	"bytes"
 	"fmt"
+	"github.com/ChmielewskiKamil/solbot/token"
 	"os"
-	"solbot/token"
 	"strings"
 	"text/template"
 )

@@ -1,9 +1,9 @@
 package parser
 
 import (
+	"github.com/ChmielewskiKamil/solbot/ast"
+	"github.com/ChmielewskiKamil/solbot/token"
 	"math/big"
-	"solbot/ast"
-	"solbot/token"
 	"testing"
 )
 

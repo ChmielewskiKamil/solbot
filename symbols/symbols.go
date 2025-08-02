@@ -2,8 +2,8 @@ package symbols
 
 import (
 	"fmt"
-	"solbot/ast"
-	"solbot/token"
+	"github.com/ChmielewskiKamil/solbot/ast"
+	"github.com/ChmielewskiKamil/solbot/token"
 )
 
 // Symbol represents any identifiable entity in the Solidity source code, such as contracts,

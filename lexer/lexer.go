@@ -2,9 +2,10 @@ package lexer
 
 import (
 	"fmt"
-	"solbot/token"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/ChmielewskiKamil/solbot/token"
 )
 
 const (

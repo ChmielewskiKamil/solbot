@@ -2,7 +2,7 @@ package analysis
 
 import (
 	"fmt"
-	"solbot/lsp"
+	"github.com/ChmielewskiKamil/solbot/lsp"
 )
 
 type State struct {

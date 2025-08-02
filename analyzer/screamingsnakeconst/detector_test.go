@@ -1,7 +1,7 @@
 package screamingsnakeconst
 
 import (
-	"solbot/parser"
+	"github.com/ChmielewskiKamil/solbot/parser"
 	"strings"
 	"testing"
 )

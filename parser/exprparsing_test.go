@@ -1,8 +1,8 @@
 package parser
 
 import (
+	"github.com/ChmielewskiKamil/solbot/ast"
 	"math/big"
-	"solbot/ast"
 	"strings"
 	"testing"
 )

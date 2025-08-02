@@ -1,8 +1,8 @@
 package analyzer
 
 import (
+	"github.com/ChmielewskiKamil/solbot/symbols"
 	"reflect"
-	"solbot/symbols"
 	"testing"
 )
 

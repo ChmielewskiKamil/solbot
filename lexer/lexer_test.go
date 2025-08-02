@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"solbot/token"
+	"github.com/ChmielewskiKamil/solbot/token"
 	"testing"
 )
 

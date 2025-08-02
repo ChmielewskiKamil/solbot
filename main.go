@@ -8,11 +8,12 @@ import (
 	"io"
 	"log"
 	"os"
-	"solbot/analyzer"
-	"solbot/lsp"
-	"solbot/lsp/analysis"
-	"solbot/lsp/rpc"
-	"solbot/reporter"
+
+	"github.com/ChmielewskiKamil/solbot/analyzer"
+	"github.com/ChmielewskiKamil/solbot/lsp"
+	"github.com/ChmielewskiKamil/solbot/lsp/analysis"
+	"github.com/ChmielewskiKamil/solbot/lsp/rpc"
+	"github.com/ChmielewskiKamil/solbot/reporter"
 )
 
 func main() {

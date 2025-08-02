@@ -4,10 +4,10 @@
 package screamingsnakeconst
 
 import (
+	"github.com/ChmielewskiKamil/solbot/ast"
+	"github.com/ChmielewskiKamil/solbot/reporter"
+	"github.com/ChmielewskiKamil/solbot/token"
 	"regexp"
-	"solbot/ast"
-	"solbot/reporter"
-	"solbot/token"
 )
 
 const (

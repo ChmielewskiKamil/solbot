@@ -18,8 +18,8 @@ package ast
 
 import (
 	"bytes"
+	"github.com/ChmielewskiKamil/solbot/token"
 	"math/big"
-	"solbot/token"
 )
 
 // All nodes in the AST must implement the Node interface.

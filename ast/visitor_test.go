@@ -2,10 +2,11 @@ package ast_test
 
 import (
 	"reflect"
-	"solbot/ast"
-	"solbot/parser"
 	"strings"
 	"testing"
+
+	"github.com/ChmielewskiKamil/solbot/ast"
+	"github.com/ChmielewskiKamil/solbot/parser"
 )
 
 type mockVisitor struct {

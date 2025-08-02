@@ -2,7 +2,7 @@ package parser
 
 import (
 	"fmt"
-	"solbot/token"
+	"github.com/ChmielewskiKamil/solbot/token"
 	"strings"
 )
 

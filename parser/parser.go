@@ -2,10 +2,10 @@ package parser
 
 import (
 	"fmt"
+	"github.com/ChmielewskiKamil/solbot/ast"
+	"github.com/ChmielewskiKamil/solbot/lexer"
+	"github.com/ChmielewskiKamil/solbot/token"
 	"io"
-	"solbot/ast"
-	"solbot/lexer"
-	"solbot/token"
 )
 
 ////////////////////////////////////////////////////

@@ -3,12 +3,13 @@ package analyzer
 import (
 	"fmt"
 	"os"
-	"solbot/analyzer/screamingsnakeconst"
-	"solbot/ast"
-	"solbot/parser"
-	"solbot/reporter"
-	"solbot/symbols"
-	"solbot/token"
+
+	"github.com/ChmielewskiKamil/solbot/analyzer/screamingsnakeconst"
+	"github.com/ChmielewskiKamil/solbot/ast"
+	"github.com/ChmielewskiKamil/solbot/parser"
+	"github.com/ChmielewskiKamil/solbot/reporter"
+	"github.com/ChmielewskiKamil/solbot/symbols"
+	"github.com/ChmielewskiKamil/solbot/token"
 )
 
 type Detector interface {
