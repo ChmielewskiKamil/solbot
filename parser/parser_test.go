@@ -761,6 +761,157 @@ func TestParseDeclarations(t *testing.T) {
 					t.Fatalf("Expected 1 statement in function body, got %d", len(fn.Body.Statements))
 				}
 			},
+		}, {
+			name: "Tuple: Variable Declarations no ommissions",
+			source: `function _() {
+			(address owner, uint256 balance) = getValues();
+		}`,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 declaration, got %d", len(decls))
+				}
+				fn, ok := decls[0].(*ast.FunctionDeclaration)
+				if !ok {
+					t.Fatalf("Expected FunctionDeclaration, got %T", decls[0])
+				}
+				if len(fn.Body.Statements) != 1 {
+					t.Fatalf("Expected 1 statement in function, got %d", len(fn.Body.Statements))
+				}
+				vdTupleStmt, ok := fn.Body.Statements[0].(*ast.VariableDeclarationTupleStatement)
+				if !ok {
+					t.Fatalf("Expected variable declaration tuple statement, got %T, ", vdTupleStmt)
+				}
+				if len(vdTupleStmt.Declarations) != 2 {
+					t.Fatalf("Expected 2 variable declarations inside a tuple, got %d", len(vdTupleStmt.Declarations))
+				}
+			},
+		}, {
+			name: "Tuple: Variable Declarations with ommissions",
+			source: `function _() {
+			(address owner,,,uint256 balance) = getValues();
+		}`,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 declaration, got %d", len(decls))
+				}
+				fn, ok := decls[0].(*ast.FunctionDeclaration)
+				if !ok {
+					t.Fatalf("Expected FunctionDeclaration, got %T", decls[0])
+				}
+				if len(fn.Body.Statements) != 1 {
+					t.Fatalf("Expected 1 statement in function, got %d", len(fn.Body.Statements))
+				}
+				vdTupleStmt, ok := fn.Body.Statements[0].(*ast.VariableDeclarationTupleStatement)
+				if !ok {
+					t.Fatalf("Expected variable declaration tuple statement, got %T, ", vdTupleStmt)
+				}
+				if len(vdTupleStmt.Declarations) != 4 {
+					t.Fatalf("Expected 4 variable declarations inside a tuple, got %d", len(vdTupleStmt.Declarations))
+				}
+			},
+		}, {
+			name: "Tuple: Variable Declarations with leading ommissions",
+			source: `function _() {
+			(,,,uint256 balance) = getValues();
+		}`,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 declaration, got %d", len(decls))
+				}
+				fn, ok := decls[0].(*ast.FunctionDeclaration)
+				if !ok {
+					t.Fatalf("Expected FunctionDeclaration, got %T", decls[0])
+				}
+				if len(fn.Body.Statements) != 1 {
+					t.Fatalf("Expected 1 statement in function, got %d", len(fn.Body.Statements))
+				}
+				vdTupleStmt, ok := fn.Body.Statements[0].(*ast.VariableDeclarationTupleStatement)
+				if !ok {
+					t.Fatalf("Expected variable declaration tuple statement, got %T, ", vdTupleStmt)
+				}
+				if len(vdTupleStmt.Declarations) != 4 {
+					t.Fatalf("Expected 4 variable declarations inside a tuple, got %d", len(vdTupleStmt.Declarations))
+				}
+			},
+		},
+		{
+			name:   "Tuple: Complex declarations with various empty slots",
+			source: `function _() { (uint256 a, , bytes memory c, ,) = getValues(); }`,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 function declaration, got %d", len(decls))
+				}
+				fn, ok := decls[0].(*ast.FunctionDeclaration)
+				if !ok {
+					t.Fatalf("Expected FunctionDeclaration, got %T", decls[0])
+				}
+				if len(fn.Body.Statements) != 1 {
+					t.Fatalf("Expected 1 statement in function, got %d", len(fn.Body.Statements))
+				}
+				vdTupleStmt, ok := fn.Body.Statements[0].(*ast.VariableDeclarationTupleStatement)
+				if !ok {
+					t.Fatalf("Expected VariableDeclarationTupleStatement, got %T", fn.Body.Statements[0])
+				}
+
+				// Define the expected structure for each slot in the tuple.
+				// A 'nil' entry represents an expected empty slot.
+				type expectedPart struct {
+					Type         token.TokenType
+					Name         string
+					DataLocation ast.DataLocation
+				}
+
+				expectedDecls := []*expectedPart{
+					{Type: token.UINT_256, Name: "a", DataLocation: ast.NO_DATA_LOCATION},
+					nil,
+					{Type: token.BYTES, Name: "c", DataLocation: ast.Memory},
+					nil,
+					nil,
+				}
+
+				if len(vdTupleStmt.Declarations) != len(expectedDecls) {
+					t.Fatalf("Expected %d declarations in tuple, got %d", len(expectedDecls), len(vdTupleStmt.Declarations))
+				}
+
+				// Now, iterate and check each declaration part.
+				for i, expected := range expectedDecls {
+					actual := vdTupleStmt.Declarations[i]
+
+					// Case 1: We expect an empty slot.
+					if expected == nil {
+						if actual != nil {
+							t.Errorf("Test %d: Expected a nil declaration (empty slot), but got a non-nil one.", i)
+						}
+						continue // Slot is correctly empty, move to the next.
+					}
+
+					// Case 2: We expect a full declaration.
+					if actual == nil {
+						t.Errorf("Test %d: Expected declaration for '%s', but got a nil (empty slot).", i, expected.Name)
+						continue // Can't test further, move to the next.
+					}
+
+					// Check the name
+					if actual.Name.Value != expected.Name {
+						t.Errorf("Test %d: Expected name '%s', got '%s'", i, expected.Name, actual.Name.Value)
+					}
+
+					// Check the data location
+					if actual.DataLocation != expected.DataLocation {
+						t.Errorf("Test %d: Expected data location %s for '%s', got %s", i, expected.DataLocation, expected.Name, actual.DataLocation)
+					}
+
+					// Check the type
+					elemType, ok := actual.Type.(*ast.ElementaryType)
+					if !ok {
+						t.Errorf("Test %d: Expected ElementaryType, got %T", i, actual.Type)
+						continue
+					}
+					if elemType.Kind.Type != expected.Type {
+						t.Errorf("Test %d: Expected type %s, got %s", i, expected.Type, elemType.Kind.Type)
+					}
+				}
+			},
 		},
 	}
 

@@ -18,8 +18,9 @@ package ast
 
 import (
 	"bytes"
-	"github.com/ChmielewskiKamil/solbot/token"
 	"math/big"
+
+	"github.com/ChmielewskiKamil/solbot/token"
 )
 
 // All nodes in the AST must implement the Node interface.
@@ -395,7 +396,15 @@ type (
 		Value        Expression   // initial value or nil; optional (NOT FOR TUPLES)
 	}
 
-	// TODO Implement VariableDeclarationTupleStatement
+	// VariableDeclarationTupleStatement represents a tuple of variable declarations.
+	// The Declarations slice can contain nil values, that represent the declarations
+	// that were omitted.
+	VariableDeclarationTupleStatement struct {
+		Opening      token.Pos                       // position of the opening parethesis
+		Declarations []*VariableDeclarationStatement // declarations in the tuple
+		Closing      token.Pos                       // position of the opening parethesis
+		Value        Expression                      // the right-hand side of the `=` sign
+	}
 
 	// Return statement is in a form of "return <<expression>>;", where
 	// the expression is optional. In languages like Go, the return statement can
@@ -432,13 +441,15 @@ type (
 
 // Start() and End() implementations for Statement type Nodes
 
-func (s *BlockStatement) Start() token.Pos               { return s.LeftBrace }
-func (s *BlockStatement) End() token.Pos                 { return s.RightBrace + 1 }
-func (s *UncheckedBlockStatement) Start() token.Pos      { return s.LeftBrace }
-func (s *UncheckedBlockStatement) End() token.Pos        { return s.RightBrace + 1 }
-func (s *VariableDeclarationStatement) Start() token.Pos { return s.Type.Start() }
-func (s *VariableDeclarationStatement) End() token.Pos   { return s.Value.End() }
-func (s *ReturnStatement) Start() token.Pos              { return s.Pos }
+func (s *BlockStatement) Start() token.Pos                    { return s.LeftBrace }
+func (s *BlockStatement) End() token.Pos                      { return s.RightBrace + 1 }
+func (s *UncheckedBlockStatement) Start() token.Pos           { return s.LeftBrace }
+func (s *UncheckedBlockStatement) End() token.Pos             { return s.RightBrace + 1 }
+func (s *VariableDeclarationStatement) Start() token.Pos      { return s.Type.Start() }
+func (s *VariableDeclarationStatement) End() token.Pos        { return s.Value.End() }
+func (s *VariableDeclarationTupleStatement) Start() token.Pos { return s.Opening }
+func (s *VariableDeclarationTupleStatement) End() token.Pos   { return s.Closing + 1 }
+func (s *ReturnStatement) Start() token.Pos                   { return s.Pos }
 func (s *ReturnStatement) End() token.Pos {
 	if s.Result != nil {
 		return s.Result.End()
@@ -465,13 +476,14 @@ func (s *EmitStatement) Start() token.Pos { return s.Pos }
 func (s *EmitStatement) End() token.Pos   { return s.Expression.End() }
 
 // statementNode() ensures that only statement nodes can be assigned to a Statement.
-func (*BlockStatement) statementNode()               {}
-func (*UncheckedBlockStatement) statementNode()      {}
-func (*VariableDeclarationStatement) statementNode() {}
-func (*ReturnStatement) statementNode()              {}
-func (*ExpressionStatement) statementNode()          {}
-func (*IfStatement) statementNode()                  {}
-func (*EmitStatement) statementNode()                {}
+func (*BlockStatement) statementNode()                    {}
+func (*UncheckedBlockStatement) statementNode()           {}
+func (*VariableDeclarationStatement) statementNode()      {}
+func (*VariableDeclarationTupleStatement) statementNode() {}
+func (*ReturnStatement) statementNode()                   {}
+func (*ExpressionStatement) statementNode()               {}
+func (*IfStatement) statementNode()                       {}
+func (*EmitStatement) statementNode()                     {}
 
 // String() implementations for Statements
 
@@ -506,6 +518,40 @@ func (s *VariableDeclarationStatement) String() string {
 		out.WriteString(" = ")
 		out.WriteString(s.Value.String())
 	}
+	out.WriteString(";")
+
+	return out.String()
+}
+
+func (s *VariableDeclarationTupleStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+
+	for i, decl := range s.Declarations {
+		// Skip 0th element. If there is something after that, the comma
+		// and space will be printed when 1st element is processed.
+		if i > 0 {
+			out.WriteString(", ")
+		}
+
+		// A nil declaration represents an empty slot, e.g., (a, , c)
+		if decl != nil {
+			// Manually build the string for the declaration part,
+			// as decl.String() would incorrectly add an assignment and semicolon.
+			out.WriteString(decl.Type.String())
+			out.WriteString(" ")
+			out.WriteString(decl.Name.String())
+		}
+	}
+
+	out.WriteString(")")
+
+	if s.Value != nil {
+		out.WriteString(" = ")
+		out.WriteString(s.Value.String())
+	}
+
 	out.WriteString(";")
 
 	return out.String()

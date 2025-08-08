@@ -632,6 +632,8 @@ func (p *parser) parseStatement() ast.Statement {
 		// TODO: Implement other types that variables can have.
 		// TODO: return address(0) and similar should be handled here
 		return p.parseVariableDeclarationStatement()
+	case tkType == token.LPAREN:
+		return p.parseVariableDeclarationTupleStatement()
 	case tkType == token.LBRACE:
 		return p.parseBlockStatement()
 	case tkType == token.RETURN:
@@ -734,15 +736,6 @@ func (p *parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 		},
 	}
 
-	if !p.expectPeek(token.IDENTIFIER) {
-		return nil
-	}
-
-	vdStmt.Name = &ast.Identifier{
-		Pos:   p.currTkn.Pos,
-		Value: p.currTkn.Literal,
-	}
-
 	if token.IsDataLocation(p.peekTkn.Type) {
 		p.nextToken()
 		switch p.currTkn.Type {
@@ -753,6 +746,15 @@ func (p *parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 		case token.CALLDATA:
 			vdStmt.DataLocation = ast.Calldata
 		}
+	}
+
+	if !p.expectPeek(token.IDENTIFIER) {
+		return nil
+	}
+
+	vdStmt.Name = &ast.Identifier{
+		Pos:   p.currTkn.Pos,
+		Value: p.currTkn.Literal,
 	}
 
 	if p.peekTknIs(token.SEMICOLON) {
@@ -772,6 +774,102 @@ func (p *parser) parseVariableDeclarationStatement() *ast.VariableDeclarationSta
 	}
 
 	return vdStmt
+}
+
+func (p *parser) parseVariableDeclarationTupleStatement() *ast.VariableDeclarationTupleStatement {
+	if p.trace {
+		defer un(trace("parseVariableDeclarationTupleStatement"))
+	}
+
+	vdTupleStmt := &ast.VariableDeclarationTupleStatement{
+		Opening: p.currTkn.Pos,
+	}
+
+	p.nextToken() // Consume '('
+
+	if !p.currTknIs(token.RPAREN) {
+		if token.IsElementaryType(p.currTkn.Type) {
+			vdTupleStmt.Declarations = append(vdTupleStmt.Declarations, p.parseVariableDeclarationPart())
+		} else {
+			vdTupleStmt.Declarations = append(vdTupleStmt.Declarations, nil)
+		}
+
+		for p.currTknIs(token.COMMA) {
+			p.nextToken() // Consume ','
+
+			// Handle a trailing comma case, e.g., "(a,)"
+			if p.currTknIs(token.RPAREN) {
+				vdTupleStmt.Declarations = append(vdTupleStmt.Declarations, nil)
+				break
+			}
+
+			// Parse the next element (or an empty slot for cases like ",,")
+			if token.IsElementaryType(p.currTkn.Type) {
+				vdTupleStmt.Declarations = append(vdTupleStmt.Declarations, p.parseVariableDeclarationPart())
+			} else {
+				vdTupleStmt.Declarations = append(vdTupleStmt.Declarations, nil)
+			}
+		}
+	}
+
+	// After the list, we must be at the closing parenthesis.
+	if !p.currTknIs(token.RPAREN) {
+		p.addError(p.currTkn.Pos, "expected ',' or ')' to close tuple declaration")
+		return nil
+	}
+	vdTupleStmt.Closing = p.currTkn.Pos
+
+	// Tuples must be declared with an initial value.
+	if !p.expectPeek(token.ASSIGN) {
+		p.addError(p.peekTkn.Pos, "variable declaration tuples must be initialized")
+		return nil
+	}
+
+	p.nextToken() // Move past '='
+	vdTupleStmt.Value = p.parseExpression(LOWEST)
+
+	if p.peekTknIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return vdTupleStmt
+}
+
+// parseVariableDeclarationPart parses a variable declaration without the assignment
+// or terminating semicolon. It's used for components within tuple declarations.
+func (p *parser) parseVariableDeclarationPart() *ast.VariableDeclarationStatement {
+	if p.trace {
+		defer un(trace("parseVariableDeclarationPart"))
+	}
+
+	part := &ast.VariableDeclarationStatement{
+		// Default to no location.
+		DataLocation: ast.NO_DATA_LOCATION,
+	}
+
+	part.Type = &ast.ElementaryType{Pos: p.currTkn.Pos, Kind: p.currTkn}
+
+	if token.IsDataLocation(p.peekTkn.Type) {
+		p.nextToken()
+		switch p.currTkn.Type {
+		case token.STORAGE:
+			part.DataLocation = ast.Storage
+		case token.MEMORY:
+			part.DataLocation = ast.Memory
+		case token.CALLDATA:
+			part.DataLocation = ast.Calldata
+		}
+	}
+
+	if !p.expectPeek(token.IDENTIFIER) {
+		return nil
+	}
+
+	part.Name = &ast.Identifier{Pos: p.currTkn.Pos, Value: p.currTkn.Literal}
+
+	p.nextToken()
+
+	return part
 }
 
 func (p *parser) parseReturnStatement() *ast.ReturnStatement {
