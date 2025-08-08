@@ -1131,13 +1131,104 @@ func TestParseDeclarations(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "modifier declarations with various attributes",
+			source: `
+        contract Modifiers {
+            // 1. Simple modifier with a body
+            modifier onlyAdmin() { _; }
+
+            // 2. Modifier with parameters
+            modifier costs(uint256 price) { require(msg.value >= price); _; }
+
+            // 3. Abstract modifier (no body)
+            modifier reentrant() virtual;
+
+            // 4. Virtual modifier with a body
+            modifier pausable() virtual { _; }
+
+            // 5. Simple override
+            modifier pausable() override { super.pausable(); }
+
+            // 6. Override with a list of base contracts
+            modifier pausable() override(Pausable, Stoppable) { _; }
+
+            // 7. Combination: virtual and override
+            modifier checkFee() virtual override { _; }
+
+            // 8. Combination: params, virtual, and override list
+            modifier withFee(uint256 fee) virtual override(Feeable) { _; }
+        }
+      `,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 contract declaration, got %d", len(decls))
+				}
+				contract, ok := decls[0].(*ast.ContractDeclaration)
+				if !ok {
+					t.Fatalf("Expected ContractDeclaration, got %T", decls[0])
+				}
+				if len(contract.Body.Declarations) != 8 {
+					t.Fatalf("Expected 8 modifier declarations, got %d", len(contract.Body.Declarations))
+				}
+
+				tests := []struct {
+					name          string
+					paramCount    int
+					hasBody       bool
+					isVirtual     bool
+					hasOverride   bool
+					overrideCount int // Number of contracts in override list
+				}{
+					{"onlyAdmin", 0, true, false, false, 0},
+					{"costs", 1, true, false, false, 0},
+					{"reentrant", 0, false, true, false, 0},
+					{"pausable", 0, true, true, false, 0},
+					{"pausable", 0, true, false, true, 0},
+					{"pausable", 0, true, false, true, 2},
+					{"checkFee", 0, true, true, true, 0},
+					{"withFee", 1, true, true, true, 1},
+				}
+
+				for i, tt := range tests {
+					mod, ok := contract.Body.Declarations[i].(*ast.ModifierDeclaration)
+					if !ok {
+						t.Errorf("Test %d: Expected ModifierDeclaration, got %T", i, contract.Body.Declarations[i])
+						continue
+					}
+
+					if mod.Name.Value != tt.name {
+						t.Errorf("Test %d: Expected name '%s', got '%s'", i, tt.name, mod.Name.Value)
+					}
+					if (mod.Params != nil && len(mod.Params.List) != tt.paramCount) || (mod.Params == nil && tt.paramCount != 0) {
+						var gotCount int
+						if mod.Params != nil {
+							gotCount = len(mod.Params.List)
+						}
+						t.Errorf("Test %d: Expected %d params, got %d", i, tt.paramCount, gotCount)
+					}
+					if (mod.Body != nil) != tt.hasBody {
+						t.Errorf("Test %d: Expected hasBody=%v, got %v", i, tt.hasBody, mod.Body != nil)
+					}
+					if mod.Virtual != tt.isVirtual {
+						t.Errorf("Test %d: Expected isVirtual=%v, got %v", i, tt.isVirtual, mod.Virtual)
+					}
+					if (mod.Override != nil) != tt.hasOverride {
+						t.Errorf("Test %d: Expected hasOverride=%v, got %v", i, tt.hasOverride, mod.Override != nil)
+					}
+					if mod.Override != nil && len(mod.Override.Overrides) != tt.overrideCount {
+						t.Errorf("Test %d: Expected overrideCount=%d, got %d", i, tt.overrideCount, len(mod.Override.Overrides))
+					}
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			file, err := parser.ParseFile("test.sol", strings.NewReader(tc.source))
 			if err != nil {
-				t.Fatalf("ParseFile failed: %v", err)
+				t.Fatalf("\nParseFile failed:\n%v", err)
 			}
 			if file == nil {
 				t.Fatalf("ParseFile returned a nil file")

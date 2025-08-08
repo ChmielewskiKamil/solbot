@@ -140,8 +140,8 @@ func newParser(file *token.SourceFile) *parser {
 	p.registerInfix(token.ASSIGN_MUL, p.parseInfixExpression)
 	p.registerInfix(token.ASSIGN_DIV, p.parseInfixExpression)
 	p.registerInfix(token.ASSIGN_MOD, p.parseInfixExpression)
-
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
+	p.registerInfix(token.PERIOD, p.parseMemberAccessExpression)
 
 	return p
 }
@@ -334,7 +334,9 @@ func (p *parser) parseContractBody() *ast.ContractBody {
 			decls = append(decls, p.parseFunctionDeclaration())
 			p.nextToken() // Move past RBRACE
 
-			// Modifier definition
+		case tk == token.MODIFIER: // Modifier definition
+			decls = append(decls, p.parseModifierDeclaration())
+			p.nextToken() // Move past RBRACE or semicolon
 			// fallback-function-definition
 			// receive-function-definition
 			// struct-definition
@@ -510,71 +512,7 @@ func (p *parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 		return nil
 	}
 
-	params := &ast.ParamList{}
-	params.Opening = p.currTkn.Pos
-
-	for !p.peekTknIs(token.RPAREN) {
-		// One loop iteration parses one parameter.
-		prm := &ast.Param{}
-		prm.DataLocation = ast.NO_DATA_LOCATION // Explicit default value
-
-		// param list looks like this:
-		// ( typeName <<data location>> <<identifier>>, ... )
-		// The typeName is required while data location and identifier are optional.
-
-		// TODO: Param list parsing could be extracted to a separate
-		// function since it is used in other places as well e.g. fallback,
-		// receive functions, modifiers and return values.
-
-		// TODO: Params can have other types than elementary types. For example:
-		// - user defined like Contract names and structs
-		// - function types
-		// - arrays of other types
-		// - mappings (?)
-		if !token.IsElementaryType(p.peekTkn.Type) {
-			p.addError(p.peekTkn.Pos, "Fn param: expected elementary type, got: "+p.peekTkn.Literal)
-			return nil
-		}
-		p.nextToken() // Move to the type name.
-
-		prm.Type = &ast.ElementaryType{
-			Pos: p.currTkn.Pos,
-			Kind: token.Token{
-				Type:    p.currTkn.Type,
-				Literal: p.currTkn.Literal,
-				Pos:     p.currTkn.Pos,
-			},
-		}
-
-		if token.IsDataLocation(p.peekTkn.Type) {
-			p.nextToken()
-			switch p.currTkn.Type {
-			case token.STORAGE:
-				prm.DataLocation = ast.Storage
-			case token.MEMORY:
-				prm.DataLocation = ast.Memory
-			case token.CALLDATA:
-				prm.DataLocation = ast.Calldata
-			}
-		}
-
-		if p.peekTknIs(token.IDENTIFIER) {
-			p.nextToken()
-			prm.Name = &ast.Identifier{
-				Pos:   p.currTkn.Pos,
-				Value: p.currTkn.Literal,
-			}
-		}
-
-		params.List = append(params.List, prm)
-
-		if p.peekTknIs(token.COMMA) {
-			p.nextToken()
-		}
-	}
-
-	p.nextToken() // Move to the closing parenthesis.
-	params.Closing = p.currTkn.Pos
+	decl.Params = p.parseParameterList()
 
 	// 4. Visibility, State Mutability, Modifier Invocation, Override, Virtual
 
@@ -591,9 +529,158 @@ func (p *parser) parseFunctionDeclaration() *ast.FunctionDeclaration {
 
 	fnBody := p.parseBlockStatement()
 
-	decl.Params = params
 	decl.Body = fnBody
 	return decl
+}
+
+func (p *parser) parseModifierDeclaration() *ast.ModifierDeclaration {
+	if p.trace {
+		defer un(trace("parseModifierDeclaration"))
+	}
+
+	decl := &ast.ModifierDeclaration{Pos: p.currTkn.Pos}
+
+	if !p.expectPeek(token.IDENTIFIER) {
+		return nil
+	}
+
+	decl.Name = &ast.Identifier{Pos: p.currTkn.Pos, Value: p.currTkn.Literal}
+
+	// Check for an optional parameter list.
+	if p.peekTknIs(token.LPAREN) {
+		p.nextToken()
+		decl.Params = p.parseParameterList()
+	}
+
+	// Parse attributes (virtual, override) in any order.
+	for {
+		if p.peekTknIs(token.VIRTUAL) {
+			p.nextToken()
+			decl.Virtual = true
+		} else if p.peekTknIs(token.OVERRIDE) {
+			p.nextToken()
+			decl.Override = p.parseOverrideSpecifier()
+		} else {
+			break // No more attributes found.
+		}
+	}
+
+	// A modifier can end with a body or a semicolon (if abstract).
+	if p.peekTknIs(token.LBRACE) {
+		p.nextToken() // Consume '{'
+		// TODO: The modifier's body contains special constrains as compared
+		// to regular function body. Primarily regarding the usage of underscore.
+		decl.Body = p.parseBlockStatement()
+	} else if p.peekTknIs(token.SEMICOLON) {
+		p.nextToken() // Consume ';'
+		decl.Semicolon = p.currTkn.Pos
+	} else {
+		p.addError(p.peekTkn.Pos, "expected '{' or ';' after modifier declaration")
+	}
+
+	return decl
+}
+
+func (p *parser) parseParameterList() *ast.ParamList {
+	if p.trace {
+		defer un(trace("parseParameterList"))
+	}
+	params := &ast.ParamList{Opening: p.currTkn.Pos}
+
+	if p.peekTknIs(token.RPAREN) { // Handle empty list: ()
+		p.nextToken()
+		params.Closing = p.currTkn.Pos
+		return params
+	}
+
+	p.nextToken()
+
+	for {
+		param := &ast.Param{}
+
+		param.Type = p.parseTypeName()
+
+		if param.Type == nil {
+			p.addError(p.currTkn.Pos, "expected type name in the parameter list")
+			return nil
+		}
+
+		if token.IsDataLocation(p.currTkn.Type) {
+			switch p.currTkn.Type {
+			case token.STORAGE:
+				param.DataLocation = ast.Storage
+			case token.MEMORY:
+				param.DataLocation = ast.Memory
+			case token.CALLDATA:
+				param.DataLocation = ast.Calldata
+			}
+			p.nextToken() // Consume data location
+		}
+
+		if p.currTknIs(token.IDENTIFIER) {
+			param.Name = &ast.Identifier{Pos: p.currTkn.Pos, Value: p.currTkn.Literal}
+			p.nextToken() // Consume identifier
+		}
+
+		params.List = append(params.List, param)
+
+		if p.currTknIs(token.RPAREN) {
+			break
+		}
+
+		if !p.currTknIs(token.COMMA) {
+			p.addError(p.currTkn.Pos, "expected ',' or ')' in parameter list")
+			return nil
+		}
+		p.nextToken() // Consume ','
+	}
+
+	params.Closing = p.currTkn.Pos
+
+	return params
+}
+
+// parseOverrideSpecifier parses an override specifier, which can be a simple 'override'
+// or 'override(Identifier, ...)'.
+func (p *parser) parseOverrideSpecifier() *ast.OverrideSpecifier {
+	if p.trace {
+		defer un(trace("parseOverrideSpecifier"))
+	}
+
+	spec := &ast.OverrideSpecifier{Pos: p.currTkn.Pos}
+
+	if !p.peekTknIs(token.LPAREN) {
+		return spec // Simple 'override' with no list.
+	}
+
+	p.nextToken() // Consume 'override', now on '('
+
+	spec.Opening = p.currTkn.Pos
+
+	p.nextToken() // Consume '('
+
+	// Parse comma-separated list of identifiers.
+	for {
+		if !p.currTknIs(token.IDENTIFIER) {
+			p.addError(p.currTkn.Pos, "expected identifier in override list")
+			return nil
+		}
+		spec.Overrides = append(spec.Overrides, &ast.Identifier{Pos: p.currTkn.Pos, Value: p.currTkn.Literal})
+		p.nextToken() // Consume identifier
+
+		if p.currTknIs(token.RPAREN) {
+			break
+		}
+
+		if !p.currTknIs(token.COMMA) {
+			p.addError(p.currTkn.Pos, "expected ',' or ')' in override list")
+			return nil
+		}
+		p.nextToken() // Consume ','
+	}
+
+	spec.Closing = p.currTkn.Pos
+	return spec
 }
 
 func (p *parser) parseStateVariableDeclaration() *ast.StateVariableDeclaration {

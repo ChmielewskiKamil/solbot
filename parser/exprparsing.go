@@ -1,9 +1,10 @@
 package parser
 
 import (
+	"math/big"
+
 	"github.com/ChmielewskiKamil/solbot/ast"
 	"github.com/ChmielewskiKamil/solbot/token"
-	"math/big"
 )
 
 // The exprparsing.go file contains the logic required to parse expressions.
@@ -115,6 +116,7 @@ var precedences = map[token.TokenType]int{
 	// TODO: The function calls, array subscripting, member access etc.
 	// is harder to implement.
 	token.LPAREN: HIGHEST,
+	token.PERIOD: HIGHEST,
 }
 
 func (p *parser) peekPrecedence() int {
@@ -353,4 +355,24 @@ func (p *parser) parseCallArguments() []ast.Expression {
 	}
 
 	return args
+}
+
+// TODO: Add tests for member access expressions
+func (p *parser) parseMemberAccessExpression(left ast.Expression) ast.Expression {
+	if p.trace {
+		defer un(trace("parseMemberAccessExpression"))
+	}
+
+	expr := &ast.MemberAccessExpression{
+		Pos:        left.Start(),
+		Expression: left,
+	}
+	// The current token is the dot. We expect an identifier next.
+	if !p.expectPeek(token.IDENTIFIER) {
+		p.addError(p.peekTkn.Pos, "expected identifier after '.' for member access")
+		return nil
+	}
+
+	expr.Member = &ast.Identifier{Pos: p.currTkn.Pos, Value: p.currTkn.Literal}
+	return expr
 }

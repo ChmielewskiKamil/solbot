@@ -104,6 +104,12 @@ type (
 		Args  []Expression // Comma-separated list of arguments
 	}
 
+	MemberAccessExpression struct {
+		Pos        token.Pos   // Position of the expression being accessed
+		Expression Expression  // The expression on the left of the dot, e.g., 'super'
+		Member     *Identifier // The identifier on the right of the dot, e.g., 'pausable'
+	}
+
 	ElementaryTypeExpression struct {
 		Pos  token.Pos   // position of the type keyword e.g. `a` in "address"
 		Kind token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
@@ -145,6 +151,8 @@ func (x *CallExpression) End() token.Pos {
 	}
 	return x.Pos + 2 // length of "()"
 }
+func (x *MemberAccessExpression) Start() token.Pos   { return x.Expression.Start() }
+func (x *MemberAccessExpression) End() token.Pos     { return x.Member.End() }
 func (x *ElementaryTypeExpression) Start() token.Pos { return x.Pos }
 func (x *ElementaryTypeExpression) End() token.Pos {
 	if x.Value != nil {
@@ -163,6 +171,7 @@ func (*BooleanLiteral) expressionNode()           {}
 func (*PrefixExpression) expressionNode()         {}
 func (*InfixExpression) expressionNode()          {}
 func (*CallExpression) expressionNode()           {}
+func (*MemberAccessExpression) expressionNode()   {}
 func (*ElementaryTypeExpression) expressionNode() {}
 
 // String() implementations for Expressions
@@ -206,6 +215,9 @@ func (x *CallExpression) String() string {
 	}
 	out.WriteString(")")
 	return out.String()
+}
+func (x *MemberAccessExpression) String() string {
+	return "(" + x.Expression.String() + "." + x.Member.String() + ")"
 }
 func (x *ElementaryTypeExpression) String() string {
 	var out bytes.Buffer
@@ -673,9 +685,24 @@ type ContractBody struct {
 	RightBrace   token.Pos     // position of the right curly brace
 }
 
-// TODO: Add modifier invocations *CallExpression
-// TODO: Add override specifier
-// TODO: Add documentation comments
+// OverrideSpecifier represents an override attribute. It can be a simple `override`
+// or a more specific `override(ContractA, ContractB)`.
+type OverrideSpecifier struct {
+	Pos       token.Pos     // Position of the 'override' keyword.
+	Opening   token.Pos     // Position of the opening '('. Token.ILLEGAL if not present.
+	Overrides []*Identifier // List of base contracts being overridden.
+	Closing   token.Pos     // Position of the closing ')'. Token.ILLEGAL if not present.
+}
+
+type ModifierDeclaration struct {
+	Pos       token.Pos          // position of the "modifier" keyword
+	Name      *Identifier        // modifier name
+	Params    *ParamList         // input parameters; nil if no parentheses
+	Virtual   bool               // whether the modifier is marked as virtual
+	Override  *OverrideSpecifier // override specifier; nil if not present
+	Body      *BlockStatement    // body of the modifier; nil for abstract modifiers
+	Semicolon token.Pos          // position of the semicolon for abstract modifiers
+}
 
 type FunctionDeclaration struct {
 	Pos        token.Pos       // position of the "function" keyword
@@ -686,9 +713,11 @@ type FunctionDeclaration struct {
 	Visibility Visibility      // visibility specifier e.g. public, private, internal, external
 	Virtual    bool            // whether a function is marked as virtual
 	Body       *BlockStatement // function body inside curly braces
+	// TODO: Add modifier invocations *CallExpression
+	// TODO: Add override specifier
+	// TODO: Add documentation comments
 }
 
-// TODO: State variables can have override specifier as well.
 // StateVariableDeclaration represents a state variable declared inside a contract.
 type StateVariableDeclaration struct {
 	Name       *Identifier // variable name
@@ -696,6 +725,7 @@ type StateVariableDeclaration struct {
 	Value      Expression  // initial value or nil
 	Visibility Visibility  // visibility specifier: public, private, internal
 	Mutability Mutability  // mutability specifier: constant, immutable, transient
+	// TODO: State variables can have override specifier as well.
 }
 
 type EventDeclaration struct {
@@ -714,12 +744,28 @@ func (o *UsingForObject) End() token.Pos {
 	}
 	return o.Path.End()
 }
-func (d *UsingForDirective) Start() token.Pos        { return d.Pos }
-func (d *UsingForDirective) End() token.Pos          { return d.Semicolon + 1 }
-func (d *ContractBase) Start() token.Pos             { return d.Pos }
-func (d *ContractBase) End() token.Pos               { return d.Body.End() }
-func (d *ContractBody) Start() token.Pos             { return d.LeftBrace }
-func (d *ContractBody) End() token.Pos               { return d.RightBrace + 1 }
+func (d *UsingForDirective) Start() token.Pos { return d.Pos }
+func (d *UsingForDirective) End() token.Pos   { return d.Semicolon + 1 }
+func (d *ContractBase) Start() token.Pos      { return d.Pos }
+func (d *ContractBase) End() token.Pos        { return d.Body.End() }
+func (d *ContractBody) Start() token.Pos      { return d.LeftBrace }
+func (d *ContractBody) End() token.Pos        { return d.RightBrace + 1 }
+func (d *OverrideSpecifier) Start() token.Pos { return d.Pos }
+func (d *OverrideSpecifier) End() token.Pos {
+	if d.Closing > 0 {
+		return d.Closing + 1
+	}
+	// The length of the "override" keyword is 8
+	return token.Pos(int(d.Pos) + 8)
+}
+func (d *ModifierDeclaration) Start() token.Pos { return d.Pos }
+func (d *ModifierDeclaration) End() token.Pos {
+	if d.Body != nil {
+		return d.Body.End()
+	}
+	// It's an abstract modifier ending with a semicolon.
+	return d.Semicolon + 1
+}
 func (d *StateVariableDeclaration) Start() token.Pos { return d.Type.Start() }
 func (d *StateVariableDeclaration) End() token.Pos   { return d.Value.End() }
 func (d *FunctionDeclaration) Start() token.Pos      { return d.Name.Start() }
@@ -737,6 +783,8 @@ func (*UsingForObject) declarationNode()           {}
 func (*UsingForDirective) declarationNode()        {}
 func (*ContractBase) declarationNode()             {}
 func (*ContractBody) declarationNode()             {}
+func (*OverrideSpecifier) declarationNode()        {}
+func (*ModifierDeclaration) declarationNode()      {}
 func (*StateVariableDeclaration) declarationNode() {}
 func (*FunctionDeclaration) declarationNode()      {}
 func (*EventDeclaration) declarationNode()         {}
@@ -825,6 +873,50 @@ func (d *ContractBody) String() string {
 		out.WriteString("\t" + decl.String() + "\n")
 	}
 	out.WriteString("}")
+	return out.String()
+}
+
+func (s *OverrideSpecifier) String() string {
+	var out bytes.Buffer
+	out.WriteString("override")
+	if len(s.Overrides) > 0 {
+		out.WriteString("(")
+		for i, p := range s.Overrides {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(p.String())
+		}
+		out.WriteString(")")
+	}
+	return out.String()
+}
+
+func (d *ModifierDeclaration) String() string {
+	var out bytes.Buffer
+	out.WriteString("modifier ")
+	out.WriteString(d.Name.String())
+
+	if d.Params != nil {
+		out.WriteString(d.Params.String())
+	}
+
+	if d.Virtual {
+		out.WriteString(" virtual")
+	}
+
+	if d.Override != nil {
+		out.WriteString(" ")
+		out.WriteString(d.Override.String())
+	}
+
+	if d.Body != nil {
+		out.WriteString(" ")
+		out.WriteString(d.Body.String())
+	} else {
+		out.WriteString(";")
+	}
+
 	return out.String()
 }
 
