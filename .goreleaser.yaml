@@ -36,7 +36,7 @@ archives:
       - goos: windows
         formats: [zip]
 
-  changelog:
+changelog:
   use: github
 
   format: "{{.SHA}}: {{.Message}} (@{{.AuthorUsername}})"
