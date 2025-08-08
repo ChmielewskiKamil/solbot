@@ -58,7 +58,7 @@ changelog:
       regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
       order: 0
     - title: "Bug fixes"
-      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      regexp: '^.*?bug(\([[:word:]]+\))??!?:.+$'
       order: 1
     - title: Others
       order: 999
