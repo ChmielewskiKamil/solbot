@@ -234,6 +234,10 @@ type ElementaryType struct {
 	Kind token.Token // type of the literal e.g. token.ADDRESS, token.UINT_256, token.BOOL
 }
 
+type UserDefinedType struct {
+	Name *Identifier
+}
+
 // FunctionType represents a Solidity's function type. NOT TO BE CONFUSED WITH
 // FUNCTION DECLARATION. FunctionType is a weird thing that no one uses (lol) e.g.
 // ```solidity
@@ -297,9 +301,11 @@ type EventParam struct {
 
 // Start() and End() implementations for Expression type Nodes
 
-func (t *ElementaryType) Start() token.Pos { return t.Pos }
-func (t *ElementaryType) End() token.Pos   { return token.Pos(int(t.Pos) + len(t.Kind.Literal)) }
-func (t *Param) Start() token.Pos          { return t.Type.Start() }
+func (t *ElementaryType) Start() token.Pos  { return t.Pos }
+func (t *ElementaryType) End() token.Pos    { return token.Pos(int(t.Pos) + len(t.Kind.Literal)) }
+func (t *UserDefinedType) Start() token.Pos { return t.Name.Start() }
+func (t *UserDefinedType) End() token.Pos   { return t.Name.End() }
+func (t *Param) Start() token.Pos           { return t.Type.Start() }
 func (t *Param) End() token.Pos {
 	if t.Name != nil {
 		return t.Name.End()
@@ -315,10 +321,11 @@ func (t *EventParam) End() token.Pos   { return t.Name.End() }
 
 // typeNode() implementations
 
-func (*ElementaryType) typeNode() {}
-func (*Param) typeNode()          {}
-func (*ParamList) typeNode()      {}
-func (*EventParam) typeNode()     {}
+func (*ElementaryType) typeNode()  {}
+func (*UserDefinedType) typeNode() {}
+func (*Param) typeNode()           {}
+func (*ParamList) typeNode()       {}
+func (*EventParam) typeNode()      {}
 
 // String() implementations for Types
 
@@ -326,6 +333,10 @@ func (t *ElementaryType) String() string {
 	var out bytes.Buffer
 	out.WriteString(t.Kind.Literal)
 	return out.String()
+}
+
+func (t *UserDefinedType) String() string {
+	return t.Name.String()
 }
 
 func (t *Param) String() string {
@@ -604,7 +615,28 @@ func (s *EmitStatement) String() string {
 // TODO: Add Struct declaration
 // TODO: Add Enum declaration
 // TODO: Add Error declaration
-// TODO: Add Using For Directive declaration
+
+// UsingForObject represents an item in a `using for` list.
+// e.g., `add`, `sub as sub_`, or `isEqual as ==`
+type UsingForObject struct {
+	Path *Identifier // The function being imported (e.g., `isEqual`).
+	// The alias. Can be another identifier (e.g., `sub_`) or an
+	// operator token (e.g., token.EQL for '==').
+	// The zero value (token.ILLEGAL) indicates no alias is present.
+	Alias token.Token
+}
+
+// UsingForDirective represents a "using for" directive. (This struct is unchanged)
+type UsingForDirective struct {
+	Pos         token.Pos         // position of the 'using' keyword
+	LibraryName *Identifier       // The library name (e.g., SafeMath), mutually exclusive with List.
+	List        []*UsingForObject // The list of functions/operators, mutually exclusive with LibraryName.
+	ForType     Type              // The type the library is attached to. Can be nil if IsWildcard is true.
+	IsWildcard  bool              // True if the target is '*', e.g., `using A for *;`
+	IsGlobal    bool              // True if the 'global' keyword is present.
+	Semicolon   token.Pos         // position of the semicolon; useful for End() implementation.
+}
+
 // TODO: Add User Defined Value Type declaration
 
 // Pragma and import directives could go into the File struct, since
@@ -644,6 +676,7 @@ type ContractBody struct {
 // TODO: Add modifier invocations *CallExpression
 // TODO: Add override specifier
 // TODO: Add documentation comments
+
 type FunctionDeclaration struct {
 	Pos        token.Pos       // position of the "function" keyword
 	Name       *Identifier     // function name
@@ -673,6 +706,16 @@ type EventDeclaration struct {
 }
 
 // Start() and End() implementations for Declaration type Nodes
+
+func (o *UsingForObject) Start() token.Pos { return o.Path.Start() }
+func (o *UsingForObject) End() token.Pos {
+	if o.Alias.Type != token.ILLEGAL {
+		return token.Pos(int(o.Alias.Pos) + len(o.Alias.Literal))
+	}
+	return o.Path.End()
+}
+func (d *UsingForDirective) Start() token.Pos        { return d.Pos }
+func (d *UsingForDirective) End() token.Pos          { return d.Semicolon + 1 }
 func (d *ContractBase) Start() token.Pos             { return d.Pos }
 func (d *ContractBase) End() token.Pos               { return d.Body.End() }
 func (d *ContractBody) Start() token.Pos             { return d.LeftBrace }
@@ -690,6 +733,8 @@ func (d *EventDeclaration) End() token.Pos { return d.Params.Closing }
 // declarationNode() implementations to ensure that only declaration nodes can
 // be assigned to a Declaration.
 
+func (*UsingForObject) declarationNode()           {}
+func (*UsingForDirective) declarationNode()        {}
 func (*ContractBase) declarationNode()             {}
 func (*ContractBody) declarationNode()             {}
 func (*StateVariableDeclaration) declarationNode() {}
@@ -697,6 +742,48 @@ func (*FunctionDeclaration) declarationNode()      {}
 func (*EventDeclaration) declarationNode()         {}
 
 // String() implementations for Declarations
+
+func (o *UsingForObject) String() string {
+	if o.Alias.Type != token.ILLEGAL {
+		return o.Path.String() + " as " + o.Alias.Literal
+	}
+	return o.Path.String()
+}
+
+func (d *UsingForDirective) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("using ")
+
+	if d.LibraryName != nil {
+		out.WriteString(d.LibraryName.String())
+	} else if len(d.List) > 0 {
+		out.WriteString("{")
+		for i, item := range d.List {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(item.String())
+		}
+		out.WriteString("}")
+	}
+
+	out.WriteString(" for ")
+
+	if d.IsWildcard {
+		out.WriteString("*")
+	} else if d.ForType != nil {
+		out.WriteString(d.ForType.String())
+	}
+
+	if d.IsGlobal {
+		out.WriteString(" global")
+	}
+
+	out.WriteString(";")
+
+	return out.String()
+}
 
 func (d *ContractDeclaration) String() string {
 	var out bytes.Buffer

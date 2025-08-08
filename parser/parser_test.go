@@ -913,6 +913,174 @@ func TestParseDeclarations(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "using for simple library binding",
+			source: `
+		using SafeMath for uint256;
+	`,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 declaration, got %d", len(decls))
+				}
+
+				dir, ok := decls[0].(*ast.UsingForDirective)
+				if !ok {
+					t.Fatalf("Expected UsingForDirective, got %T", decls[0])
+				}
+
+				if dir.LibraryName == nil || dir.LibraryName.Value != "SafeMath" {
+					t.Errorf("Expected library name 'SafeMath', got %v", dir.LibraryName)
+				}
+				if dir.List != nil {
+					t.Errorf("Expected List to be nil, got %v", dir.List)
+				}
+				if dir.IsWildcard {
+					t.Error("Expected IsWildcard to be false")
+				}
+				if dir.IsGlobal {
+					t.Error("Expected IsGlobal to be false")
+				}
+
+				// Check the type
+				ft, ok := dir.ForType.(*ast.ElementaryType)
+				if !ok {
+					t.Fatalf("Expected ForType to be ElementaryType, got %T", dir.ForType)
+				}
+				if ft.Kind.Type != token.UINT_256 {
+					t.Errorf("Expected ForType to be uint256, got %s", ft.Kind.Literal)
+				}
+			},
+		},
+		{
+			name: "using for wildcard binding in contract",
+			source: `
+		contract C {
+			using Lib for *;
+		}
+	`,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 contract declaration, got %d", len(decls))
+				}
+				contract, ok := decls[0].(*ast.ContractDeclaration)
+				if !ok {
+					t.Fatalf("Expected ContractDeclaration, got %T", decls[0])
+				}
+				if len(contract.Body.Declarations) != 1 {
+					t.Fatalf("Expected 1 declaration in contract, got %d", len(contract.Body.Declarations))
+				}
+
+				dir, ok := contract.Body.Declarations[0].(*ast.UsingForDirective)
+				if !ok {
+					t.Fatalf("Expected UsingForDirective, got %T", contract.Body.Declarations[0])
+				}
+
+				if dir.LibraryName == nil || dir.LibraryName.Value != "Lib" {
+					t.Errorf("Expected library name 'Lib', got %v", dir.LibraryName)
+				}
+				if !dir.IsWildcard {
+					t.Error("Expected IsWildcard to be true")
+				}
+				if dir.ForType != nil {
+					t.Errorf("Expected ForType to be nil for wildcard, got %v", dir.ForType)
+				}
+			},
+		},
+		{
+			name: "using for list binding with global scope",
+			source: `
+		using {add, sub} for uint256 global;
+	`,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 declaration, got %d", len(decls))
+				}
+				dir, ok := decls[0].(*ast.UsingForDirective)
+				if !ok {
+					t.Fatalf("Expected UsingForDirective, got %T", decls[0])
+				}
+
+				if dir.LibraryName != nil {
+					t.Errorf("Expected LibraryName to be nil, got %v", dir.LibraryName)
+				}
+				if len(dir.List) != 2 {
+					t.Fatalf("Expected 2 items in List, got %d", len(dir.List))
+				}
+
+				// Check first item
+				if dir.List[0].Path.Value != "add" {
+					t.Errorf("Expected item 0 path 'add', got '%s'", dir.List[0].Path.Value)
+				}
+				if dir.List[0].Alias.Type != token.ILLEGAL {
+					t.Errorf("Expected item 0 to have no alias, got %v", dir.List[0].Alias)
+				}
+
+				// Check second item
+				if dir.List[1].Path.Value != "sub" {
+					t.Errorf("Expected item 1 path 'sub', got '%s'", dir.List[1].Path.Value)
+				}
+				if dir.List[1].Alias.Type != token.ILLEGAL {
+					t.Errorf("Expected item 1 to have no alias, got %v", dir.List[1].Alias)
+				}
+
+				if !dir.IsGlobal {
+					t.Error("Expected IsGlobal to be true")
+				}
+			},
+		},
+		{
+			name: "using for complex list with identifier and operator aliases",
+			source: `
+		using {add as +, isEqual as ==, sub} for MyType global;
+	`,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 declaration, got %d", len(decls))
+				}
+				dir, ok := decls[0].(*ast.UsingForDirective)
+				if !ok {
+					t.Fatalf("Expected UsingForDirective, got %T", decls[0])
+				}
+
+				if len(dir.List) != 3 {
+					t.Fatalf("Expected 3 items in List, got %d", len(dir.List))
+				}
+
+				expected := []struct {
+					path      string
+					aliasType token.TokenType
+					aliasLit  string
+				}{
+					{"add", token.ADD, "+"},
+					{"isEqual", token.EQUAL, "=="},
+					{"sub", token.ILLEGAL, ""},
+				}
+
+				for i, item := range dir.List {
+					if item.Path.Value != expected[i].path {
+						t.Errorf("Item %d: Expected path '%s', got '%s'", i, expected[i].path, item.Path.Value)
+					}
+					if item.Alias.Type != expected[i].aliasType {
+						t.Errorf("Item %d: Expected alias type %s, got %s", i, expected[i].aliasType, item.Alias.Type)
+					}
+					if item.Alias.Literal != expected[i].aliasLit {
+						t.Errorf("Item %d: Expected alias literal '%s', got '%s'", i, expected[i].aliasLit, item.Alias.Literal)
+					}
+				}
+
+				if !dir.IsGlobal {
+					t.Error("Expected IsGlobal to be true")
+				}
+
+				ft, ok := dir.ForType.(*ast.UserDefinedType)
+				if !ok {
+					t.Fatalf("Expected ForType to be Identifier (for user-defined type), got %T", dir.ForType)
+				}
+				if ft.Name.Value != "MyType" {
+					t.Errorf("Expected ForType to be 'MyType', got '%s'", ft.Name.Value)
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {

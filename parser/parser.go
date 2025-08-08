@@ -203,8 +203,10 @@ func (p *parser) parseSourceUnitDeclaration() ast.Declaration {
 		}
 		return nil
 
-		// import-directive
-		// using-directive
+	// import-directive
+
+	case token.USING: // TODO: finish using-directive
+		return p.parseUsingForDirective()
 
 	case token.CONTRACT, token.ABSTRACT: // contract-definition
 		return p.parseContractDeclaration()
@@ -348,7 +350,10 @@ func (p *parser) parseContractBody() *ast.ContractBody {
 			p.nextToken() // Move past semicolon
 
 			// error-definition
-			// using-directive
+
+		case tk == token.USING: // using-directive
+			decls = append(decls, p.parseUsingForDirective())
+			p.nextToken() // Move past semicolon
 
 		case tk == token.RBRACE: // End of contract's body
 			body.Declarations = decls
@@ -357,6 +362,127 @@ func (p *parser) parseContractBody() *ast.ContractBody {
 			return body
 		}
 	}
+}
+
+func (p *parser) parseUsingForDirective() *ast.UsingForDirective {
+	if p.trace {
+		defer un(trace("parseUsingForDirective"))
+	}
+
+	// The parser is sitting on the 'using' keyword.
+	dir := &ast.UsingForDirective{
+		Pos: p.currTkn.Pos,
+	}
+
+	p.nextToken() // Consume 'using'
+
+	// The next token is either an identifier (for a library) or a '{' for an item list.
+	if p.currTknIs(token.LBRACE) {
+		dir.List = p.parseUsingForList()
+	} else if p.currTknIs(token.IDENTIFIER) {
+		dir.LibraryName = &ast.Identifier{Pos: p.currTkn.Pos, Value: p.currTkn.Literal}
+		p.nextToken() // Consume library identifier
+	} else {
+		p.addError(p.currTkn.Pos, "expected library name or '{' after 'using'")
+		return nil
+	}
+
+	if !p.currTknIs(token.FOR) {
+		p.addError(p.currTkn.Pos, "expected 'for' after 'using' declaration")
+		return nil
+	}
+	p.nextToken() // Consume 'for'
+
+	// Expect either a type or the wildcard '*'.
+	if p.currTknIs(token.MUL) {
+		dir.IsWildcard = true
+		p.nextToken() // Consume '*'
+	} else {
+		dir.ForType = p.parseTypeName()
+	}
+
+	// Check for optional 'global' keyword.
+	if p.currTknIs(token.GLOBAL) {
+		dir.IsGlobal = true
+		p.nextToken() // Consume 'global'
+	}
+
+	if !p.currTknIs(token.SEMICOLON) {
+		p.addError(p.currTkn.Pos, "expected ';' to terminate using directive")
+		return nil
+	}
+
+	dir.Semicolon = p.currTkn.Pos
+
+	return dir
+}
+
+func (p *parser) parseUsingForList() []*ast.UsingForObject {
+	if p.trace {
+		defer un(trace("parseUsingForList"))
+	}
+
+	var items []*ast.UsingForObject
+	p.nextToken() // Consume '{'
+
+	for !p.currTknIs(token.RBRACE) {
+		item := &ast.UsingForObject{}
+		if !p.currTknIs(token.IDENTIFIER) {
+			p.addError(p.currTkn.Pos, "expected identifier in using list")
+			return nil
+		}
+		item.Path = &ast.Identifier{Pos: p.currTkn.Pos, Value: p.currTkn.Literal}
+		p.nextToken() // Consume identifier path
+
+		if p.currTknIs(token.AS) {
+			p.nextToken() // Consume 'as'
+			if !token.IsUserDefinableOperator(p.currTkn.Type) {
+				p.addError(p.currTkn.Pos, "expected a user-definable operator, got: "+p.currTkn.Literal)
+				return nil
+			}
+			item.Alias = p.currTkn
+			p.nextToken() // Consume alias
+		}
+
+		items = append(items, item)
+
+		if p.currTknIs(token.COMMA) {
+			p.nextToken() // Consume ','
+		} else if !p.currTknIs(token.RBRACE) {
+			p.addError(p.currTkn.Pos, "expected ',' or '}' in using list")
+			return nil
+		}
+	}
+
+	if !p.currTknIs(token.RBRACE) {
+		p.addError(p.currTkn.Pos, "expected '}' to close using list")
+		return nil
+	}
+	p.nextToken() // Consume '}'
+
+	return items
+}
+
+func (p *parser) parseTypeName() ast.Type {
+	if token.IsElementaryType(p.currTkn.Type) {
+		t := &ast.ElementaryType{
+			Pos:  p.currTkn.Pos,
+			Kind: p.currTkn,
+		}
+		p.nextToken() // Consume the type token
+		return t
+	}
+
+	if p.currTknIs(token.IDENTIFIER) {
+		t := &ast.UserDefinedType{
+			Name: &ast.Identifier{Pos: p.currTkn.Pos, Value: p.currTkn.Literal},
+		}
+		p.nextToken() // Consume the identifier token
+		return t
+	}
+
+	p.addError(p.currTkn.Pos, "expected a type name (e.g., uint256 or MyStruct)")
+	return nil
 }
 
 func (p *parser) parseFunctionDeclaration() *ast.FunctionDeclaration {

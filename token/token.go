@@ -126,6 +126,7 @@ const (
 	FALLBACK
 	FOR
 	FUNCTION
+	GLOBAL
 	HEX
 	IF
 	INDEXED
@@ -435,6 +436,7 @@ var Tokens = [...]string{
 	FALLBACK:    "fallback",
 	FOR:         "for",
 	FUNCTION:    "function",
+	GLOBAL:      "global",
 	HEX:         "hex",
 	IF:          "if",
 	INDEXED:     "indexed",
@@ -711,6 +713,17 @@ func LookupIdent(ident string) TokenType {
 
 func IsElementaryType(tt TokenType) bool {
 	return elementary_type_beg < tt && tt < elementary_type_end
+}
+
+func IsUserDefinableOperator(t TokenType) bool {
+	switch t {
+	case EQUAL, NOT_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN, LESS_THAN_OR_EQUAL,
+		BIT_NOT, BIT_AND, BIT_OR, BIT_XOR,
+		SUB, ADD, MUL, DIV, MOD:
+		return true
+	default:
+		return false
+	}
 }
 
 func IsVarVisibility(tt TokenType) bool {
