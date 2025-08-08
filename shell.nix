@@ -4,6 +4,7 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     go
     delve
+    goreleaser
   ];
 
   # Isolate project specific dependencies from the rest of the system.

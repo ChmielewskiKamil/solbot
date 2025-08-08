@@ -7,4 +7,6 @@ log.txt
 # Nix-shell project dependencies
 .go
 
+# Other
+.env
 .DS_Store
