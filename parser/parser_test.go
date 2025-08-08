@@ -987,6 +987,56 @@ func TestParseDeclarations(t *testing.T) {
 			},
 		},
 		{
+			name: "using for user-defined type inside a contract",
+			source: `
+		contract MyContract {
+			using SafeERC20 for IERC20;
+		}
+	`,
+			validate: func(t *testing.T, decls []ast.Declaration) {
+				if len(decls) != 1 {
+					t.Fatalf("Expected 1 contract declaration, got %d", len(decls))
+				}
+				contract, ok := decls[0].(*ast.ContractDeclaration)
+				if !ok {
+					t.Fatalf("Expected ContractDeclaration, got %T", decls[0])
+				}
+				if len(contract.Body.Declarations) != 1 {
+					t.Fatalf("Expected 1 declaration in contract, got %d", len(contract.Body.Declarations))
+				}
+
+				dir, ok := contract.Body.Declarations[0].(*ast.UsingForDirective)
+				if !ok {
+					t.Fatalf("Expected UsingForDirective, got %T", contract.Body.Declarations[0])
+				}
+
+				// Validate the Library Name
+				if dir.LibraryName == nil || dir.LibraryName.Value != "SafeERC20" {
+					t.Errorf("Expected library name 'SafeERC20', got %v", dir.LibraryName)
+				}
+
+				// Validate the ForType
+				udt, ok := dir.ForType.(*ast.UserDefinedType)
+				if !ok {
+					t.Fatalf("Expected ForType to be UserDefinedType, got %T", dir.ForType)
+				}
+				if udt.Name.Value != "IERC20" {
+					t.Errorf("Expected user-defined type name to be 'IERC20', got '%s'", udt.Name.Value)
+				}
+
+				// Validate other properties
+				if dir.List != nil {
+					t.Errorf("Expected List to be nil, got %v", dir.List)
+				}
+				if dir.IsWildcard {
+					t.Error("Expected IsWildcard to be false")
+				}
+				if dir.IsGlobal {
+					t.Error("Expected IsGlobal to be false")
+				}
+			},
+		},
+		{
 			name: "using for list binding with global scope",
 			source: `
 		using {add, sub} for uint256 global;
