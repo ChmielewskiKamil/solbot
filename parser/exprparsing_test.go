@@ -316,6 +316,299 @@ func Test_ParseCallExpression(t *testing.T) {
 	test_LiteralExpression(t, callExpr.Args[2], "bar")
 }
 
+func TestParseExpressions(t *testing.T) {
+	// This helper function simplifies parsing expressions by wrapping them in a function
+	// and extracting the statements, similar to the original test setup.
+	parseExpressionStatements := func(t *testing.T, src string) []ast.Statement {
+		// Wrap the expressions in a function for valid parsing
+		fullSrc := "function wrapper() { " + src + " }"
+		file := test_helper_parseSource(t, fullSrc, false)
+		fnBody := test_helper_parseFnBody(t, file)
+		return fnBody.Statements
+	}
+
+	testCases := []struct {
+		name     string
+		source   string
+		validate func(t *testing.T, stmts []ast.Statement)
+	}{
+		{
+			name:   "simple identifier",
+			source: `foo;`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 1 {
+					t.Fatalf("Expected 1 statement, got %d", len(stmts))
+				}
+				exprStmt, ok := stmts[0].(*ast.ExpressionStatement)
+				if !ok {
+					t.Fatalf("Expected ExpressionStatement, got %T", stmts[0])
+				}
+				test_LiteralExpression(t, exprStmt.Expression, "foo")
+			},
+		},
+		{
+			name:   "number literals",
+			source: `1337; 0x12345;`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 2 {
+					t.Fatalf("Expected 2 statements, got %d", len(stmts))
+				}
+				expectedValues := []*big.Int{big.NewInt(1337), big.NewInt(0x12345)}
+				for i, stmt := range stmts {
+					exprStmt, ok := stmt.(*ast.ExpressionStatement)
+					if !ok {
+						t.Fatalf("Statement %d: Expected ExpressionStatement, got %T", i, stmt)
+					}
+					test_LiteralExpression(t, exprStmt.Expression, expectedValues[i])
+				}
+			},
+		},
+		{
+			name:   "boolean literals",
+			source: `true; false;`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 2 {
+					t.Fatalf("Expected 2 statements, got %d", len(stmts))
+				}
+				expectedValues := []bool{true, false}
+				for i, stmt := range stmts {
+					exprStmt, ok := stmt.(*ast.ExpressionStatement)
+					if !ok {
+						t.Fatalf("Statement %d: Expected ExpressionStatement, got %T", i, stmt)
+					}
+					test_LiteralExpression(t, exprStmt.Expression, expectedValues[i])
+				}
+			},
+		},
+		{
+			name:   "prefix expressions",
+			source: `-1337; !a; delete foo;`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 3 {
+					t.Fatalf("Expected 3 statements, got %d", len(stmts))
+				}
+				tests := []struct {
+					operator    string
+					expectedVal interface{}
+				}{
+					{"-", big.NewInt(1337)},
+					{"!", "a"},
+					{"delete", "foo"},
+				}
+				for i, tt := range tests {
+					exprStmt := stmts[i].(*ast.ExpressionStatement)
+					pExpr, ok := exprStmt.Expression.(*ast.PrefixExpression)
+					if !ok {
+						t.Fatalf("Expected PrefixExpression, got %T", exprStmt.Expression)
+					}
+					if pExpr.Operator.Literal != tt.operator {
+						t.Fatalf("Expected operator %s, got %s", tt.operator, pExpr.Operator.Literal)
+					}
+					test_LiteralExpression(t, pExpr.Right, tt.expectedVal)
+				}
+			},
+		},
+		{
+			name:   "infix expressions",
+			source: `a + b; true == false;`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 2 {
+					t.Fatalf("Expected 2 statements, got %d", len(stmts))
+				}
+				test_InfixExpression(t, stmts[0].(*ast.ExpressionStatement).Expression, "a", "+", "b")
+				test_InfixExpression(t, stmts[1].(*ast.ExpressionStatement).Expression, true, "==", false)
+			},
+		},
+		{
+			name:   "operator precedence",
+			source: `a + b * c; -a * b; 3 * (8 + 2) * 2; foo(a * b) + bar(c / d, e);`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 4 {
+					t.Fatalf("Expected 4 statements, got %d", len(stmts))
+				}
+				expectedStrings := []string{
+					"(a + (b * c))",
+					"((-a) * b)",
+					"((3 * (8 + 2)) * 2)",
+					"(foo((a * b)) + bar((c / d), e))",
+				}
+				for i, expected := range expectedStrings {
+					actual := stmts[i].(*ast.ExpressionStatement).Expression.String()
+					if actual != expected {
+						t.Errorf("Statement %d: expected '%s', got '%s'", i, expected, actual)
+					}
+				}
+			},
+		},
+		{
+			name:   "call expression with complex arguments",
+			source: `foo(a + b, 3 * 5, bar);`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 1 {
+					t.Fatalf("Expected 1 statement, got %d", len(stmts))
+				}
+				exprStmt := stmts[0].(*ast.ExpressionStatement)
+				callExpr, ok := exprStmt.Expression.(*ast.CallExpression)
+				if !ok {
+					t.Fatalf("Expected CallExpression, got %T", exprStmt.Expression)
+				}
+				test_Identifier(t, callExpr.Ident, "foo")
+				if len(callExpr.Args) != 3 {
+					t.Fatalf("Expected 3 arguments, got %d", len(callExpr.Args))
+				}
+				test_InfixExpression(t, callExpr.Args[0], "a", "+", "b")
+				test_InfixExpression(t, callExpr.Args[1], big.NewInt(3), "*", big.NewInt(5))
+				test_LiteralExpression(t, callExpr.Args[2], "bar")
+			},
+		},
+		{
+			name:   "member access and call chain",
+			source: `a.b.c(d, e.f);`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 1 {
+					t.Fatalf("Expected 1 statement, got %d", len(stmts))
+				}
+				// Expected AST: Call( MemberAccess( MemberAccess(a, b), c ), [d, MemberAccess(e, f)] )
+				exprStmt := stmts[0].(*ast.ExpressionStatement)
+				callExpr, ok := exprStmt.Expression.(*ast.CallExpression)
+				if !ok {
+					t.Fatalf("Expected top-level expression to be a CallExpression, got %T", exprStmt.Expression)
+				}
+
+				// Validate the function being called: a.b.c
+				memberAccess1, ok := callExpr.Ident.(*ast.MemberAccessExpression)
+				if !ok {
+					t.Fatalf("Expected call identifier to be a MemberAccessExpression, got %T", callExpr.Ident)
+				}
+				test_Identifier(t, memberAccess1.Member, "c")
+
+				memberAccess2, ok := memberAccess1.Expression.(*ast.MemberAccessExpression)
+				if !ok {
+					t.Fatalf("Expected nested expression to be a MemberAccessExpression, got %T", memberAccess1.Expression)
+				}
+				test_Identifier(t, memberAccess2.Member, "b")
+				test_Identifier(t, memberAccess2.Expression, "a")
+
+				// Validate the arguments: [d, e.f]
+				if len(callExpr.Args) != 2 {
+					t.Fatalf("Expected 2 arguments, got %d", len(callExpr.Args))
+				}
+				test_Identifier(t, callExpr.Args[0], "d")
+				arg2, ok := callExpr.Args[1].(*ast.MemberAccessExpression)
+				if !ok {
+					t.Fatalf("Expected second argument to be a MemberAccessExpression, got %T", callExpr.Args[1])
+				}
+				test_Identifier(t, arg2.Member, "f")
+				test_Identifier(t, arg2.Expression, "e")
+			},
+		},
+		{
+			name:   "postfix expressions",
+			source: `i++; j--; k++ * 2;`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 3 {
+					t.Fatalf("Expected 3 statements, got %d", len(stmts))
+				}
+
+				// Test case 1: i++
+				stmt1 := stmts[0].(*ast.ExpressionStatement)
+				postfix1, ok := stmt1.Expression.(*ast.PostfixExpression)
+				if !ok {
+					t.Fatalf("Stmt 1: Expected PostfixExpression, got %T", stmt1.Expression)
+				}
+				if postfix1.Operator.Literal != "++" {
+					t.Errorf("Stmt 1: Expected operator ++, got %s", postfix1.Operator.Literal)
+				}
+				test_Identifier(t, postfix1.Left, "i")
+
+				// Test case 2: j--
+				stmt2 := stmts[1].(*ast.ExpressionStatement)
+				postfix2, ok := stmt2.Expression.(*ast.PostfixExpression)
+				if !ok {
+					t.Fatalf("Stmt 2: Expected PostfixExpression, got %T", stmt2.Expression)
+				}
+				if postfix2.Operator.Literal != "--" {
+					t.Errorf("Stmt 2: Expected operator --, got %s", postfix2.Operator.Literal)
+				}
+				test_Identifier(t, postfix2.Left, "j")
+
+				// Test case 3: k++ * 2 (tests precedence)
+				// Expected AST: Infix( Postfix(k, ++), *, 2 )
+				stmt3 := stmts[2].(*ast.ExpressionStatement)
+				infix, ok := stmt3.Expression.(*ast.InfixExpression)
+				if !ok {
+					t.Fatalf("Stmt 3: Expected InfixExpression, got %T", stmt3.Expression)
+				}
+				if infix.Operator.Literal != "*" {
+					t.Errorf("Stmt 3: Expected operator *, got %s", infix.Operator.Literal)
+				}
+
+				// Check left side of the multiplication
+				postfix3, ok := infix.Left.(*ast.PostfixExpression)
+				if !ok {
+					t.Fatalf("Stmt 3: Expected left side to be PostfixExpression, got %T", infix.Left)
+				}
+				if postfix3.Operator.Literal != "++" {
+					t.Errorf("Stmt 3: Expected postfix operator ++, got %s", postfix3.Operator.Literal)
+				}
+				test_Identifier(t, postfix3.Left, "k")
+
+				// Check right side of the multiplication
+				test_NumberLiteral(t, infix.Right, big.NewInt(2))
+			},
+		},
+		{
+			name:   "postfix binds tighter than prefix",
+			source: `!i++;`,
+			validate: func(t *testing.T, stmts []ast.Statement) {
+				if len(stmts) != 1 {
+					t.Fatalf("Expected 1 statement, got %d", len(stmts))
+				}
+
+				// The expected structure is: Prefix( !, Postfix(i, ++) )
+				// The string representation should be "(!(i++))"
+				exprStmt := stmts[0].(*ast.ExpressionStatement)
+
+				// 1. Check the root is a PrefixExpression (!)
+				prefixExpr, ok := exprStmt.Expression.(*ast.PrefixExpression)
+				if !ok {
+					t.Fatalf("Expected root to be PrefixExpression, got %T", exprStmt.Expression)
+				}
+				if prefixExpr.Operator.Literal != "!" {
+					t.Errorf("Expected prefix operator to be '!', got '%s'", prefixExpr.Operator.Literal)
+				}
+
+				// 2. Check the right side of the '!' is a PostfixExpression (i++)
+				postfixExpr, ok := prefixExpr.Right.(*ast.PostfixExpression)
+				if !ok {
+					t.Fatalf("Expected right side of prefix to be PostfixExpression, got %T", prefixExpr.Right)
+				}
+				if postfixExpr.Operator.Literal != "++" {
+					t.Errorf("Expected postfix operator to be '++', got '%s'", postfixExpr.Operator.Literal)
+				}
+
+				// 3. Check the left side of the '++' is the identifier 'i'
+				test_Identifier(t, postfixExpr.Left, "i")
+
+				// 4. Finally, check the string output for a definitive tree structure check
+				expectedStr := "(!(i++))"
+				if exprStmt.Expression.String() != expectedStr {
+					t.Errorf("Expected string representation '%s', got '%s'", expectedStr, exprStmt.Expression.String())
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Use the helper to parse the source string
+			statements := parseExpressionStatements(t, tc.source)
+			// Run the custom validation logic for this test case
+			tc.validate(t, statements)
+		})
+	}
+}
+
 /*~*~*~*~*~*~*~*~*~*~*~*~* Helper Functions ~*~*~*~*~*~*~*~*~*~*~*~*~*/
 
 func test_helper_parseSource(t *testing.T, src string, tracing bool) *ast.File {

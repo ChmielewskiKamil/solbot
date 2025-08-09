@@ -142,6 +142,8 @@ func newParser(file *token.SourceFile) *parser {
 	p.registerInfix(token.ASSIGN_MOD, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.PERIOD, p.parseMemberAccessExpression)
+	p.registerInfix(token.INC, p.parsePostfixExpression)
+	p.registerInfix(token.DEC, p.parsePostfixExpression)
 
 	return p
 }

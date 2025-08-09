@@ -106,8 +106,6 @@ var precedences = map[token.TokenType]int{
 	// 3.
 	token.EXP: EXPONENT,
 	// 2.
-	token.INC: PREFIX,
-	token.DEC: PREFIX,
 	// token.SUB: PREFIX, // TODO: UNARY MINUS is problematic
 	token.DELETE:  PREFIX,
 	token.NOT:     PREFIX,
@@ -117,6 +115,8 @@ var precedences = map[token.TokenType]int{
 	// is harder to implement.
 	token.LPAREN: HIGHEST,
 	token.PERIOD: HIGHEST,
+	token.INC:    HIGHEST,
+	token.DEC:    HIGHEST,
 }
 
 func (p *parser) peekPrecedence() int {
@@ -260,6 +260,18 @@ func (p *parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	return exp
 }
 
+func (p *parser) parsePostfixExpression(left ast.Expression) ast.Expression {
+	if p.trace {
+		defer un(trace("parsePostfixExpression"))
+	}
+
+	return &ast.PostfixExpression{
+		Pos:      p.currTkn.Pos,
+		Operator: p.currTkn,
+		Left:     left,
+	}
+}
+
 func (p *parser) parseGroupedExpression() ast.Expression {
 	if p.trace {
 		defer un(trace("parseGroupedExpression"))
@@ -357,7 +369,6 @@ func (p *parser) parseCallArguments() []ast.Expression {
 	return args
 }
 
-// TODO: Add tests for member access expressions
 func (p *parser) parseMemberAccessExpression(left ast.Expression) ast.Expression {
 	if p.trace {
 		defer un(trace("parseMemberAccessExpression"))
@@ -367,6 +378,7 @@ func (p *parser) parseMemberAccessExpression(left ast.Expression) ast.Expression
 		Pos:        left.Start(),
 		Expression: left,
 	}
+
 	// The current token is the dot. We expect an identifier next.
 	if !p.expectPeek(token.IDENTIFIER) {
 		p.addError(p.peekTkn.Pos, "expected identifier after '.' for member access")

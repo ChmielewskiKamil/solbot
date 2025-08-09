@@ -98,6 +98,12 @@ type (
 		Right    Expression  // right operand
 	}
 
+	PostfixExpression struct {
+		Pos      token.Pos   // position of the left-hand expression
+		Operator token.Token // postfix operator
+		Left     Expression  // left-hand expression
+	}
+
 	CallExpression struct {
 		Pos   token.Pos    // Position of the identifier being called
 		Ident Expression   // Identifier that is being called; function name for functions, event name for events.
@@ -144,6 +150,10 @@ func (x *InfixExpression) Start() token.Pos { return x.Pos }
 func (x *InfixExpression) End() token.Pos {
 	return x.Right.End()
 }
+func (x *PostfixExpression) Start() token.Pos { return x.Left.Start() }
+func (x *PostfixExpression) End() token.Pos {
+	return token.Pos(int(x.Operator.Pos) + len(x.Operator.Literal))
+}
 func (x *CallExpression) Start() token.Pos { return x.Pos }
 func (x *CallExpression) End() token.Pos {
 	if len(x.Args) > 0 {
@@ -170,6 +180,7 @@ func (*NumberLiteral) expressionNode()            {}
 func (*BooleanLiteral) expressionNode()           {}
 func (*PrefixExpression) expressionNode()         {}
 func (*InfixExpression) expressionNode()          {}
+func (*PostfixExpression) expressionNode()        {}
 func (*CallExpression) expressionNode()           {}
 func (*MemberAccessExpression) expressionNode()   {}
 func (*ElementaryTypeExpression) expressionNode() {}
@@ -200,6 +211,14 @@ func (x *InfixExpression) String() string {
 	out.WriteString(x.Operator.Literal)
 	out.WriteString(" ")
 	out.WriteString(x.Right.String())
+	out.WriteString(")")
+	return out.String()
+}
+func (x *PostfixExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(x.Left.String())
+	out.WriteString(x.Operator.Literal)
 	out.WriteString(")")
 	return out.String()
 }
